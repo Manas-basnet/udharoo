@@ -22,44 +22,27 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Welcome to Udharoo',
+              'Welcome to POS Home',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 8),
-            Text(
-              'Your digital ledger for loans and borrows',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-            SizedBox(height: 24),
+            SizedBox(height: 16),
             Card(
               child: ListTile(
-                leading: Icon(Icons.trending_up),
+                leading: Icon(Icons.analytics),
                 title: Text('Dashboard'),
-                subtitle: Text('View your financial overview'),
+                subtitle: Text('View your delivery analytics'),
                 trailing: Icon(Icons.arrow_forward_ios),
               ),
             ),
             SizedBox(height: 8),
             Card(
               child: ListTile(
-                leading: Icon(Icons.person_add),
-                title: Text('Manage Loans'),
-                subtitle: Text('Track loans you have given'),
-                trailing: Icon(Icons.arrow_forward_ios),
-              ),
-            ),
-            SizedBox(height: 8),
-            Card(
-              child: ListTile(
-                leading: Icon(Icons.person_outline),
-                title: Text('Manage Borrows'),
-                subtitle: Text('Track money you have borrowed'),
+                leading: Icon(Icons.delivery_dining),
+                title: Text('Active Deliveries'),
+                subtitle: Text('Manage ongoing deliveries'),
                 trailing: Icon(Icons.arrow_forward_ios),
               ),
             ),
@@ -67,17 +50,8 @@ class HomeScreen extends StatelessWidget {
             Card(
               child: ListTile(
                 leading: Icon(Icons.history),
-                title: Text('Transaction History'),
-                subtitle: Text('View all past transactions'),
-                trailing: Icon(Icons.arrow_forward_ios),
-              ),
-            ),
-            SizedBox(height: 8),
-            Card(
-              child: ListTile(
-                leading: Icon(Icons.people),
-                title: Text('Contacts'),
-                subtitle: Text('Manage your contacts'),
+                title: Text('Delivery History'),
+                subtitle: Text('View past deliveries'),
                 trailing: Icon(Icons.arrow_forward_ios),
               ),
             ),

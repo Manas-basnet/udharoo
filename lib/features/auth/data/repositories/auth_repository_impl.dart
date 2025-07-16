@@ -57,25 +57,6 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<ApiResult<AuthUser>> signInWithGoogle() async {
-    return ExceptionHandler.handleExceptions(() async {
-      final user = await _remoteDatasource.signInWithGoogle();
-      final authUser = _mapFirebaseUserToAuthUser(user);
-      
-      await _localDatasource.saveUserData(
-        uid: authUser.uid,
-        email: authUser.email,
-        displayName: authUser.displayName,
-        phoneNumber: authUser.phoneNumber,
-        photoURL: authUser.photoURL,
-        emailVerified: authUser.emailVerified,
-      );
-      
-      return ApiResult.success(authUser);
-    });
-  }
-
-  @override
   Future<ApiResult<void>> signOut() async {
     return ExceptionHandler.handleExceptions(() async {
       await _remoteDatasource.signOut();

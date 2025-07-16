@@ -10,7 +10,6 @@ import 'package:udharoo/features/auth/domain/usecases/is_authenticated_usecase.d
 import 'package:udharoo/features/auth/domain/usecases/send_email_verification_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/send_password_reset_email_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_in_with_email_usecase.dart';
-import 'package:udharoo/features/auth/domain/usecases/sign_in_with_google_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_up_with_email_usecase.dart';
 
@@ -19,7 +18,6 @@ part 'auth_state.dart';
 class AuthCubit extends Cubit<AuthState> {
   final SignInWithEmailUseCase signInWithEmailUseCase;
   final SignUpWithEmailUseCase signUpWithEmailUseCase;
-  final SignInWithGoogleUseCase signInWithGoogleUseCase;
   final SignOutUseCase signOutUseCase;
   final GetCurrentUserUseCase getCurrentUserUseCase;
   final IsAuthenticatedUseCase isAuthenticatedUseCase;
@@ -33,7 +31,6 @@ class AuthCubit extends Cubit<AuthState> {
   AuthCubit({
     required this.signInWithEmailUseCase,
     required this.signUpWithEmailUseCase,
-    required this.signInWithGoogleUseCase,
     required this.signOutUseCase,
     required this.getCurrentUserUseCase,
     required this.isAuthenticatedUseCase,
@@ -94,19 +91,6 @@ class AuthCubit extends Cubit<AuthState> {
     emit(const AuthLoading());
 
     final result = await signUpWithEmailUseCase(email, password);
-
-    if (!isClosed) {
-      result.fold(
-        onSuccess: (user) => emit(AuthAuthenticated(user)),
-        onFailure: (message, type) => emit(AuthError(message, type)),
-      );
-    }
-  }
-
-  Future<void> signInWithGoogle() async {
-    emit(const AuthLoading());
-
-    final result = await signInWithGoogleUseCase();
 
     if (!isClosed) {
       result.fold(

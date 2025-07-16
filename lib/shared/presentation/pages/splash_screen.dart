@@ -33,28 +33,20 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.account_balance_wallet,
+              Icons.local_shipping,
               size: 100,
               color: Colors.white,
             ),
             SizedBox(height: 24),
             Text(
-              'Udharoo',
+              'POS Delivery',
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
-            SizedBox(height: 8),
-            Text(
-              'Digital Ledger',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white70,
-              ),
-            ),
-            SizedBox(height: 24),
+            SizedBox(height: 16),
             CircularProgressIndicator(
               color: Colors.white,
             ),
