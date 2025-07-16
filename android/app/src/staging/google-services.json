@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "44950152191",
+    "project_id": "udharoo-staging",
+    "storage_bucket": "udharoo-staging.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:44950152191:android:c77fbb8b21623a856ebdca",
+        "android_client_info": {
+          "package_name": "com.udharoo.staging"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "44950152191-admqfur0dfi41mcvm2auqckar07npa95.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.udharoo.staging",
+            "certificate_hash": "13e39a95271fd8f8c3dd743fe3fcdeb5b8488bd9"
+          }
+        },
+        {
+          "client_id": "44950152191-2vel0rdm2g19tbes0ip9uktheenujf2i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAlZJTn3oHPJASpWBaRozbG6GZkwjb0XcM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "44950152191-2vel0rdm2g19tbes0ip9uktheenujf2i.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "44950152191-sdsjanc2it4hivjcb7c2md7gu8pm7ob2.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.udharoo"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

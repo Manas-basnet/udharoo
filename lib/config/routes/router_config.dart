@@ -4,6 +4,7 @@ import 'package:udharoo/config/routes/router_guard.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/presentation/pages/login_screen.dart';
 import 'package:udharoo/features/home/presentation/pages/home_screen.dart';
+import 'package:udharoo/features/profile/presentation/pages/profile_screen.dart';
 import 'package:udharoo/shared/presentation/layouts/scaffold_with_bottom_nav_bar.dart';
 import 'package:udharoo/shared/presentation/pages/splash_screen.dart';
 
@@ -39,7 +40,7 @@ class AppRouter {
         builder: (context, state) => const LoginScreen(),
       ),
 
-      // Main stateful shell with bottom navigation
+      // Main stateful shell with bottom navigation (use this if you want bottom nav)
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return ScaffoldWithBottomNavBar(navigationShell: navigationShell);
@@ -61,16 +62,23 @@ class AppRouter {
           StatefulShellBranch(
             navigatorKey: _profileNavigatorKey,
             routes: [
-
+              GoRoute(
+                path: Routes.profile,
+                name: 'profile',
+                builder: (context, state) => const ProfileScreen(),
+              ),
             ],
           ),
-
 
           // Settings branch
           StatefulShellBranch(
             navigatorKey: _settingsNavigatorKey,
             routes: [
-
+              GoRoute(
+                path: Routes.settings,
+                name: 'settings',
+                builder: (context, state) => const SettingsScreen(),
+              ),
             ],
           ),
         ],

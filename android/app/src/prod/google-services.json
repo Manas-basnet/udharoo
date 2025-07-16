@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "810449616786-m2n14ajuqmug1943u19kpfl5n7usj6p4.apps.googleusercontent.com",
+          "client_id": "810449616786-ft2o0jk6l3l72q94jo77pit7n06v0s62.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.udharoo",
-            "certificate_hash": "2ce942e78e9a5fca03c350e571b1bf39d252a7af"
+            "certificate_hash": "13e39a95271fd8f8c3dd743fe3fcdeb5b8488bd9"
           }
         },
         {
