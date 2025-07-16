@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
         child: BlocBuilder<ThemeCubit, ThemeState>(
           builder: (context, state) {
             return MaterialApp.router(
-              title: 'Udharoo',
+              title: 'POS Delivery',
               debugShowCheckedModeBanner: false,
               theme: state.isDarkMode
                   ? AppTheme.darkTheme

@@ -1,16 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:udharoo/features/auth/domain/datasources/remote/auth_remote_datasource.dart';
 
 class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
   final FirebaseAuth _firebaseAuth;
-  final GoogleSignIn _googleSignIn;
   
-  AuthRemoteDatasourceImpl({
-    FirebaseAuth? firebaseAuth,
-    GoogleSignIn? googleSignIn,
-  }) : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
-       _googleSignIn = googleSignIn ?? GoogleSignIn();
+  AuthRemoteDatasourceImpl({FirebaseAuth? firebaseAuth})
+      : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
   
   @override
   Future<User> signInWithEmailAndPassword(String email, String password) async {
@@ -63,53 +58,11 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       );
     }
   }
-
-  @override
-  Future<User> signInWithGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
-      if (googleUser == null) {
-        throw FirebaseAuthException(
-          code: 'sign-in-aborted',
-          message: 'Google Sign In was cancelled',
-        );
-      }
-      
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-      
-      final userCredential = await _firebaseAuth.signInWithCredential(credential);
-      
-      if (userCredential.user == null) {
-        throw FirebaseAuthException(
-          code: 'google-sign-in-failed',
-          message: 'Failed to sign in with Google',
-        );
-      }
-      
-      return userCredential.user!;
-    } on FirebaseAuthException catch (e) {
-      throw _handleFirebaseAuthException(e);
-    } catch (e) {
-      throw FirebaseAuthException(
-        code: 'unknown',
-        message: 'An unexpected error occurred during Google Sign In: ${e.toString()}',
-      );
-    }
-  }
   
   @override
   Future<void> signOut() async {
     try {
-      await Future.wait([
-        _firebaseAuth.signOut(),
-        _googleSignIn.signOut(),
-      ]);
+      await _firebaseAuth.signOut();
     } on FirebaseAuthException catch (e) {
       throw _handleFirebaseAuthException(e);
     } catch (e) {
@@ -200,16 +153,6 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
         return FirebaseAuthException(
           code: e.code,
           message: 'Network error. Please check your connection.',
-        );
-      case 'sign-in-aborted':
-        return FirebaseAuthException(
-          code: e.code,
-          message: 'Google Sign In was cancelled.',
-        );
-      case 'account-exists-with-different-credential':
-        return FirebaseAuthException(
-          code: e.code,
-          message: 'An account already exists with a different sign-in method.',
         );
       default:
         return FirebaseAuthException(
