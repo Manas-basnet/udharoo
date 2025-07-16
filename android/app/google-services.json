@@ -1,0 +1,90 @@
+{
+  "project_info": {
+    "project_number": "796118759594",
+    "project_id": "udharoo-dev",
+    "storage_bucket": "udharoo-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:796118759594:android:9c3d93cd17f3a370d838d3",
+        "android_client_info": {
+          "package_name": "com.example.udharoo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "796118759594-g9loc2re7o2mlissqsv6p6v6igqen8kj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbqsBXddOso1bcMq8USFpXJmdkG3UPJPE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "796118759594-g9loc2re7o2mlissqsv6p6v6igqen8kj.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "796118759594-ah11jj4jptr9m574kds8in1aqstdcq12.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.udharoo"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:796118759594:android:5d3baa787b74b59ad838d3",
+        "android_client_info": {
+          "package_name": "com.udharoo.dev"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "796118759594-lveluhv6qvsdkq6h4ogo9q8dplt82cse.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.udharoo.dev",
+            "certificate_hash": "2ce942e78e9a5fca03c350e571b1bf39d252a7af"
+          }
+        },
+        {
+          "client_id": "796118759594-g9loc2re7o2mlissqsv6p6v6igqen8kj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbqsBXddOso1bcMq8USFpXJmdkG3UPJPE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "796118759594-g9loc2re7o2mlissqsv6p6v6igqen8kj.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "796118759594-ah11jj4jptr9m574kds8in1aqstdcq12.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.udharoo"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
