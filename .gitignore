@@ -101,3 +101,8 @@ staging-builds/
 *.p12
 *.mobileprovision
 ios/Runner/Runner.entitlements
+
+#Generated Dart files for firebase
+lib/firebase_options_dev.dart
+lib/firebase_options_staging.dart
+lib/firebase_options_prod.dart
