@@ -32,7 +32,12 @@ class RouterGuard {
   }
   
   static String? _handleUnauthenticated(String currentPath) {
-    final protectedRoutes = [Routes.home, Routes.profile, Routes.settings];
+    final protectedRoutes = [
+      Routes.home, 
+      Routes.transactions, 
+      Routes.contacts, 
+      Routes.profile
+    ];
     if (protectedRoutes.contains(currentPath) || currentPath == Routes.splash) {
       return Routes.login;
     }

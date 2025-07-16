@@ -6,7 +6,6 @@ import 'package:udharoo/core/theme/theme_cubit/theme_cubit.dart';
 import 'package:udharoo/core/theme/theme_utils/app_theme.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 
-import 'core/theme/theme_cubit/theme_state.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -30,7 +29,7 @@ class MyApp extends StatelessWidget {
         child: BlocBuilder<ThemeCubit, ThemeState>(
           builder: (context, state) {
             return MaterialApp.router(
-              title: 'POS Delivery',
+              title: 'Udharoo',
               debugShowCheckedModeBanner: false,
               theme: state.isDarkMode
                   ? AppTheme.darkTheme
