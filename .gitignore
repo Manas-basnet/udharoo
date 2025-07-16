@@ -44,7 +44,60 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-
+# Security & Signing - NEVER COMMIT THESE
 *.keystore
+**/*.jks
 key.properties
+android/key.properties
+android/app/key.properties
 android/app/release.keystore
+android/app/debug.keystore
+android/upload-keystore.jks
+
+# Firebase & Google Services - SENSITIVE
+android/app/google-services.json
+android/app/src/dev/google-services.json
+android/app/src/staging/google-services.json
+android/app/src/prod/google-services.json
+ios/Runner/GoogleService-Info.plist
+ios/firebase_app_id_file.json
+
+# Environment specific configs
+.env
+.env.local
+.env.dev
+.env.staging
+.env.prod
+
+# Additional Android build artifacts
+android/build/
+android/.gradle/
+android/captures/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+android/.settings/
+android/.project
+android/.classpath
+
+# Firebase
+firebase-debug.log
+.firebase/
+.firebaserc
+
+# Google Play Console & Fastlane
+android/fastlane/report.xml
+android/fastlane/Preview.html
+android/fastlane/screenshots
+android/fastlane/test_output
+
+# Sensitive build outputs
+*.aab
+release-builds/
+staging-builds/
+
+# Certificates & Keys
+*.pem
+*.p12
+*.mobileprovision
+ios/Runner/Runner.entitlements

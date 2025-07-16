@@ -50,11 +50,19 @@
       },
       "oauth_client": [
         {
-          "client_id": "796118759594-pve5hvpc8gks749tohmchup6mhu82m3t.apps.googleusercontent.com",
+          "client_id": "796118759594-ir4mcj1u8quk1d34vhpgrf2gr87g4qrq.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.udharoo.dev",
-            "certificate_hash": "13e39a95271fd8f8c3dd743fe3fcdeb5b8488bd9"
+            "certificate_hash": "82e08ceac2da9c9fb6135404d819c8dff07be24d"
+          }
+        },
+        {
+          "client_id": "796118759594-ornahmbabu55tan19rhsklqhfvt5658m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.udharoo.dev",
+            "certificate_hash": "d084151358ff3b1dcb1fe5f586bd7d837d4b84f8"
           }
         },
         {

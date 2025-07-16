@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("com.google.gms.google-services")
@@ -6,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.udharoo"
+    namespace = "com.udharoo"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -54,10 +57,16 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = "release"
-            keyPassword = "your_key_password_here"
-            storeFile = file("release.keystore")
-            storePassword = "your_store_password_here"
+            val keystorePropertiesFile = rootProject.file("key.properties")
+            if (keystorePropertiesFile.exists()) {
+                val keystoreProperties = Properties()
+                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+                
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
         }
     }
 
