@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/log_out_dialog.dart';
-import 'package:udharoo/core/theme/theme_cubit/theme_cubit.dart';
+import 'package:udharoo/shared/presentation/bloc/theme_cubit/theme_cubit.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -380,6 +380,9 @@ class _ProfileItem extends StatelessWidget {
     
     return ListTile(
       onTap: onTap,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(

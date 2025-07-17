@@ -16,103 +16,85 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
 
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Main bottom navigation bar
-          Container(
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              border: Border(
-                top: BorderSide(
-                  color: colorScheme.outline.withOpacity(0.1),
-                  width: 1,
-                ),
-              ),
-            ),
-            child: SafeArea(
-              child: SizedBox(
-                height: 65,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildNavItem(
-                        context,
-                        icon: Icons.home_outlined,
-                        selectedIcon: Icons.home,
-                        label: 'Home',
-                        index: 0,
-                        isSelected: navigationShell.currentIndex == 0,
-                      ),
-                      _buildNavItem(
-                        context,
-                        icon: Icons.receipt_long_outlined,
-                        selectedIcon: Icons.receipt_long,
-                        label: 'Transactions',
-                        index: 1,
-                        isSelected: navigationShell.currentIndex == 1,
-                      ),
-                      // Empty space for the floating button
-                      const SizedBox(width: 64),
-                      _buildNavItem(
-                        context,
-                        icon: Icons.people_outline,
-                        selectedIcon: Icons.people,
-                        label: 'Contacts',
-                        index: 2,
-                        isSelected: navigationShell.currentIndex == 2,
-                      ),
-                      _buildNavItem(
-                        context,
-                        icon: Icons.person_outline,
-                        selectedIcon: Icons.person,
-                        label: 'Profile',
-                        index: 3,
-                        isSelected: navigationShell.currentIndex == 3,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          border: Border(
+            top: BorderSide(
+              color: colorScheme.outline.withOpacity(0.2),
+              width: 1,
             ),
           ),
-          // Floating scanner button positioned above the navbar
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 45, // Levitate above the navbar
-            child: Center(
-              child: _buildFloatingScannerButton(context),
+        ),
+        child: SafeArea(
+          child: Container(
+            height: 72,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(
+                  context,
+                  icon: Icons.home_outlined,
+                  selectedIcon: Icons.home,
+                  label: 'Home',
+                  index: 0,
+                  isSelected: navigationShell.currentIndex == 0,
+                ),
+                _buildNavItem(
+                  context,
+                  icon: Icons.receipt_long_outlined,
+                  selectedIcon: Icons.receipt_long,
+                  label: 'Transactions',
+                  index: 1,
+                  isSelected: navigationShell.currentIndex == 1,
+                ),
+                _buildScannerButton(context),
+                _buildNavItem(
+                  context,
+                  icon: Icons.people_outline,
+                  selectedIcon: Icons.people,
+                  label: 'Contacts',
+                  index: 2,
+                  isSelected: navigationShell.currentIndex == 2,
+                ),
+                _buildNavItem(
+                  context,
+                  icon: Icons.person_outline,
+                  selectedIcon: Icons.person,
+                  label: 'Profile',
+                  index: 3,
+                  isSelected: navigationShell.currentIndex == 3,
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildFloatingScannerButton(BuildContext context) {
+  Widget _buildScannerButton(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return GestureDetector(
-      onTap: () => _showScannerBottomSheet(context),
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          color: colorScheme.primary,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: colorScheme.surface,
-            width: 3,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => _showScannerBottomSheet(context),
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: colorScheme.primary,
+            borderRadius: BorderRadius.circular(16),
           ),
-        ),
-        child: Icon(
-          Icons.qr_code_scanner,
-          color: colorScheme.onPrimary,
-          size: 26,
+          child: Icon(
+            Icons.qr_code_scanner,
+            color: colorScheme.onPrimary,
+            size: 24,
+          ),
         ),
       ),
     );
@@ -129,30 +111,39 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Expanded(
-      child: GestureDetector(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
         onTap: () => _onItemTapped(index, context),
-        behavior: HitTestBehavior.opaque,
         child: Container(
+          width: 64,
+          height: 56,
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
+              Container(
+                width: 40,
+                height: 32,
+                decoration: isSelected
+                    ? BoxDecoration(
+                        color: colorScheme.primary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      )
+                    : null,
                 child: Icon(
                   isSelected ? selectedIcon : icon,
-                  key: ValueKey(isSelected),
                   color: isSelected
                       ? colorScheme.primary
                       : colorScheme.onSurface.withOpacity(0.6),
-                  size: 22,
+                  size: 20,
                 ),
               ),
-              const SizedBox(height: 4),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
+              const SizedBox(height: 2),
+              Text(
+                label,
                 style: TextStyle(
                   fontSize: 10,
                   color: isSelected
@@ -160,11 +151,8 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                       : colorScheme.onSurface.withOpacity(0.6),
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 ),
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -224,7 +212,6 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                     label: 'Scan QR',
                     onTap: () {
                       Navigator.pop(context);
-                      // Handle QR scan
                     },
                   ),
                   _buildQuickAction(
@@ -233,7 +220,6 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                     label: 'Lend Money',
                     onTap: () {
                       Navigator.pop(context);
-                      // Handle lend money
                     },
                   ),
                   _buildQuickAction(
@@ -242,7 +228,6 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                     label: 'Borrow Money',
                     onTap: () {
                       Navigator.pop(context);
-                      // Handle borrow money
                     },
                   ),
                   _buildQuickAction(
@@ -251,7 +236,6 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                     label: 'Record Payment',
                     onTap: () {
                       Navigator.pop(context);
-                      // Handle record payment
                     },
                   ),
                 ],

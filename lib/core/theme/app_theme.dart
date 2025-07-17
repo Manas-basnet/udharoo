@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:udharoo/core/theme/theme_utils/palette.dart';
+import 'package:udharoo/core/theme/palette.dart';
 
 // Light Theme ColorScheme
 class PaletteScheme {
