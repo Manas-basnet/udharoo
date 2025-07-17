@@ -22,7 +22,8 @@ class ExceptionHandler {
     } 
     // on DioException catch (e) {
     //   return _handleDioException<T>(e);
-    // } 
+    // }
+    
     on PlatformException catch (e) {
       return _handlePlatformException<T>(e);
     } on SocketException {

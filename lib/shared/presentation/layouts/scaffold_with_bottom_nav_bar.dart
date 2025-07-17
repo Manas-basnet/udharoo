@@ -212,6 +212,16 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                     label: 'Scan QR',
                     onTap: () {
                       Navigator.pop(context);
+                      context.push('/qr-scanner');
+                    },
+                  ),
+                  _buildQuickAction(
+                    context,
+                    icon: Icons.qr_code,
+                    label: 'Generate QR',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/qr-generator');
                     },
                   ),
                   _buildQuickAction(
@@ -220,6 +230,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                     label: 'Lend Money',
                     onTap: () {
                       Navigator.pop(context);
+                      context.push('/transaction-form');
                     },
                   ),
                   _buildQuickAction(
@@ -228,14 +239,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                     label: 'Borrow Money',
                     onTap: () {
                       Navigator.pop(context);
-                    },
-                  ),
-                  _buildQuickAction(
-                    context,
-                    icon: Icons.payment,
-                    label: 'Record Payment',
-                    onTap: () {
-                      Navigator.pop(context);
+                      context.push('/transaction-form');
                     },
                   ),
                 ],
