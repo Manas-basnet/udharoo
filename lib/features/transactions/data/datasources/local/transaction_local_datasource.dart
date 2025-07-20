@@ -11,7 +11,7 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
   Future<List<TransactionModel>> getCachedTransactions(String userId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final cachedData = prefs.getString('${_transactionsKey}$userId');
+      final cachedData = prefs.getString('$_transactionsKey$userId');
       
       if (cachedData != null) {
         final List<dynamic> jsonList = jsonDecode(cachedData);
@@ -31,7 +31,7 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonList = transactions.map((transaction) => transaction.toJson()).toList();
-      await prefs.setString('${_transactionsKey}$userId', jsonEncode(jsonList));
+      await prefs.setString('$_transactionsKey$userId', jsonEncode(jsonList));
     } catch (e) {
       // Silently ignore cache errors
     }
@@ -41,7 +41,7 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
   Future<void> clearTransactionCache(String userId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('${_transactionsKey}$userId');
+      await prefs.remove('$_transactionsKey$userId');
     } catch (e) {
       // Silently ignore cache errors
     }
@@ -51,7 +51,7 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
   Future<TransactionModel?> getCachedTransaction(String transactionId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final cachedData = prefs.getString('${_transactionKey}$transactionId');
+      final cachedData = prefs.getString('$_transactionKey$transactionId');
       
       if (cachedData != null) {
         final json = jsonDecode(cachedData) as Map<String, dynamic>;
@@ -69,7 +69,7 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
-        '${_transactionKey}${transaction.id}', 
+        '$_transactionKey${transaction.id}', 
         jsonEncode(transaction.toJson()),
       );
     } catch (e) {

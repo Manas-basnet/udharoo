@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:udharoo/features/transactions/data/models/transaction_model.dart';
 import 'package:udharoo/features/transactions/domain/datasources/remote/transaction_remote_datasource.dart';
@@ -17,6 +19,7 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
     TransactionType? type,
     TransactionStatus? status,
   }) async {
+    try {
     Query query = _firestore.collection(_collection);
 
     if (userId != null) {
@@ -42,6 +45,10 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
     return snapshot.docs
         .map((doc) => TransactionModel.fromFirestore(doc))
         .toList();
+    } catch (e) {
+      log(e.toString());
+      throw Exception('Failed to fetch transactions: $e');  
+    }
   }
 
   @override

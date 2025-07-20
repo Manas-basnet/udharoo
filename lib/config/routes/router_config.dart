@@ -52,15 +52,6 @@ class AppRouter {
       ),
 
       GoRoute(
-        path: Routes.transactionForm,
-        name: 'transactionForm',
-        builder: (context, state) => BlocProvider.value(
-          value: _transactionCubit,
-          child: const TransactionFormScreen(),
-        ),
-      ),
-
-      GoRoute(
         path: Routes.qrScanner,
         name: 'qrScanner',
         builder: (context, state) => BlocProvider.value(
@@ -73,6 +64,23 @@ class AppRouter {
         path: Routes.qrGenerator,
         name: 'qrGenerator',
         builder: (context, state) => const QrGeneratorScreen(),
+      ),
+
+      GoRoute(
+        path: Routes.transactionForm,
+        name: 'transactionForm',
+        builder: (context, state) {
+
+          final extra = state.extra as TransactionFormScreenArguments?;
+
+          return BlocProvider.value(
+            value: _transactionCubit,
+            child: TransactionFormScreen(
+              qrData: extra?.qrData,
+              initialType: extra?.initialType,
+            ),
+          );
+        },
       ),
 
       StatefulShellRoute.indexedStack(

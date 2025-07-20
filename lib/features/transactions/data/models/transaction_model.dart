@@ -135,6 +135,7 @@ class TransactionModel extends Transaction {
     };
   }
 
+  @override
   TransactionModel copyWith({
     String? id,
     String? fromUserId,

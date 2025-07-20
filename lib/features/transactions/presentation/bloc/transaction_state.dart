@@ -22,7 +22,7 @@ final class TransactionLoaded extends TransactionState {
 
   @override
   List<Object?> get props => [transactions];
-}
+}  
 
 final class TransactionCreating extends TransactionState {
   const TransactionCreating();

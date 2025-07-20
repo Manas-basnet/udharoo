@@ -23,7 +23,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
     TransactionType? type,
     TransactionStatus? status,
   }) async {
-    return handleCacheCallFirst<List<Transaction>>(
+    return handleRemoteCallFirst<List<Transaction>>(
       localCall: () async {
         if (userId != null) {
           final cachedTransactions = await _localDatasource.getCachedTransactions(userId);

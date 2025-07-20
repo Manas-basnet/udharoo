@@ -7,5 +7,18 @@ abstract class QrService {
     required String userName,
     String? userPhone,
   });
+  
+  String generateTransactionQrData({
+    required String userId,
+    required String userName,
+    String? userPhone,
+    double? amount,
+    String? description,
+    DateTime? dueDate,
+    bool requiresVerification = true,
+  });
+  
   Future<ApiResult<QrTransactionData>> parseQrData(String qrData);
+  
+  bool isValidUdharooQr(String qrData);
 }

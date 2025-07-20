@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
-import 'package:udharoo/features/transactions/presentation/pages/qr_generator_screen.dart';
-import 'package:udharoo/features/transactions/presentation/pages/qr_scanner_screen.dart';
-import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class TransactionsScreen extends StatefulWidget {
@@ -376,16 +375,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       icon: Icons.qr_code_scanner,
                       label: 'Scan QR',
                       onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BlocProvider.value(
-                              value: context.read<TransactionCubit>(),
-                              child: const QrScannerScreen(),
-                            ),
-                          ),
-                        );
+                        context.push(Routes.qrScanner);
                       },
                     ),
                   ),
@@ -396,16 +386,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       icon: Icons.qr_code,
                       label: 'Generate QR',
                       onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BlocProvider.value(
-                              value: context.read<TransactionCubit>(),
-                              child: const QrGeneratorScreen(),
-                            ),
-                          ),
-                        );
+                        context.push(Routes.qrGenerator);
                       },
                     ),
                   ),
@@ -463,18 +444,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       label: 'Lend Money',
                       color: Colors.green,
                       onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BlocProvider.value(
-                              value: context.read<TransactionCubit>(),
-                              child: const TransactionFormScreen(
-                                initialType: TransactionType.lend,
-                              ),
-                            ),
-                          ),
-                        );
+                        context.push(Routes.transactionForm);
                       },
                     ),
                   ),
@@ -486,18 +456,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       label: 'Borrow Money',
                       color: Colors.orange,
                       onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BlocProvider.value(
-                              value: context.read<TransactionCubit>(),
-                              child: const TransactionFormScreen(
-                                initialType: TransactionType.borrow,
-                              ),
-                            ),
-                          ),
-                        );
+                        context.push(Routes.transactionForm);
                       },
                     ),
                   ),

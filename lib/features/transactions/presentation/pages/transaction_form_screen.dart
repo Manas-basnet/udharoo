@@ -7,6 +7,16 @@ import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
+class TransactionFormScreenArguments {
+  final QrTransactionData? qrData;
+  final TransactionType? initialType;
+
+  TransactionFormScreenArguments({
+    this.qrData,
+    this.initialType,
+  });
+}
+
 class TransactionFormScreen extends StatefulWidget {
   final QrTransactionData? qrData;
   final TransactionType? initialType;
@@ -95,15 +105,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (widget.qrData == null) ...[
-                          _buildTransactionTypeSelector(),
-                          const SizedBox(height: 24),
-                        ],
+                        _buildTransactionTypeSelector(),
+                        const SizedBox(height: 24),
                         
-                        if (widget.qrData == null) ...[
-                          _buildUserInfoSection(),
-                          const SizedBox(height: 24),
-                        ],
+                        _buildUserInfoSection(),
+                        const SizedBox(height: 24),
                         
                         _buildAmountSection(),
                         const SizedBox(height: 24),
@@ -169,6 +175,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   Widget _buildTransactionTypeSelector() {
     final theme = Theme.of(context);
+    final bool isReadOnly = widget.qrData != null;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,6 +196,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 title: 'Lend Money',
                 subtitle: 'You are lending',
                 color: Colors.green,
+                isReadOnly: isReadOnly,
               ),
             ),
             const SizedBox(width: 12),
@@ -199,10 +207,21 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 title: 'Borrow Money',
                 subtitle: 'You are borrowing',
                 color: Colors.orange,
+                isReadOnly: isReadOnly,
               ),
             ),
           ],
         ),
+        if (isReadOnly) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Transaction type is pre-selected from QR code',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -213,12 +232,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     required String title,
     required String subtitle,
     required Color color,
+    bool isReadOnly = false,
   }) {
     final theme = Theme.of(context);
     final isSelected = _selectedType == type;
     
     return GestureDetector(
-      onTap: () => setState(() => _selectedType = type),
+      onTap: isReadOnly ? null : () => setState(() => _selectedType = type),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -243,7 +263,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               ),
               child: Icon(
                 icon,
-                color: color,
+                color: isReadOnly && !isSelected 
+                    ? color.withOpacity(0.5)
+                    : color,
                 size: 24,
               ),
             ),
@@ -252,7 +274,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               title,
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: isSelected ? color : null,
+                color: isSelected 
+                    ? color 
+                    : (isReadOnly ? theme.colorScheme.onSurface.withOpacity(0.5) : null),
               ),
               textAlign: TextAlign.center,
             ),
@@ -271,19 +295,33 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   Widget _buildUserInfoSection() {
     final theme = Theme.of(context);
+    final bool isReadOnly = widget.qrData != null;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Person Details',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+        Row(
+          children: [
+            Text(
+              'Person Details',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (isReadOnly) ...[
+              const SizedBox(width: 8),
+              Icon(
+                Icons.lock_outline,
+                size: 16,
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 12),
         TextFormField(
           controller: _userNameController,
+          enabled: !isReadOnly,
           decoration: InputDecoration(
             labelText: 'Name',
             hintText: 'Enter person\'s name',
@@ -291,6 +329,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
             ),
+            filled: isReadOnly,
+            fillColor: isReadOnly ? theme.colorScheme.surface : null,
           ),
           validator: (value) {
             if (value?.isEmpty ?? true) {
@@ -302,6 +342,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _userPhoneController,
+          enabled: !isReadOnly,
           decoration: InputDecoration(
             labelText: 'Phone Number (Optional)',
             hintText: 'Enter phone number',
@@ -309,9 +350,21 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
             ),
+            filled: isReadOnly,
+            fillColor: isReadOnly ? theme.colorScheme.surface : null,
           ),
           keyboardType: TextInputType.phone,
         ),
+        if (isReadOnly) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Person details are pre-filled from QR code',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
       ],
     );
   }

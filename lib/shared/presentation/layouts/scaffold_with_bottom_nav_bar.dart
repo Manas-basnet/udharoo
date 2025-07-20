@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 
 class ScaffoldWithBottomNavBar extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
@@ -212,7 +213,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                     label: 'Scan QR',
                     onTap: () {
                       Navigator.pop(context);
-                      context.push('/qr-scanner');
+                      context.push(Routes.qrScanner);
                     },
                   ),
                   _buildQuickAction(

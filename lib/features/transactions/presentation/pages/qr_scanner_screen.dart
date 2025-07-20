@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/core/di/di.dart' as di;
 import 'package:udharoo/core/network/api_result.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/services/qr_service.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
@@ -310,9 +310,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   }
 
   Future<void> _processScanResult(String qrData) async {
-    if (_isProcessing) return;
-    
-    setState(() => _isProcessing = true);
 
     final result = await _qrService.parseQrData(qrData);
     
@@ -320,12 +317,10 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     
     result.fold(
       onSuccess: (qrTransactionData) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => BlocProvider.value(
-              value: context.read<TransactionCubit>(),
-              child: TransactionFormScreen(qrData: qrTransactionData),
-            ),
+        context.pushReplacement(
+          Routes.transactionForm,
+          extra: TransactionFormScreenArguments(
+            qrData: qrTransactionData,
           ),
         );
       },
