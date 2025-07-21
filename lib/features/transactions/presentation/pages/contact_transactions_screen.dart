@@ -34,6 +34,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   String selectedFilter = 'All';
   final List<String> filters = ['All', 'Lent', 'Borrowed', 'Pending', 'Verified'];
   final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
   
   List<Transaction> _contactTransactions = [];
   Map<String, double> _contactSummary = {};
@@ -48,11 +49,9 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   void _loadContactTransactions() {
     final authState = context.read<AuthCubit>().state;
     if (authState is AuthAuthenticated) {
-      // TODO: Implement search by contact phone number
-      // For now, we'll filter from all transactions
       context.read<TransactionCubit>().searchTransactions(
         userId: authState.user.uid,
-        query: widget.contactPhone,
+        query: _searchQuery.isNotEmpty ? _searchQuery : widget.contactPhone,
         type: _getTransactionTypeFromFilter(),
         status: _getTransactionStatusFromFilter(),
       );
@@ -84,9 +83,10 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: colorScheme.surface,
       body: BlocConsumer<TransactionCubit, TransactionState>(
         listener: (context, state) {
           if (state is TransactionError) {
@@ -112,14 +112,14 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
         },
         builder: (context, state) {
           return CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              _buildSliverAppBar(),
+              _buildSliverAppBar(theme, colorScheme),
               SliverToBoxAdapter(
                 child: Column(
                   children: [
                     _buildContactHeader(),
                     _buildSummaryCards(),
-                    _buildFilters(),
                   ],
                 ),
               ),
@@ -131,27 +131,121 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
     );
   }
 
-  Widget _buildSliverAppBar() {
-    final theme = Theme.of(context);
-    
+  Widget _buildSliverAppBar(ThemeData theme, ColorScheme colorScheme) {
     return SliverAppBar(
-      expandedHeight: 80,
+      expandedHeight: 140,
+      pinned: false,
       floating: true,
       snap: true,
-      pinned: true,
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: colorScheme.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
-        titlePadding: const EdgeInsets.only(left: 56, bottom: 16),
-        title: Text(
-          'Transactions',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: theme.colorScheme.onSurface,
-          ),
-        ),
-        expandedTitleScale: 1.0,
+      scrolledUnderElevation: 0,
+      flexibleSpace: LayoutBuilder(
+        builder: (context, constraints) {
+          final expandRatio = (constraints.maxHeight - kToolbarHeight) / (120 - kToolbarHeight);
+          final isExpanded = expandRatio > 0.1;
+
+          return FlexibleSpaceBar(
+            background: Container(
+              color: colorScheme.surface,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: AnimatedOpacity(
+                    opacity: isExpanded ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Transactions',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            setState(() => _searchQuery = value);
+                            _loadContactTransactions();
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Search transactions...',
+                            prefixIcon: const Icon(Icons.search_outlined),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() => _searchQuery = '');
+                                      _loadContactTransactions();
+                                    },
+                                    icon: const Icon(Icons.clear),
+                                  )
+                                : null,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: 36,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            itemCount: filters.length,
+                            separatorBuilder: (context, index) => const SizedBox(width: 8),
+                            itemBuilder: (context, index) {
+                              final filter = filters[index];
+                              final isSelected = selectedFilter == filter;
+                              
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() => selectedFilter = filter);
+                                  _loadContactTransactions();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? colorScheme.primary : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: isSelected 
+                                          ? colorScheme.primary 
+                                          : colorScheme.outline.withOpacity(0.3),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    filter,
+                                    style: TextStyle(
+                                      color: isSelected 
+                                          ? colorScheme.onPrimary 
+                                          : colorScheme.onSurface.withOpacity(0.7),
+                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -319,75 +413,30 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
     );
   }
 
-  Widget _buildFilters() {
-    final theme = Theme.of(context);
-    
-    return Container(
-      padding: const EdgeInsets.all(20),
-      child: SizedBox(
-        height: 40,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          itemCount: filters.length,
-          itemBuilder: (context, index) {
-            final filter = filters[index];
-            final isSelected = selectedFilter == filter;
-            
-            return Padding(
-              padding: EdgeInsets.only(
-                left: index == 0 ? 0 : 8,
-                right: index == filters.length - 1 ? 0 : 0,
-              ),
-              child: FilterChip(
-                label: Text(
-                  filter,
-                  style: TextStyle(
-                    color: isSelected 
-                      ? theme.colorScheme.onPrimary
-                      : theme.colorScheme.onSurface,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  ),
-                ),
-                selected: isSelected,
-                onSelected: (selected) {
-                  setState(() => selectedFilter = filter);
-                  _loadContactTransactions();
-                },
-                backgroundColor: theme.colorScheme.surface,
-                selectedColor: theme.colorScheme.primary,
-                side: BorderSide.none,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                showCheckmark: false,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
   Widget _buildTransactionsList() {
-    if (_isLoading) {
-      return const SliverFillRemaining(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Loading transactions...'),
-            ],
+    final screenSize = MediaQuery.sizeOf(context);
+    
+    if (_isLoading && _contactTransactions.isEmpty) {
+      return SliverToBoxAdapter(
+        child: SizedBox(
+          height: screenSize.height * 0.4,
+          child: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading transactions...'),
+              ],
+            ),
           ),
         ),
       );
     }
     
     if (_contactTransactions.isEmpty) {
-      return SliverFillRemaining(
-        child: _buildEmptyState(),
+      return SliverToBoxAdapter(
+        child: _buildEmptyState(screenSize),
       );
     }
     
@@ -412,42 +461,41 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(Size screenSize) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
+    return SizedBox(
+      width: double.infinity,
+      height: screenSize.height * 0.4,
+      child: Padding(
+        padding: EdgeInsets.all(screenSize.width * 0.1),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
               Icons.receipt_long_outlined,
               size: 64,
-              color: theme.colorScheme.primary.withOpacity(0.5),
+              color: colorScheme.onSurfaceVariant,
             ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'No transactions found',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface,
+            const SizedBox(height: 24),
+            Text(
+              'No transactions found',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'You haven\'t made any transactions with ${widget.contactName} yet',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+            const SizedBox(height: 8),
+            Text(
+              'You haven\'t made any transactions with ${widget.contactName} yet',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

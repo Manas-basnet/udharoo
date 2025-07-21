@@ -7,11 +7,38 @@ import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 
 class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
   final FirebaseFirestore _firestore;
-  static const String _collection = 'transactions';
+  static const String _usersCollection = 'users';
+  static const String _transactionsSubcollection = 'transactions';
 
   TransactionRemoteDatasourceImpl({
     FirebaseFirestore? firestore,
   }) : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  CollectionReference _getUserTransactionsCollection(String userId) {
+    return _firestore
+        .collection(_usersCollection)
+        .doc(userId)
+        .collection(_transactionsSubcollection);
+  }
+
+  Future<String?> _findUserByPhone(String phoneNumber) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_usersCollection)
+          .where('phoneNumber', isEqualTo: phoneNumber)
+          .limit(1)
+          .get();
+      
+      if (querySnapshot.docs.isNotEmpty) {
+        return querySnapshot.docs.first.id;
+      }
+      
+      return null;
+    } catch (e) {
+      log('Error finding user by phone: $e');
+      return null;
+    }
+  }
 
   @override
   Future<List<TransactionModel>> getTransactions({
@@ -20,56 +47,117 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
     TransactionStatus? status,
   }) async {
     try {
-    Query query = _firestore.collection(_collection);
+      if (userId == null) {
+        throw Exception('User ID is required to fetch transactions');
+      }
 
-    if (userId != null) {
-      query = query.where(
-        Filter.or(
-          Filter('fromUserId', isEqualTo: userId),
-          Filter('toUserId', isEqualTo: userId),
-        ),
-      );
-    }
+      Query query = _getUserTransactionsCollection(userId);
 
-    if (type != null) {
-      query = query.where('type', isEqualTo: type.name);
-    }
+      if (type != null) {
+        query = query.where('type', isEqualTo: type.name);
+      }
 
-    if (status != null) {
-      query = query.where('status', isEqualTo: status.name);
-    }
+      if (status != null) {
+        query = query.where('status', isEqualTo: status.name);
+      }
 
-    query = query.orderBy('createdAt', descending: true);
+      query = query.orderBy('createdAt', descending: true);
 
-    final snapshot = await query.get();
-    return snapshot.docs
-        .map((doc) => TransactionModel.fromFirestore(doc))
-        .toList();
+      final snapshot = await query.get();
+      final transactions = snapshot.docs
+          .map((doc) => TransactionModel.fromFirestore(doc))
+          .toList();
+
+      final uniqueTransactions = <String, TransactionModel>{};
+      for (final transaction in transactions) {
+        uniqueTransactions[transaction.id] = transaction;
+      }
+
+      return uniqueTransactions.values.toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     } catch (e) {
       log(e.toString());
-      throw Exception('Failed to fetch transactions: $e');  
+      throw Exception('Failed to fetch transactions: $e');
     }
   }
 
   @override
   Future<TransactionModel> getTransactionById(String transactionId) async {
-    final doc = await _firestore.collection(_collection).doc(transactionId).get();
-    
-    if (!doc.exists) {
+    try {
+      final usersSnapshot = await _firestore.collection(_usersCollection).get();
+      
+      for (final userDoc in usersSnapshot.docs) {
+        final transactionDoc = await userDoc.reference
+            .collection(_transactionsSubcollection)
+            .doc(transactionId)
+            .get();
+        
+        if (transactionDoc.exists) {
+          return TransactionModel.fromFirestore(transactionDoc);
+        }
+      }
+      
       throw Exception('Transaction not found');
+    } catch (e) {
+      log(e.toString());
+      throw Exception('Failed to fetch transaction: $e');
     }
-    
-    return TransactionModel.fromFirestore(doc);
   }
 
   @override
   Future<TransactionModel> createTransaction(TransactionModel transaction) async {
-    final docRef = _firestore.collection(_collection).doc();
-    final transactionWithId = transaction.copyWith(id: docRef.id);
-    
-    await docRef.set(transactionWithId.toFirestore());
-    
-    return transactionWithId;
+    try {
+      String actualFromUserId = transaction.fromUserId;
+      String actualToUserId = transaction.toUserId;
+
+      if (!_isValidUserId(transaction.fromUserId)) {
+        final foundUserId = await _findUserByPhone(transaction.fromUserPhone ?? '');
+        if (foundUserId != null) {
+          actualFromUserId = foundUserId;
+        } else {
+          throw Exception('User with phone ${transaction.fromUserPhone} not found. They need to register first.');
+        }
+      }
+
+      if (!_isValidUserId(transaction.toUserId)) {
+        final foundUserId = await _findUserByPhone(transaction.toUserPhone ?? '');
+        if (foundUserId != null) {
+          actualToUserId = foundUserId;
+        } else {
+          throw Exception('User with phone ${transaction.toUserPhone} not found. They need to register first.');
+        }
+      }
+
+      final fromUserCollection = _getUserTransactionsCollection(actualFromUserId);
+      final toUserCollection = _getUserTransactionsCollection(actualToUserId);
+      
+      final docRef = fromUserCollection.doc();
+      final transactionWithCorrectIds = transaction.copyWith(
+        id: docRef.id,
+        fromUserId: actualFromUserId,
+        toUserId: actualToUserId,
+      );
+      
+      final batch = _firestore.batch();
+      
+      batch.set(docRef, transactionWithCorrectIds.toFirestore());
+      
+      if (actualFromUserId != actualToUserId) {
+        final toUserDocRef = toUserCollection.doc(docRef.id);
+        batch.set(toUserDocRef, transactionWithCorrectIds.toFirestore());
+      }
+      
+      await batch.commit();
+      
+      return transactionWithCorrectIds;
+    } catch (e) {
+      log(e.toString());
+      throw Exception('Failed to create transaction: $e');
+    }
+  }
+
+  bool _isValidUserId(String userId) {
+    return userId.length >= 20 && !userId.contains('_user') && !userId.contains('@');
   }
 
   @override
@@ -77,31 +165,74 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
     String transactionId, 
     TransactionStatus status,
   ) async {
-    final docRef = _firestore.collection(_collection).doc(transactionId);
-    
-    await docRef.update({
-      'status': status.name,
-      'updatedAt': Timestamp.now(),
-    });
-    
-    return getTransactionById(transactionId);
+    try {
+      final usersSnapshot = await _firestore.collection(_usersCollection).get();
+      final batch = _firestore.batch();
+      TransactionModel? originalTransaction;
+      
+      for (final userDoc in usersSnapshot.docs) {
+        final transactionDocRef = userDoc.reference
+            .collection(_transactionsSubcollection)
+            .doc(transactionId);
+        
+        final transactionDoc = await transactionDocRef.get();
+        
+        if (transactionDoc.exists && originalTransaction == null) {
+          originalTransaction = TransactionModel.fromFirestore(transactionDoc);
+        }
+        
+        if (transactionDoc.exists) {
+          batch.update(transactionDocRef, {
+            'status': status.name,
+            'updatedAt': Timestamp.now(),
+          });
+        }
+      }
+      
+      if (originalTransaction == null) {
+        throw Exception('Transaction not found');
+      }
+      
+      await batch.commit();
+      
+      return originalTransaction.copyWith(
+        status: status,
+        updatedAt: DateTime.now(),
+      );
+    } catch (e) {
+      log(e.toString());
+      throw Exception('Failed to update transaction: $e');
+    }
   }
 
   @override
   Future<void> deleteTransaction(String transactionId) async {
-    await _firestore.collection(_collection).doc(transactionId).delete();
+    try {
+      final usersSnapshot = await _firestore.collection(_usersCollection).get();
+      final batch = _firestore.batch();
+      
+      for (final userDoc in usersSnapshot.docs) {
+        final transactionDocRef = userDoc.reference
+            .collection(_transactionsSubcollection)
+            .doc(transactionId);
+        
+        final transactionDoc = await transactionDocRef.get();
+        
+        if (transactionDoc.exists) {
+          batch.delete(transactionDocRef);
+        }
+      }
+      
+      await batch.commit();
+    } catch (e) {
+      log(e.toString());
+      throw Exception('Failed to delete transaction: $e');
+    }
   }
 
   @override
   Stream<List<TransactionModel>> watchTransactions(String userId) {
-    return _firestore
-        .collection(_collection)
-        .where(
-          Filter.or(
-            Filter('fromUserId', isEqualTo: userId),
-            Filter('toUserId', isEqualTo: userId),
-          ),
-        )
+    return _getUserTransactionsCollection(userId)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
@@ -118,86 +249,96 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    Query firestoreQuery = _firestore
-        .collection(_collection)
-        .where(
-          Filter.or(
-            Filter('fromUserId', isEqualTo: userId),
-            Filter('toUserId', isEqualTo: userId),
-          ),
+    try {
+      Query firestoreQuery = _getUserTransactionsCollection(userId);
+
+      if (type != null) {
+        firestoreQuery = firestoreQuery.where('type', isEqualTo: type.name);
+      }
+
+      if (status != null) {
+        firestoreQuery = firestoreQuery.where('status', isEqualTo: status.name);
+      }
+
+      if (startDate != null) {
+        firestoreQuery = firestoreQuery.where(
+          'createdAt',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
         );
+      }
 
-    if (type != null) {
-      firestoreQuery = firestoreQuery.where('type', isEqualTo: type.name);
+      if (endDate != null) {
+        firestoreQuery = firestoreQuery.where(
+          'createdAt',
+          isLessThanOrEqualTo: Timestamp.fromDate(endDate),
+        );
+      }
+
+      firestoreQuery = firestoreQuery.orderBy('createdAt', descending: true);
+
+      final snapshot = await firestoreQuery.get();
+      List<TransactionModel> transactions = snapshot.docs
+          .map((doc) => TransactionModel.fromFirestore(doc))
+          .toList();
+
+      final uniqueTransactions = <String, TransactionModel>{};
+      for (final transaction in transactions) {
+        uniqueTransactions[transaction.id] = transaction;
+      }
+
+      transactions = uniqueTransactions.values.toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      if (query != null && query.isNotEmpty) {
+        final searchQuery = query.toLowerCase();
+        transactions = transactions.where((transaction) {
+          return (transaction.fromUserName?.toLowerCase().contains(searchQuery) ?? false) ||
+              (transaction.toUserName?.toLowerCase().contains(searchQuery) ?? false) ||
+              (transaction.description?.toLowerCase().contains(searchQuery) ?? false) ||
+              (transaction.fromUserPhone?.toLowerCase().contains(searchQuery) ?? false) ||
+              (transaction.toUserPhone?.toLowerCase().contains(searchQuery) ?? false);
+        }).toList();
+      }
+
+      return transactions;
+    } catch (e) {
+      log(e.toString());
+      throw Exception('Failed to search transactions: $e');
     }
-
-    if (status != null) {
-      firestoreQuery = firestoreQuery.where('status', isEqualTo: status.name);
-    }
-
-    if (startDate != null) {
-      firestoreQuery = firestoreQuery.where(
-        'createdAt',
-        isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
-      );
-    }
-
-    if (endDate != null) {
-      firestoreQuery = firestoreQuery.where(
-        'createdAt',
-        isLessThanOrEqualTo: Timestamp.fromDate(endDate),
-      );
-    }
-
-    firestoreQuery = firestoreQuery.orderBy('createdAt', descending: true);
-
-    final snapshot = await firestoreQuery.get();
-    List<TransactionModel> transactions = snapshot.docs
-        .map((doc) => TransactionModel.fromFirestore(doc))
-        .toList();
-
-    if (query != null && query.isNotEmpty) {
-      final searchQuery = query.toLowerCase();
-      transactions = transactions.where((transaction) {
-        return (transaction.fromUserName?.toLowerCase().contains(searchQuery) ?? false) ||
-            (transaction.toUserName?.toLowerCase().contains(searchQuery) ?? false) ||
-            (transaction.description?.toLowerCase().contains(searchQuery) ?? false);
-      }).toList();
-    }
-
-    return transactions;
   }
 
   @override
   Future<Map<String, double>> getTransactionSummary(String userId) async {
-    final snapshot = await _firestore
-        .collection(_collection)
-        .where(
-          Filter.or(
-            Filter('fromUserId', isEqualTo: userId),
-            Filter('toUserId', isEqualTo: userId),
-          ),
-        )
-        .where('status', isEqualTo: TransactionStatus.verified.name)
-        .get();
+    try {
+      final snapshot = await _getUserTransactionsCollection(userId)
+          .where('status', isEqualTo: TransactionStatus.verified.name)
+          .get();
 
-    double totalLent = 0.0;
-    double totalBorrowed = 0.0;
-
-    for (final doc in snapshot.docs) {
-      final transaction = TransactionModel.fromFirestore(doc);
-      
-      if (transaction.fromUserId == userId && transaction.type == TransactionType.lend) {
-        totalLent += transaction.amount;
-      } else if (transaction.toUserId == userId && transaction.type == TransactionType.borrow) {
-        totalBorrowed += transaction.amount;
+      final uniqueTransactions = <String, TransactionModel>{};
+      for (final doc in snapshot.docs) {
+        final transaction = TransactionModel.fromFirestore(doc);
+        uniqueTransactions[transaction.id] = transaction;
       }
-    }
 
-    return {
-      'totalLent': totalLent,
-      'totalBorrowed': totalBorrowed,
-      'netBalance': totalLent - totalBorrowed,
-    };
+      double totalLent = 0.0;
+      double totalBorrowed = 0.0;
+
+      for (final transaction in uniqueTransactions.values) {
+        if (transaction.type == TransactionType.lend && transaction.fromUserId == userId) {
+          totalLent += transaction.amount;
+        } else if (transaction.type == TransactionType.borrow && transaction.toUserId == userId) {
+          totalBorrowed += transaction.amount;
+        }
+      }
+
+      return {
+        'totalLent': totalLent,
+        'totalBorrowed': totalBorrowed,
+        'netBalance': totalLent - totalBorrowed,
+      };
+    } catch (e) {
+      log(e.toString());
+      throw Exception('Failed to get transaction summary: $e');
+    }
   }
 }

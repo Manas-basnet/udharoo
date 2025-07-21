@@ -23,23 +23,27 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
     TransactionType? type,
     TransactionStatus? status,
   }) async {
+    if (userId == null) {
+      return ApiResult.failure(
+        'User ID is required to fetch transactions',
+        FailureType.validation,
+      );
+    }
+
     return handleRemoteCallFirst<List<Transaction>>(
       localCall: () async {
-        if (userId != null) {
-          final cachedTransactions = await _localDatasource.getCachedTransactions(userId);
-          List<Transaction> filtered = cachedTransactions.cast<Transaction>();
+        final cachedTransactions = await _localDatasource.getCachedTransactions(userId);
+        List<Transaction> filtered = cachedTransactions.cast<Transaction>();
 
-          if (type != null) {
-            filtered = filtered.where((t) => t.type == type).toList();
-          }
-
-          if (status != null) {
-            filtered = filtered.where((t) => t.status == status).toList();
-          }
-
-          return ApiResult.success(filtered);
+        if (type != null) {
+          filtered = filtered.where((t) => t.type == type).toList();
         }
-        return ApiResult.failure('User ID required for cache', FailureType.validation);
+
+        if (status != null) {
+          filtered = filtered.where((t) => t.status == status).toList();
+        }
+
+        return ApiResult.success(filtered);
       },
       remoteCall: () async {
         final transactions = await _remoteDatasource.getTransactions(
@@ -50,7 +54,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         return ApiResult.success(transactions.cast<Transaction>());
       },
       saveLocalData: (transactions) async {
-        if (userId != null && transactions != null) {
+        if (transactions != null) {
           final transactionModels = transactions
               .map((t) => TransactionModel.fromEntity(t))
               .toList();
@@ -95,6 +99,18 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         if (createdTransaction != null) {
           final transactionModel = TransactionModel.fromEntity(createdTransaction);
           await _localDatasource.cacheTransaction(transactionModel);
+          
+          await _localDatasource.cacheTransactions(
+            createdTransaction.fromUserId, 
+            [transactionModel]
+          );
+          
+          if (createdTransaction.fromUserId != createdTransaction.toUserId) {
+            await _localDatasource.cacheTransactions(
+              createdTransaction.toUserId, 
+              [transactionModel]
+            );
+          }
         }
       },
     );
@@ -130,7 +146,8 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         return ApiResult.success(null);
       },
       saveLocalData: (_) async {
-        // Remove from cache would require additional implementation
+        // Note: We would need additional implementation to remove from cache
+        // This would require knowing which user's cache to clear from
       },
     );
   }

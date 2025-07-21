@@ -80,10 +80,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: BlocConsumer<TransactionCubit, TransactionState>(
+      backgroundColor: colorScheme.surface,
+      body: BlocListener<TransactionCubit, TransactionState>(
         listener: (context, state) {
           if (state is TransactionError) {
             CustomToast.show(
@@ -118,87 +119,178 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             });
           }
         },
-        builder: (context, state) {
-          return CustomScrollView(
-            controller: _scrollController,
-            slivers: [
-              _buildSliverAppBar(),
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    _buildSummaryCards(),
-                    _buildSearchAndFilters(),
-                  ],
-                ),
-              ),
-              _buildTransactionsList(),
-            ],
-          );
-        },
+        child: CustomScrollView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            _buildSliverAppBar(theme, colorScheme),
+            SliverToBoxAdapter(
+              child: _buildSummaryCards(),
+            ),
+            _buildTransactionsList(),
+          ],
+        ),
       ),
       floatingActionButton: _buildFloatingActionButton(),
     );
   }
 
-  Widget _buildSliverAppBar() {
-    final theme = Theme.of(context);
-    
+  Widget _buildSliverAppBar(ThemeData theme, ColorScheme colorScheme) {
+    final height = MediaQuery.sizeOf(context).height;
     return SliverAppBar(
-      expandedHeight: 120,
+      expandedHeight: height * 0.256,
+      pinned: false,
       floating: true,
       snap: true,
-      pinned: true,
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: colorScheme.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
-        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-        title: Text(
-          'Transactions',
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: theme.colorScheme.onSurface,
-          ),
-        ),
-        expandedTitleScale: 1.0,
-      ),
-      actions: [
-        _buildHeaderButton(
-          icon: Icons.qr_code_scanner,
-          onTap: _showQrOptions,
-        ),
-        const SizedBox(width: 8),
-        _buildHeaderButton(
-          icon: Icons.refresh,
-          onTap: _loadInitialData,
-        ),
-        const SizedBox(width: 20),
-      ],
-    );
-  }
+      scrolledUnderElevation: 0,
+      automaticallyImplyLeading: false,
+      flexibleSpace: LayoutBuilder(
+        builder: (context, constraints) {
+          final expandRatio = (constraints.maxHeight - kToolbarHeight) / (140 - kToolbarHeight);
+          final isExpanded = expandRatio > 0.1;
 
-  Widget _buildHeaderButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    final theme = Theme.of(context);
-    
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.1),
-        ),
-      ),
-      child: IconButton(
-        onPressed: onTap,
-        icon: Icon(icon),
-        style: IconButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+          return FlexibleSpaceBar(
+            background: Container(
+              color: colorScheme.surface,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: AnimatedOpacity(
+                    opacity: isExpanded ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.receipt_long_outlined,
+                                  color: colorScheme.primary,
+                                  size: 28,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Transactions',
+                                  style: theme.textTheme.headlineMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.qr_code_scanner_outlined),
+                                  onPressed: _showQrOptions,
+                                  tooltip: 'QR Options',
+                                  style: IconButton.styleFrom(
+                                    foregroundColor: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.refresh_outlined),
+                                  onPressed: _loadInitialData,
+                                  tooltip: 'Refresh',
+                                  style: IconButton.styleFrom(
+                                    foregroundColor: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            setState(() => _searchQuery = value);
+                            if (value.isNotEmpty) {
+                              _performSearch();
+                            } else {
+                              _loadTransactions();
+                            }
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Search by name or description...',
+                            prefixIcon: const Icon(Icons.search_outlined),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() => _searchQuery = '');
+                                      _loadTransactions();
+                                    },
+                                    icon: const Icon(Icons.clear),
+                                  )
+                                : null,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: 36,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            itemCount: filters.length,
+                            separatorBuilder: (context, index) => const SizedBox(width: 8),
+                            itemBuilder: (context, index) {
+                              final filter = filters[index];
+                              final isSelected = selectedFilter == filter;
+                              
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() => selectedFilter = filter);
+                                  _loadTransactions();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? colorScheme.primary : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: isSelected 
+                                          ? colorScheme.primary 
+                                          : colorScheme.outline.withOpacity(0.3),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    filter,
+                                    style: TextStyle(
+                                      color: isSelected 
+                                          ? colorScheme.onPrimary 
+                                          : colorScheme.onSurface.withOpacity(0.7),
+                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -303,113 +395,30 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Widget _buildSearchAndFilters() {
-    final theme = Theme.of(context);
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
-          TextField(
-            controller: _searchController,
-            onChanged: (value) {
-              setState(() => _searchQuery = value);
-              if (value.isNotEmpty) {
-                _performSearch();
-              } else {
-                _loadTransactions();
-              }
-            },
-            decoration: InputDecoration(
-              hintText: 'Search by name or description...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _searchQuery = '');
-                        _loadTransactions();
-                      },
-                      icon: const Icon(Icons.clear),
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-              filled: true,
-              fillColor: theme.colorScheme.surface,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 40,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: filters.length,
-              itemBuilder: (context, index) {
-                final filter = filters[index];
-                final isSelected = selectedFilter == filter;
-                
-                return Padding(
-                  padding: EdgeInsets.only(
-                    left: index == 0 ? 0 : 8,
-                    right: index == filters.length - 1 ? 0 : 0,
-                  ),
-                  child: FilterChip(
-                    label: Text(
-                      filter,
-                      style: TextStyle(
-                        color: isSelected 
-                          ? theme.colorScheme.onPrimary
-                          : theme.colorScheme.onSurface,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                      ),
-                    ),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() => selectedFilter = filter);
-                      _loadTransactions();
-                    },
-                    backgroundColor: theme.colorScheme.surface,
-                    selectedColor: theme.colorScheme.primary,
-                    side: BorderSide.none,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    showCheckmark: false,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTransactionsList() {
-    if (_isLoading) {
-      return const SliverFillRemaining(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Loading transactions...'),
-            ],
+    final screenSize = MediaQuery.sizeOf(context);
+    
+    if (_isLoading && _currentTransactions.isEmpty) {
+      return SliverToBoxAdapter(
+        child: SizedBox(
+          height: screenSize.height * 0.4,
+          child: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading transactions...'),
+              ],
+            ),
           ),
         ),
       );
     }
     
     if (_currentTransactions.isEmpty) {
-      return SliverFillRemaining(
-        child: _buildEmptyState(),
+      return SliverToBoxAdapter(
+        child: _buildEmptyState(screenSize),
       );
     }
     
@@ -439,62 +448,53 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(Size screenSize) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
+    return SizedBox(
+      width: double.infinity,
+      height: screenSize.height * 0.5,
+      child: Padding(
+        padding: EdgeInsets.all(screenSize.width * 0.1),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
               Icons.receipt_long_outlined,
               size: 64,
-              color: theme.colorScheme.primary.withOpacity(0.5),
+              color: colorScheme.onSurfaceVariant,
             ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            _searchQuery.isNotEmpty 
-                ? 'No transactions found' 
-                : 'No transactions yet',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _searchQuery.isNotEmpty
-                ? 'Try adjusting your search terms'
-                : 'Create your first transaction to get started',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if (_searchQuery.isEmpty) ...[
-            const SizedBox(height: 32),
-            FilledButton.icon(
-              onPressed: _showCreateTransactionOptions,
-              icon: const Icon(Icons.add),
-              label: const Text('Create Transaction'),
-              style: FilledButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: theme.colorScheme.onPrimary,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
+            const SizedBox(height: 24),
+            Text(
+              _searchQuery.isNotEmpty 
+                  ? 'No transactions found' 
+                  : 'No transactions yet',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
               ),
             ),
+            const SizedBox(height: 8),
+            Text(
+              _searchQuery.isNotEmpty
+                  ? 'Try adjusting your search terms'
+                  : 'Create your first transaction to get started',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (_searchQuery.isEmpty) ...[
+              const SizedBox(height: 32),
+              FilledButton.icon(
+                onPressed: _showCreateTransactionOptions,
+                icon: const Icon(Icons.add),
+                label: const Text('Create Transaction'),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
