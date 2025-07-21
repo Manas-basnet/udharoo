@@ -25,6 +25,15 @@ class RouterGuard {
   }
   
   static String? _handleLoading(String currentPath) {
+    final phoneVerificationRoutes = [
+      Routes.phoneSetup,
+      Routes.phoneVerification,
+    ];
+    
+    if (phoneVerificationRoutes.contains(currentPath)) {
+      return null;
+    }
+    
     return currentPath == Routes.splash ? null : Routes.splash;
   }
   

@@ -127,6 +127,16 @@ class ProfileRemoteDatasourceImpl implements ProfileRemoteDatasource {
     }
     
     await currentUser.linkWithCredential(credential);
+    
+    final userProfile = await getUserProfile(currentUser.uid);
+    if (userProfile != null) {
+      final updatedProfile = userProfile.copyWith(
+        phoneVerified: true,
+        phoneNumber: currentUser.phoneNumber,
+        updatedAt: DateTime.now(),
+      );
+      await updateUserProfile(updatedProfile);
+    }
   }
 
   @override
