@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/profile/presentation/bloc/profile_cubit.dart';
-import 'package:udharoo/features/profile/presentation/pages/phone_verification_screen.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class PhoneSetupScreen extends StatefulWidget {
@@ -47,13 +48,12 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
             );
           } else if (state is PhoneVerificationSent) {
             setState(() => _isLoading = false);
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => PhoneVerificationScreen(
-                  phoneNumber: state.phoneNumber,
-                  verificationId: state.verificationId,
-                ),
-              ),
+            context.push(
+              Routes.phoneVerification,
+              extra: {
+                'phoneNumber': state.phoneNumber,
+                'verificationId': state.verificationId,
+              },
             );
           }
         },
@@ -201,7 +201,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                   if (!widget.isRequired) ...[
                     const SizedBox(height: 16),
                     TextButton(
-                      onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                      onPressed: _isLoading ? null : () => context.go(Routes.home),
                       child: const Text('Skip for now'),
                     ),
                   ],

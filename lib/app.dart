@@ -47,9 +47,24 @@ class MyApp extends StatelessWidget {
         (previous is AuthLoading && current is AuthAuthenticated) ||
         (previous is AuthLoading && current is AuthUnauthenticated) ||
         (previous is AuthLoading && current is AuthError) ||
+        (previous is AuthLoading && current is AuthPhoneVerificationRequired) ||
+        (previous is AuthLoading && current is AuthProfileSetupRequired) ||
         (previous is AuthAuthenticated && current is AuthUnauthenticated) ||
+        (previous is AuthAuthenticated && current is AuthPhoneVerificationRequired) ||
+        (previous is AuthAuthenticated && current is AuthProfileSetupRequired) ||
         (previous is AuthUnauthenticated && current is AuthAuthenticated) ||
+        (previous is AuthUnauthenticated && current is AuthPhoneVerificationRequired) ||
+        (previous is AuthUnauthenticated && current is AuthProfileSetupRequired) ||
         (previous is AuthError && current is AuthAuthenticated) ||
-        (previous is AuthError && current is AuthUnauthenticated);
+        (previous is AuthError && current is AuthUnauthenticated) ||
+        (previous is AuthError && current is AuthPhoneVerificationRequired) ||
+        (previous is AuthError && current is AuthProfileSetupRequired) ||
+        (previous is AuthPhoneVerificationRequired && current is AuthAuthenticated) ||
+        (previous is AuthPhoneVerificationRequired && current is AuthUnauthenticated) ||
+        (previous is AuthPhoneVerificationRequired && current is AuthError) ||
+        (previous is AuthProfileSetupRequired && current is AuthAuthenticated) ||
+        (previous is AuthProfileSetupRequired && current is AuthUnauthenticated) ||
+        (previous is AuthProfileSetupRequired && current is AuthPhoneVerificationRequired) ||
+        (previous is AuthProfileSetupRequired && current is AuthError);
   }
 }
