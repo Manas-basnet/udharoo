@@ -13,6 +13,9 @@ import 'package:udharoo/features/auth/domain/usecases/sign_in_with_email_usecase
 import 'package:udharoo/features/auth/domain/usecases/sign_in_with_google_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_up_with_email_usecase.dart';
+import 'package:udharoo/features/profile/domain/usecases/get_user_profile_usecase.dart';
+import 'package:udharoo/features/profile/domain/usecases/check_phone_exists_usecase.dart';
+import 'package:udharoo/features/profile/domain/entities/user_profile.dart';
 
 part 'auth_state.dart';
 
@@ -26,6 +29,8 @@ class AuthCubit extends Cubit<AuthState> {
   final SendPasswordResetEmailUseCase sendPasswordResetEmailUseCase;
   final SendEmailVerificationUseCase sendEmailVerificationUseCase;
   final AuthService authService;
+  final GetUserProfileUseCase getUserProfileUseCase;
+  final CheckPhoneExistsUseCase checkPhoneExistsUseCase;
 
   late final StreamSubscription<AuthUser?> _authStateSubscription;
   late final StreamSubscription<AuthEvent> _authEventSubscription;
@@ -40,18 +45,34 @@ class AuthCubit extends Cubit<AuthState> {
     required this.sendPasswordResetEmailUseCase,
     required this.sendEmailVerificationUseCase,
     required this.authService,
+    required this.getUserProfileUseCase,
+    required this.checkPhoneExistsUseCase,
   }) : super(const AuthInitial()) {
     _authStateSubscription = authService.authStateChanges.listen(_handleAuthStateChange);
     _authEventSubscription = authService.authEventStream.listen(_handleAuthEvent);
     checkAuthStatus();
   }
 
-  void _handleAuthStateChange(AuthUser? user) {
+  void _handleAuthStateChange(AuthUser? user) async {
     if (!isClosed) {
       if (user != null) {
-        if (state is! AuthAuthenticated || (state as AuthAuthenticated).user.uid != user.uid) {
-          emit(AuthAuthenticated(user));
-        }
+        final profileResult = await getUserProfileUseCase(user.uid);
+        
+        profileResult.fold(
+          onSuccess: (profile) {
+            if (profile.canUseApp) {
+              if (state is! AuthAuthenticated || 
+                  (state as AuthAuthenticated).user.uid != user.uid) {
+                emit(AuthAuthenticated(user, profile));
+              }
+            } else {
+              emit(AuthPhoneVerificationRequired(user, profile));
+            }
+          },
+          onFailure: (message, type) {
+            emit(AuthProfileSetupRequired(user));
+          },
+        );
       } else {
         if (state is! AuthUnauthenticated) {
           emit(const AuthUnauthenticated());
@@ -84,10 +105,39 @@ class AuthCubit extends Cubit<AuthState> {
 
     if (!isClosed) {
       result.fold(
-        onSuccess: (user) => emit(AuthAuthenticated(user)),
+        onSuccess: (user) {
+          // Auth state change will be handled by _handleAuthStateChange
+        },
         onFailure: (message, type) => emit(AuthError(message, type)),
       );
     }
+  }
+
+  Future<void> signInWithPhone(String phoneNumber, String password) async {
+    emit(const AuthLoading());
+
+    // Check if phone number exists
+    final phoneExistsResult = await checkPhoneExistsUseCase(phoneNumber);
+    
+    phoneExistsResult.fold(
+      onSuccess: (exists) async {
+        if (!exists) {
+          emit(const AuthError(
+            'Phone number not registered. Please sign up first.',
+            FailureType.auth,
+          ));
+          return;
+        }
+
+        // TODO: Implement actual phone login
+        // For now, show error
+        emit(const AuthError(
+          'Phone login not yet implemented',
+          FailureType.unknown,
+        ));
+      },
+      onFailure: (message, type) => emit(AuthError(message, type)),
+    );
   }
 
   Future<void> signUpWithEmail(String email, String password) async {
@@ -97,7 +147,9 @@ class AuthCubit extends Cubit<AuthState> {
 
     if (!isClosed) {
       result.fold(
-        onSuccess: (user) => emit(AuthAuthenticated(user)),
+        onSuccess: (user) {
+          // Auth state change will be handled by _handleAuthStateChange
+        },
         onFailure: (message, type) => emit(AuthError(message, type)),
       );
     }
@@ -110,7 +162,9 @@ class AuthCubit extends Cubit<AuthState> {
 
     if (!isClosed) {
       result.fold(
-        onSuccess: (user) => emit(AuthAuthenticated(user)),
+        onSuccess: (user) {
+          // Auth state change will be handled by _handleAuthStateChange
+        },
         onFailure: (message, type) => emit(AuthError(message, type)),
       );
     }
@@ -138,7 +192,7 @@ class AuthCubit extends Cubit<AuthState> {
       result.fold(
         onSuccess: (user) {
           if (user != null) {
-            emit(AuthAuthenticated(user));
+            // Auth state change will be handled by _handleAuthStateChange
           } else {
             emit(const AuthUnauthenticated());
           }

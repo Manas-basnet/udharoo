@@ -1,3 +1,4 @@
+// lib/config/routes/routes_constants.dart
 class Routes {
   static const String splash = '/splash';
   static const String login = '/login';
@@ -6,6 +7,8 @@ class Routes {
   static const String contacts = '/contacts';
   static const String profile = '/profile';
   static const String editProfile = '/edit-profile';
+  static const String phoneSetup = '/phone-setup';
+  static const String phoneVerification = '/phone-verification';
   static const String transactionForm = '/transaction-form';
   static const String transactionDetail = '/transaction-detail';
   static const String qrScanner = '/qr-scanner';

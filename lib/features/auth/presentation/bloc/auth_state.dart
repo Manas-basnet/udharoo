@@ -17,11 +17,12 @@ final class AuthLoading extends AuthState {
 
 final class AuthAuthenticated extends AuthState {
   final AuthUser user;
+  final UserProfile profile;
 
-  const AuthAuthenticated(this.user);
+  const AuthAuthenticated(this.user, this.profile);
 
   @override
-  List<Object?> get props => [user];
+  List<Object?> get props => [user, profile];
 }
 
 final class AuthUnauthenticated extends AuthState {
@@ -36,4 +37,23 @@ final class AuthError extends AuthState {
 
   @override
   List<Object?> get props => [message, type];
+}
+
+final class AuthPhoneVerificationRequired extends AuthState {
+  final AuthUser user;
+  final UserProfile profile;
+
+  const AuthPhoneVerificationRequired(this.user, this.profile);
+
+  @override
+  List<Object?> get props => [user, profile];
+}
+
+final class AuthProfileSetupRequired extends AuthState {
+  final AuthUser user;
+
+  const AuthProfileSetupRequired(this.user);
+
+  @override
+  List<Object?> get props => [user];
 }

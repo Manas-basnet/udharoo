@@ -15,6 +15,8 @@ class RouterGuard {
       AuthAuthenticated() => _handleAuthenticated(currentPath),
       AuthUnauthenticated() => _handleUnauthenticated(currentPath),
       AuthError() => _handleError(currentPath),
+      AuthPhoneVerificationRequired() => _handlePhoneVerificationRequired(currentPath),
+      AuthProfileSetupRequired() => _handleProfileSetupRequired(currentPath),
     };
   }
   
@@ -36,7 +38,9 @@ class RouterGuard {
       Routes.home, 
       Routes.transactions, 
       Routes.contacts, 
-      Routes.profile
+      Routes.profile,
+      Routes.phoneSetup,
+      Routes.phoneVerification,
     ];
     if (protectedRoutes.contains(currentPath) || currentPath == Routes.splash) {
       return Routes.login;
@@ -46,5 +50,15 @@ class RouterGuard {
   
   static String? _handleError(String currentPath) {
     return currentPath == Routes.login ? null : Routes.login;
+  }
+  
+  static String? _handlePhoneVerificationRequired(String currentPath) {
+    final allowedRoutes = [Routes.phoneSetup, Routes.phoneVerification];
+    return allowedRoutes.contains(currentPath) ? null : Routes.phoneSetup;
+  }
+  
+  static String? _handleProfileSetupRequired(String currentPath) {
+    final allowedRoutes = [Routes.phoneSetup, Routes.phoneVerification];
+    return allowedRoutes.contains(currentPath) ? null : Routes.phoneSetup;
   }
 }
