@@ -5,6 +5,8 @@ import 'package:udharoo/config/routes/router_guard.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/core/di/di.dart' as di;
 import 'package:udharoo/features/auth/presentation/pages/login_screen.dart';
+import 'package:udharoo/features/auth/presentation/pages/phone_setup_screen.dart';
+import 'package:udharoo/features/auth/presentation/pages/phone_verification_screen.dart';
 import 'package:udharoo/features/home/presentation/pages/home_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transactions_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
@@ -17,6 +19,7 @@ import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubi
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/contacts/presentation/pages/contacts_screen.dart';
 import 'package:udharoo/features/profile/presentation/pages/profile_screen.dart';
+import 'package:udharoo/features/profile/presentation/pages/edit_profile_screen.dart';
 import 'package:udharoo/shared/presentation/layouts/scaffold_with_bottom_nav_bar.dart';
 import 'package:udharoo/shared/presentation/pages/splash_screen.dart';
 
@@ -52,6 +55,24 @@ class AppRouter {
         path: Routes.login,
         name: 'login',
         builder: (context, state) => const LoginScreen(),
+      ),
+
+      GoRoute(
+        path: Routes.phoneSetup,
+        name: 'phoneSetup',
+        builder: (context, state) => const PhoneSetupScreen(),
+      ),
+
+      GoRoute(
+        path: Routes.phoneVerification,
+        name: 'phoneVerification',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, String>?;
+          return PhoneVerificationScreen(
+            phoneNumber: extra?['phoneNumber'] ?? '',
+            verificationId: extra?['verificationId'] ?? '',
+          );
+        },
       ),
 
       GoRoute(
@@ -118,6 +139,12 @@ class AppRouter {
             ),
           );
         },
+      ),
+
+      GoRoute(
+        path: Routes.editProfile,
+        name: 'editProfile',
+        builder: (context, state) => const EditProfileScreen(),
       ),
 
       StatefulShellRoute.indexedStack(

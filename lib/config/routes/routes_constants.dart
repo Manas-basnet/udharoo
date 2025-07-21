@@ -1,4 +1,3 @@
-// lib/config/routes/routes_constants.dart
 class Routes {
   static const String splash = '/splash';
   static const String login = '/login';

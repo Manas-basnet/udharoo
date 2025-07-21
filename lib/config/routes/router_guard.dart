@@ -15,6 +15,10 @@ class RouterGuard {
       AuthAuthenticated() => _handleAuthenticated(currentPath),
       AuthUnauthenticated() => _handleUnauthenticated(currentPath),
       AuthError() => _handleError(currentPath),
+      PhoneVerificationRequired() => _handlePhoneVerificationRequired(currentPath),
+      PhoneVerificationLoading() => _handlePhoneVerificationLoading(currentPath),
+      PhoneCodeSent() => _handlePhoneCodeSent(currentPath),
+      PhoneVerificationCompleted() => _handlePhoneVerificationCompleted(currentPath),
     };
   }
   
@@ -27,7 +31,7 @@ class RouterGuard {
   }
   
   static String? _handleAuthenticated(String currentPath) {
-    final publicRoutes = [Routes.login, Routes.splash];
+    final publicRoutes = [Routes.login, Routes.splash, Routes.phoneSetup, Routes.phoneVerification];
     return publicRoutes.contains(currentPath) ? Routes.home : null;
   }
   
@@ -36,7 +40,9 @@ class RouterGuard {
       Routes.home, 
       Routes.transactions, 
       Routes.contacts, 
-      Routes.profile
+      Routes.profile,
+      Routes.phoneSetup,
+      Routes.phoneVerification,
     ];
     if (protectedRoutes.contains(currentPath) || currentPath == Routes.splash) {
       return Routes.login;
@@ -45,6 +51,34 @@ class RouterGuard {
   }
   
   static String? _handleError(String currentPath) {
+    final phoneVerificationRoutes = [Routes.phoneSetup, Routes.phoneVerification];
+    if (phoneVerificationRoutes.contains(currentPath)) {
+      return null;
+    }
     return currentPath == Routes.login ? null : Routes.login;
+  }
+
+  static String? _handlePhoneVerificationRequired(String currentPath) {
+    final phoneVerificationRoutes = [Routes.phoneSetup, Routes.phoneVerification];
+    
+    if (phoneVerificationRoutes.contains(currentPath)) {
+      return null;
+    }
+    
+    return Routes.phoneSetup;
+  }
+
+  static String? _handlePhoneVerificationLoading(String currentPath) {
+    final allowedRoutes = [Routes.phoneSetup, Routes.phoneVerification, Routes.splash];
+    return allowedRoutes.contains(currentPath) ? null : Routes.phoneSetup;
+  }
+
+  static String? _handlePhoneCodeSent(String currentPath) {
+    return currentPath == Routes.phoneVerification ? null : Routes.phoneVerification;
+  }
+
+  static String? _handlePhoneVerificationCompleted(String currentPath) {
+    final publicRoutes = [Routes.login, Routes.splash, Routes.phoneSetup, Routes.phoneVerification];
+    return publicRoutes.contains(currentPath) ? Routes.home : null;
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/config/routes/router_config.dart';
@@ -6,9 +7,30 @@ import 'package:udharoo/shared/presentation/bloc/theme_cubit/theme_cubit.dart';
 import 'package:udharoo/core/theme/app_theme.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 
-
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  Timer? _refreshTimer;
+
+  void _scheduleRouterRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        AppRouter.router.refresh();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,11 +42,10 @@ class MyApp extends StatelessWidget {
       child: BlocListener<AuthCubit, AuthState>(
         listenWhen: (previous, current) {
           if (previous.runtimeType == current.runtimeType) return false;
-
           return _shouldRefreshRouter(previous, current);
         },
         listener: (context, state) {
-          AppRouter.router.refresh();
+          _scheduleRouterRefresh();
         },
         child: BlocBuilder<ThemeCubit, ThemeState>(
           builder: (context, state) {
@@ -43,13 +64,35 @@ class MyApp extends StatelessWidget {
   }
 
   bool _shouldRefreshRouter(AuthState previous, AuthState current) {
+
+    if (current is PhoneCodeSent) {
+      return false;
+    }
+
     return (previous is AuthInitial && current is AuthLoading) ||
         (previous is AuthLoading && current is AuthAuthenticated) ||
         (previous is AuthLoading && current is AuthUnauthenticated) ||
         (previous is AuthLoading && current is AuthError) ||
+        (previous is AuthLoading && current is PhoneVerificationRequired) ||
         (previous is AuthAuthenticated && current is AuthUnauthenticated) ||
+        (previous is AuthAuthenticated && current is PhoneVerificationRequired) ||
         (previous is AuthUnauthenticated && current is AuthAuthenticated) ||
+        (previous is AuthUnauthenticated && current is PhoneVerificationRequired) ||
         (previous is AuthError && current is AuthAuthenticated) ||
-        (previous is AuthError && current is AuthUnauthenticated);
+        (previous is AuthError && current is AuthUnauthenticated) ||
+        (previous is AuthError && current is PhoneVerificationRequired) ||
+        (previous is PhoneVerificationRequired && current is AuthAuthenticated) ||
+        (previous is PhoneVerificationRequired && current is AuthUnauthenticated) ||
+        (previous is PhoneVerificationRequired && current is PhoneVerificationLoading) ||
+        (previous is PhoneVerificationRequired && current is PhoneCodeSent) ||
+        (previous is PhoneVerificationLoading && current is PhoneCodeSent) ||
+        (previous is PhoneVerificationLoading && current is AuthError) ||
+        (previous is PhoneVerificationLoading && current is PhoneVerificationRequired) ||
+        (previous is PhoneCodeSent && current is PhoneVerificationLoading) ||
+        (previous is PhoneCodeSent && current is AuthError) ||
+        (previous is PhoneCodeSent && current is PhoneVerificationCompleted) ||
+        (previous is PhoneCodeSent && current is AuthAuthenticated) ||
+        (previous is PhoneVerificationCompleted && current is AuthAuthenticated) ||
+        (previous is PhoneVerificationCompleted && current is AuthError);
   }
 }

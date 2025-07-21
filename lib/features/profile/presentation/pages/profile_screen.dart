@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/log_out_dialog.dart';
 import 'package:udharoo/shared/presentation/bloc/theme_cubit/theme_cubit.dart';
@@ -36,7 +37,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         IconButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            context.pushNamed('editProfile');
+                          },
                           icon: const Icon(Icons.edit_outlined),
                           style: IconButton.styleFrom(
                             backgroundColor: theme.colorScheme.surface,
@@ -96,7 +99,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ),
                               ],
-                              if (!state.user.emailVerified) ...[
+                              if (state.user.phoneNumber != null) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      state.user.phoneNumber!,
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    if (state.user.phoneVerified)
+                                      Icon(
+                                        Icons.verified,
+                                        size: 16,
+                                        color: Colors.green,
+                                      )
+                                    else
+                                      Icon(
+                                        Icons.warning_outlined,
+                                        size: 16,
+                                        color: Colors.orange,
+                                      ),
+                                  ],
+                                ),
+                              ],
+                              if (!state.user.phoneVerified && state.user.phoneNumber == null) ...[
                                 const SizedBox(height: 12),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -117,7 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'Email not verified',
+                                        'Phone not verified',
                                         style: theme.textTheme.labelSmall?.copyWith(
                                           color: Colors.orange,
                                           fontWeight: FontWeight.w500,
@@ -143,28 +173,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     BlocBuilder<AuthCubit, AuthState>(
                       builder: (context, state) {
-                        if (state is AuthAuthenticated && !state.user.emailVerified) {
+                        if (state is AuthAuthenticated && !state.user.phoneVerified) {
                           return Column(
                             children: [
                               _ProfileSection(
-                                title: 'Account',
+                                title: 'Account Security',
                                 items: [
                                   _ProfileItem(
                                     icon: Icons.verified_outlined,
-                                    title: 'Verify Email',
-                                    subtitle: 'Secure your account',
+                                    title: 'Verify Phone Number',
+                                    subtitle: 'Secure your account and enable all features',
                                     onTap: () {
-                                      context.read<AuthCubit>().sendEmailVerification();
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: const Text('Verification email sent!'),
-                                          backgroundColor: Colors.green,
-                                          behavior: SnackBarBehavior.floating,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                        ),
-                                      );
+                                      context.pushNamed('phoneSetup');
                                     },
                                     trailing: Container(
                                       padding: const EdgeInsets.symmetric(
@@ -193,6 +213,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return const SizedBox.shrink();
                       },
                     ),
+                    
+                    BlocBuilder<AuthCubit, AuthState>(
+                      builder: (context, state) {
+                        if (state is AuthAuthenticated && !state.user.emailVerified) {
+                          return Column(
+                            children: [
+                              _ProfileSection(
+                                title: 'Email Verification',
+                                items: [
+                                  _ProfileItem(
+                                    icon: Icons.email_outlined,
+                                    title: 'Verify Email',
+                                    subtitle: 'Verify your email address',
+                                    onTap: () {
+                                      context.read<AuthCubit>().sendEmailVerification();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: const Text('Verification email sent!'),
+                                          backgroundColor: Colors.green,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    trailing: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        'Optional',
+                                        style: theme.textTheme.labelSmall?.copyWith(
+                                          color: Colors.blue,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                    
                     _ProfileSection(
                       title: 'Preferences',
                       items: [

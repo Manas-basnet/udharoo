@@ -7,6 +7,8 @@ class AuthUser extends Equatable {
   final String? phoneNumber;
   final String? photoURL;
   final bool emailVerified;
+  final bool phoneVerified;
+  final bool isPhoneRequired;
 
   const AuthUser({
     required this.uid,
@@ -15,6 +17,8 @@ class AuthUser extends Equatable {
     this.phoneNumber,
     this.photoURL,
     this.emailVerified = false,
+    this.phoneVerified = false,
+    this.isPhoneRequired = true,
   });
 
   AuthUser copyWith({
@@ -24,6 +28,8 @@ class AuthUser extends Equatable {
     String? phoneNumber,
     String? photoURL,
     bool? emailVerified,
+    bool? phoneVerified,
+    bool? isPhoneRequired,
   }) {
     return AuthUser(
       uid: uid ?? this.uid,
@@ -32,8 +38,12 @@ class AuthUser extends Equatable {
       phoneNumber: phoneNumber ?? this.phoneNumber,
       photoURL: photoURL ?? this.photoURL,
       emailVerified: emailVerified ?? this.emailVerified,
+      phoneVerified: phoneVerified ?? this.phoneVerified,
+      isPhoneRequired: isPhoneRequired ?? this.isPhoneRequired,
     );
   }
+
+  bool get canAccessApp => phoneVerified || !isPhoneRequired;
 
   @override
   List<Object?> get props => [
@@ -43,5 +53,7 @@ class AuthUser extends Equatable {
         phoneNumber,
         photoURL,
         emailVerified,
+        phoneVerified,
+        isPhoneRequired,
       ];
 }
