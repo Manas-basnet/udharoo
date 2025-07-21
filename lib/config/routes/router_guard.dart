@@ -12,11 +12,9 @@ class RouterGuard {
     return switch (authState) {
       AuthInitial() => _handleInitial(currentPath),
       AuthLoading() => _handleLoading(currentPath),
-      AuthAuthenticated() => _handleAuthenticated(currentPath),
+      AuthAuthenticated() => _handleAuthenticated(authState, currentPath),
       AuthUnauthenticated() => _handleUnauthenticated(currentPath),
       AuthError() => _handleError(currentPath),
-      AuthPhoneVerificationRequired() => _handlePhoneVerificationRequired(currentPath),
-      AuthProfileSetupRequired() => _handleProfileSetupRequired(currentPath),
     };
   }
   
@@ -37,9 +35,34 @@ class RouterGuard {
     return currentPath == Routes.splash ? null : Routes.splash;
   }
   
-  static String? _handleAuthenticated(String currentPath) {
+  static String? _handleAuthenticated(AuthAuthenticated authState, String currentPath) {
     final publicRoutes = [Routes.login, Routes.splash];
-    return publicRoutes.contains(currentPath) ? Routes.home : null;
+    
+    if (publicRoutes.contains(currentPath)) {
+      if (authState.canUseApp) {
+        return Routes.home;
+      } else if (authState.needsPhoneVerification) {
+        return Routes.phoneSetup;
+      } else if (authState.needsProfileSetup) {
+        return Routes.phoneSetup;
+      }
+    }
+    
+    final phoneVerificationRoutes = [Routes.phoneSetup, Routes.phoneVerification];
+    
+    if (authState.canUseApp && phoneVerificationRoutes.contains(currentPath)) {
+      return Routes.home;
+    }
+    
+    if (authState.needsPhoneVerification && !phoneVerificationRoutes.contains(currentPath)) {
+      return Routes.phoneSetup;
+    }
+    
+    if (authState.needsProfileSetup && !phoneVerificationRoutes.contains(currentPath)) {
+      return Routes.phoneSetup;
+    }
+    
+    return null;
   }
   
   static String? _handleUnauthenticated(String currentPath) {
@@ -59,15 +82,5 @@ class RouterGuard {
   
   static String? _handleError(String currentPath) {
     return currentPath == Routes.login ? null : Routes.login;
-  }
-  
-  static String? _handlePhoneVerificationRequired(String currentPath) {
-    final allowedRoutes = [Routes.phoneSetup, Routes.phoneVerification];
-    return allowedRoutes.contains(currentPath) ? null : Routes.phoneSetup;
-  }
-  
-  static String? _handleProfileSetupRequired(String currentPath) {
-    final allowedRoutes = [Routes.phoneSetup, Routes.phoneVerification];
-    return allowedRoutes.contains(currentPath) ? null : Routes.phoneSetup;
   }
 }

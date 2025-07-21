@@ -56,26 +56,43 @@ class AuthCubit extends Cubit<AuthState> {
   void _handleAuthStateChange(AuthUser? user) async {
     if (!isClosed) {
       if (user != null) {
+        final currentState = state;
+        
+        if (currentState is AuthAuthenticated && 
+            currentState.status == AuthenticatedUserStatus.phoneVerificationInProgress) {
+          return;
+        }
+
         final profileResult = await getUserProfileUseCase(user.uid);
         
         profileResult.fold(
           onSuccess: (profile) {
+            AuthenticatedUserStatus status;
+            
             if (profile.canUseApp) {
-              if (state is! AuthAuthenticated || 
-                  (state as AuthAuthenticated).user.uid != user.uid) {
-                emit(AuthAuthenticated(user, profile));
-              }
-            } else if(profile.phoneVerified != true){
-              emit(AuthPhoneVerificationRequired(user, profile));
+              status = AuthenticatedUserStatus.active;
+            } else if (!profile.phoneVerified) {
+              status = AuthenticatedUserStatus.phoneVerificationRequired;
             } else {
               emit(AuthError(
                 'Something went wrong. Please try again later!',
                 FailureType.auth,
               ));
+              return;
+            }
+
+            if (state is! AuthAuthenticated || 
+                (state as AuthAuthenticated).user.uid != user.uid ||
+                (state as AuthAuthenticated).status != status) {
+              emit(AuthAuthenticated(user, profile, status: status));
             }
           },
           onFailure: (message, type) {
-            emit(AuthProfileSetupRequired(user));
+            emit(AuthAuthenticated(
+              user, 
+              null, 
+              status: AuthenticatedUserStatus.profileSetupRequired,
+            ));
           },
         );
       } else {
@@ -111,7 +128,6 @@ class AuthCubit extends Cubit<AuthState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (user) {
-          // Auth state change will be handled by _handleAuthStateChange
         },
         onFailure: (message, type) => emit(AuthError(message, type)),
       );
@@ -121,7 +137,6 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> signInWithPhone(String phoneNumber, String password) async {
     emit(const AuthLoading());
 
-    // Check if phone number exists
     final phoneExistsResult = await checkPhoneExistsUseCase(phoneNumber);
     
     phoneExistsResult.fold(
@@ -134,8 +149,6 @@ class AuthCubit extends Cubit<AuthState> {
           return;
         }
 
-        // TODO: Implement actual phone login
-        // For now, show error
         emit(const AuthError(
           'Phone login not yet implemented',
           FailureType.unknown,
@@ -153,7 +166,6 @@ class AuthCubit extends Cubit<AuthState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (user) {
-          // Auth state change will be handled by _handleAuthStateChange
         },
         onFailure: (message, type) => emit(AuthError(message, type)),
       );
@@ -168,7 +180,6 @@ class AuthCubit extends Cubit<AuthState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (user) {
-          // Auth state change will be handled by _handleAuthStateChange
         },
         onFailure: (message, type) => emit(AuthError(message, type)),
       );
@@ -196,9 +207,7 @@ class AuthCubit extends Cubit<AuthState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (user) {
-          if (user != null) {
-            // Auth state change will be handled by _handleAuthStateChange
-          } else {
+          if (user == null) {
             emit(const AuthUnauthenticated());
           }
         },
@@ -213,7 +222,6 @@ class AuthCubit extends Cubit<AuthState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (_) {
-          // Handle success (maybe show a success message)
         },
         onFailure: (message, type) => emit(AuthError(message, type)),
       );
@@ -226,10 +234,47 @@ class AuthCubit extends Cubit<AuthState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (_) {
-          // Handle success (maybe show a success message)
         },
         onFailure: (message, type) => emit(AuthError(message, type)),
       );
+    }
+  }
+
+  void setPhoneVerificationInProgress() {
+    final currentState = state;
+    if (currentState is AuthAuthenticated && !isClosed) {
+      emit(currentState.copyWith(
+        status: AuthenticatedUserStatus.phoneVerificationInProgress,
+      ));
+    }
+  }
+
+  void setPhoneVerificationCompleted() {
+    final currentState = state;
+    if (currentState is AuthAuthenticated && !isClosed) {
+      emit(currentState.copyWith(
+        status: AuthenticatedUserStatus.active,
+      ));
+    }
+  }
+
+  void updateUserProfile(UserProfile profile) {
+    final currentState = state;
+    if (currentState is AuthAuthenticated && !isClosed) {
+      AuthenticatedUserStatus status;
+      
+      if (profile.canUseApp) {
+        status = AuthenticatedUserStatus.active;
+      } else if (!profile.phoneVerified) {
+        status = AuthenticatedUserStatus.phoneVerificationRequired;
+      } else {
+        status = currentState.status;
+      }
+
+      emit(currentState.copyWith(
+        profile: profile,
+        status: status,
+      ));
     }
   }
 

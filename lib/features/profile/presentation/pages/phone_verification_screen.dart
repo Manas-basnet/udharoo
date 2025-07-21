@@ -29,6 +29,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   void initState() {
     super.initState();
     _focusNode.requestFocus();
+    context.read<AuthCubit>().setPhoneVerificationInProgress();
   }
 
   @override
@@ -43,25 +44,31 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
         backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
       ),
-      body: BlocListener<ProfileCubit, ProfileState>(
-        listener: (context, state) {
-          if (state is ProfileError) {
-            setState(() => _isLoading = false);
-            CustomToast.show(
-              context,
-              message: state.message,
-              isSuccess: false,
-            );
-          } else if (state is PhoneVerified) {
-            setState(() => _isLoading = false);
-            CustomToast.show(
-              context,
-              message: 'Phone number verified successfully!',
-              isSuccess: true,
-            );
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          }
-        },
+      body: MultiBlocListener(
+        listeners: [
+          BlocListener<ProfileCubit, ProfileState>(
+            listener: (context, state) {
+              if (state is ProfileError) {
+                setState(() => _isLoading = false);
+                CustomToast.show(
+                  context,
+                  message: state.message,
+                  isSuccess: false,
+                );
+              } else if (state is PhoneVerified) {
+                setState(() => _isLoading = false);
+                context.read<AuthCubit>().updateUserProfile(state.updatedProfile);
+                context.read<AuthCubit>().setPhoneVerificationCompleted();
+                CustomToast.show(
+                  context,
+                  message: 'Phone number verified successfully!',
+                  isSuccess: true,
+                );
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              }
+            },
+          ),
+        ],
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
