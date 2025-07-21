@@ -8,11 +8,16 @@ import 'package:udharoo/features/auth/presentation/pages/login_screen.dart';
 import 'package:udharoo/features/home/presentation/pages/home_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transactions_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
+import 'package:udharoo/features/transactions/presentation/pages/transaction_detail_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/qr_scanner_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/qr_generator_screen.dart';
+import 'package:udharoo/features/transactions/presentation/pages/finished_transactions_screen.dart';
+import 'package:udharoo/features/transactions/presentation/pages/contact_transactions_screen.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/contacts/presentation/pages/contacts_screen.dart';
 import 'package:udharoo/features/profile/presentation/pages/profile_screen.dart';
+import 'package:udharoo/features/profile/presentation/pages/edit_profile_screen.dart';
 import 'package:udharoo/shared/presentation/layouts/scaffold_with_bottom_nav_bar.dart';
 import 'package:udharoo/shared/presentation/pages/splash_screen.dart';
 
@@ -31,7 +36,6 @@ class AppRouter {
   static final _contactsNavigatorKey = GlobalKey<NavigatorState>();
   static final _profileNavigatorKey = GlobalKey<NavigatorState>();
 
-  // Shared transaction cubit instance
   static final _transactionCubit = di.sl<TransactionCubit>();
 
   static final GoRouter router = GoRouter(
@@ -49,6 +53,12 @@ class AppRouter {
         path: Routes.login,
         name: 'login',
         builder: (context, state) => const LoginScreen(),
+      ),
+
+      GoRoute(
+        path: Routes.editProfile,
+        name: 'editProfile',
+        builder: (context, state) => const EditProfileScreen(),
       ),
 
       GoRoute(
@@ -70,14 +80,48 @@ class AppRouter {
         path: Routes.transactionForm,
         name: 'transactionForm',
         builder: (context, state) {
-
           final extra = state.extra as TransactionFormScreenArguments?;
-
           return BlocProvider.value(
             value: _transactionCubit,
             child: TransactionFormScreen(
               qrData: extra?.qrData,
               initialType: extra?.initialType,
+            ),
+          );
+        },
+      ),
+
+      GoRoute(
+        path: Routes.transactionDetail,
+        name: 'transactionDetail',
+        builder: (context, state) {
+          final transaction = state.extra as Transaction;
+          return BlocProvider.value(
+            value: _transactionCubit,
+            child: TransactionDetailScreen(transaction: transaction),
+          );
+        },
+      ),
+
+      GoRoute(
+        path: Routes.finishedTransactions,
+        name: 'finishedTransactions',
+        builder: (context, state) => BlocProvider.value(
+          value: _transactionCubit,
+          child: const FinishedTransactionsScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.contactTransactions,
+        name: 'contactTransactions',
+        builder: (context, state) {
+          final args = state.extra as ContactTransactionsScreenArguments;
+          return BlocProvider.value(
+            value: _transactionCubit,
+            child: ContactTransactionsScreen(
+              contactName: args.contactName,
+              contactPhone: args.contactPhone,
             ),
           );
         },

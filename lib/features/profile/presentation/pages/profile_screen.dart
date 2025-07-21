@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/log_out_dialog.dart';
 import 'package:udharoo/shared/presentation/bloc/theme_cubit/theme_cubit.dart';
@@ -36,7 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         IconButton(
-                          onPressed: () {},
+                          onPressed: () => context.push(Routes.editProfile),
                           icon: const Icon(Icons.edit_outlined),
                           style: IconButton.styleFrom(
                             backgroundColor: theme.colorScheme.surface,
@@ -61,7 +63,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: state.user.photoURL != null
-                                    ? ClipRoundedRectangle(
+                                    ? ClipRRect(
                                         borderRadius: BorderRadius.circular(20),
                                         child: Image.network(
                                           state.user.photoURL!,
@@ -91,6 +93,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 const SizedBox(height: 4),
                                 Text(
                                   state.user.email!,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                  ),
+                                ),
+                              ],
+                              if (state.user.phoneNumber != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  state.user.phoneNumber!,
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: theme.colorScheme.onSurface.withOpacity(0.6),
                                   ),
@@ -193,6 +204,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return const SizedBox.shrink();
                       },
                     ),
+                    
+                    _ProfileSection(
+                      title: 'Transactions',
+                      items: [
+                        _ProfileItem(
+                          icon: Icons.task_alt_outlined,
+                          title: 'Finished Transactions',
+                          subtitle: 'View completed transactions',
+                          onTap: () {
+                            context.push(Routes.finishedTransactions);
+                          },
+                        ),
+                        _ProfileItem(
+                          icon: Icons.qr_code,
+                          title: 'My QR Code',
+                          subtitle: 'Show your QR for transactions',
+                          onTap: () {
+                            context.push(Routes.qrGenerator);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    
                     _ProfileSection(
                       title: 'Preferences',
                       items: [
@@ -412,25 +447,6 @@ class _ProfileItem extends StatelessWidget {
         color: theme.colorScheme.onSurface.withOpacity(0.4),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-    );
-  }
-}
-
-class ClipRoundedRectangle extends StatelessWidget {
-  final Widget child;
-  final BorderRadius borderRadius;
-
-  const ClipRoundedRectangle({
-    super.key,
-    required this.child,
-    required this.borderRadius,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: borderRadius,
-      child: child,
     );
   }
 }

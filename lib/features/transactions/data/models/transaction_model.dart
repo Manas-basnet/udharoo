@@ -17,6 +17,7 @@ class TransactionModel extends Transaction {
     super.toUserName,
     super.fromUserPhone,
     super.toUserPhone,
+    super.completedAt,
   });
 
   factory TransactionModel.fromEntity(Transaction transaction) {
@@ -35,6 +36,7 @@ class TransactionModel extends Transaction {
       toUserName: transaction.toUserName,
       fromUserPhone: transaction.fromUserPhone,
       toUserPhone: transaction.toUserPhone,
+      completedAt: transaction.completedAt,
     );
   }
 
@@ -59,6 +61,9 @@ class TransactionModel extends Transaction {
           ? (data['dueDate'] as Timestamp).toDate() 
           : null,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
+      completedAt: data['completedAt'] != null 
+          ? (data['completedAt'] as Timestamp).toDate() 
+          : null,
       updatedAt: data['updatedAt'] != null 
           ? (data['updatedAt'] as Timestamp).toDate() 
           : null,
@@ -87,6 +92,9 @@ class TransactionModel extends Transaction {
       dueDate: json['dueDate'] != null 
           ? DateTime.parse(json['dueDate'] as String) 
           : null,
+      completedAt: json['completedAt'] != null 
+          ? DateTime.parse(json['completedAt'] as String) 
+          : null,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: json['updatedAt'] != null 
           ? DateTime.parse(json['updatedAt'] as String) 
@@ -108,6 +116,7 @@ class TransactionModel extends Transaction {
       'description': description,
       'dueDate': dueDate != null ? Timestamp.fromDate(dueDate!) : null,
       'createdAt': Timestamp.fromDate(createdAt),
+      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'fromUserName': fromUserName,
       'toUserName': toUserName,
@@ -126,6 +135,7 @@ class TransactionModel extends Transaction {
       'status': status.name,
       'description': description,
       'dueDate': dueDate?.toIso8601String(),
+      'completedAt': completedAt?.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
       'fromUserName': fromUserName,
@@ -146,6 +156,7 @@ class TransactionModel extends Transaction {
     String? description,
     DateTime? dueDate,
     DateTime? createdAt,
+    DateTime? completedAt,
     DateTime? updatedAt,
     String? fromUserName,
     String? toUserName,
@@ -167,6 +178,7 @@ class TransactionModel extends Transaction {
       toUserName: toUserName ?? this.toUserName,
       fromUserPhone: fromUserPhone ?? this.fromUserPhone,
       toUserPhone: toUserPhone ?? this.toUserPhone,
+      completedAt: completedAt ?? this.completedAt, 
     );
   }
 }

@@ -6,6 +6,7 @@ abstract class QrService {
     required String userId,
     required String userName,
     String? userPhone,
+    bool requiresVerification = true,
   });
   
   String generateTransactionQrData({

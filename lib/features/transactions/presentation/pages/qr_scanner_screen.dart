@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
@@ -123,9 +124,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     onTap: _pickImageFromGallery,
                   ),
                   _buildActionButton(
-                    icon: Icons.keyboard,
-                    label: 'Manual',
-                    onTap: _showManualInputDialog,
+                    icon: Icons.link,
+                    label: 'Paste Link',
+                    onTap: _showPasteLinkDialog,
                   ),
                 ],
               ),
@@ -213,7 +214,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       );
       
       if (image != null) {
-        // Analyze the image using mobile_scanner
         final BarcodeCapture? result = await controller.analyzeImage(image.path);
         
         if (result != null && result.barcodes.isNotEmpty) {
@@ -224,7 +224,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           }
         }
         
-        // If no QR code found in image
         if (mounted) {
           CustomToast.show(
             context,
@@ -248,24 +247,96 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     }
   }
 
-  void _showManualInputDialog() {
+  void _showPasteLinkDialog() {
     final textController = TextEditingController();
+    final theme = Theme.of(context);
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Enter QR Data'),
+        backgroundColor: theme.colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.link,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Paste QR Link',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Text(
+              'Paste the QR code link you received from someone.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: textController,
-              decoration: const InputDecoration(
-                labelText: 'QR Data',
-                hintText: 'Paste QR code data here',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: 'QR Link',
+                hintText: 'udharoo://user/...',
+                prefixIcon: const Icon(Icons.link),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                suffixIcon: IconButton(
+                  onPressed: () async {
+                    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+                    if (clipboardData?.text != null) {
+                      textController.text = clipboardData!.text!;
+                    }
+                  },
+                  icon: const Icon(Icons.paste),
+                  tooltip: 'Paste from clipboard',
+                ),
               ),
               maxLines: 3,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (value) {
+                if (value.trim().isNotEmpty) {
+                  Navigator.pop(context);
+                  _processScanResult(value.trim());
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Valid links start with "udharoo://" or contain Udharoo QR data',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             Row(
@@ -293,15 +364,27 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
           ),
           FilledButton(
             onPressed: () {
-              if (textController.text.isNotEmpty) {
+              final text = textController.text.trim();
+              if (text.isNotEmpty) {
                 Navigator.pop(context);
-                _processScanResult(textController.text);
+                _processScanResult(text);
               }
             },
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
             child: const Text('Process'),
           ),
         ],
@@ -310,10 +393,15 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   }
 
   Future<void> _processScanResult(String qrData) async {
+    if (_isProcessing) return;
+    
+    setState(() => _isProcessing = true);
 
     final result = await _qrService.parseQrData(qrData);
     
     if (!mounted) return;
+    
+    setState(() => _isProcessing = false);
     
     result.fold(
       onSuccess: (qrTransactionData) {
@@ -330,7 +418,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           message: message,
           isSuccess: false,
         );
-        setState(() => _isProcessing = false);
       },
     );
   }

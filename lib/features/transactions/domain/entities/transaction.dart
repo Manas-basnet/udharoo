@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 enum TransactionType { lend, borrow }
-enum TransactionStatus { pending, verified, rejected }
+enum TransactionStatus { pending, verified, rejected, completed }
 
 class Transaction extends Equatable {
   final String id;
@@ -14,6 +14,7 @@ class Transaction extends Equatable {
   final DateTime? dueDate;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final DateTime? completedAt;
   final String? fromUserName;
   final String? toUserName;
   final String? fromUserPhone;
@@ -30,6 +31,7 @@ class Transaction extends Equatable {
     this.dueDate,
     required this.createdAt,
     this.updatedAt,
+    this.completedAt,
     this.fromUserName,
     this.toUserName,
     this.fromUserPhone,
@@ -47,6 +49,7 @@ class Transaction extends Equatable {
     DateTime? dueDate,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? completedAt,
     String? fromUserName,
     String? toUserName,
     String? fromUserPhone,
@@ -63,6 +66,7 @@ class Transaction extends Equatable {
       dueDate: dueDate ?? this.dueDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      completedAt: completedAt ?? this.completedAt,
       fromUserName: fromUserName ?? this.fromUserName,
       toUserName: toUserName ?? this.toUserName,
       fromUserPhone: fromUserPhone ?? this.fromUserPhone,
@@ -73,11 +77,15 @@ class Transaction extends Equatable {
   bool get isPending => status == TransactionStatus.pending;
   bool get isVerified => status == TransactionStatus.verified;
   bool get isRejected => status == TransactionStatus.rejected;
+  bool get isCompleted => status == TransactionStatus.completed;
   bool get isLending => type == TransactionType.lend;
   bool get isBorrowing => type == TransactionType.borrow;
   
+  bool get isActive => status == TransactionStatus.verified;
+  bool get isFinished => status == TransactionStatus.completed;
+  
   bool get isOverdue {
-    if (dueDate == null || isVerified) return false;
+    if (dueDate == null || isVerified || isCompleted) return false;
     return DateTime.now().isAfter(dueDate!);
   }
 
@@ -93,6 +101,7 @@ class Transaction extends Equatable {
         dueDate,
         createdAt,
         updatedAt,
+        completedAt,
         fromUserName,
         toUserName,
         fromUserPhone,

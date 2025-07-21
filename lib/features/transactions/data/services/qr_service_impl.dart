@@ -12,12 +12,14 @@ class QrServiceImpl implements QrService {
     required String userId,
     required String userName,
     String? userPhone,
+    bool requiresVerification = true,
   }) {
     try {
       final data = QrTransactionData(
         userId: userId,
         userName: userName,
         userPhone: userPhone,
+        requiresVerification: requiresVerification,
         qrType: 'user',
       );
 
@@ -94,6 +96,13 @@ class QrServiceImpl implements QrService {
           );
         }
 
+        if (qrTransactionData.userPhone?.isEmpty ?? true) {
+          return ApiResult.failure(
+            'Invalid QR data: missing phone number',
+            FailureType.validation,
+          );
+        }
+
         return ApiResult.success(qrTransactionData);
         
       } on FormatException catch (e) {
@@ -135,6 +144,7 @@ class QrServiceImpl implements QrService {
             userId: params['userId']!,
             userName: params['userName']!,
             userPhone: params['userPhone'],
+            requiresVerification: params['requiresVerification'] == 'true',
             qrType: 'user',
           );
           return ApiResult.success(qrTransactionData);

@@ -41,6 +41,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   TransactionType _selectedType = TransactionType.lend;
   DateTime? _selectedDueDate;
   bool _requiresVerification = true;
+  bool _isVerificationReadOnly = false;
 
   @override
   void initState() {
@@ -53,8 +54,22 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       final qrData = widget.qrData!;
       _userNameController.text = qrData.userName;
       _userPhoneController.text = qrData.userPhone ?? '';
-      // Don't pre-fill amount, description, or due date - let user enter them
-      _requiresVerification = true; // Default to requiring verification
+      
+      _requiresVerification = qrData.requiresVerification;
+      _isVerificationReadOnly = qrData.requiresVerification;
+      
+      if (qrData.amount != null) {
+        _amountController.text = qrData.amount!.toString();
+      }
+      if (qrData.description != null) {
+        _descriptionController.text = qrData.description!;
+      }
+      if (qrData.dueDate != null) {
+        _selectedDueDate = qrData.dueDate;
+      }
+    } else {
+      _requiresVerification = false;
+      _isVerificationReadOnly = false;
     }
 
     if (widget.initialType != null) {
@@ -105,6 +120,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (widget.qrData != null) _buildQrInfoCard(),
+                        if (widget.qrData != null) const SizedBox(height: 24),
+                        
                         _buildTransactionTypeSelector(),
                         const SizedBox(height: 24),
                         
@@ -156,7 +174,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                                 ),
                               )
                             : Text(
-                                'Create Transaction',
+                                _requiresVerification 
+                                    ? 'Send Request' 
+                                    : 'Create Transaction',
                                 style: theme.textTheme.bodyLarge?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -173,9 +193,60 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     );
   }
 
+  Widget _buildQrInfoCard() {
+    final theme = Theme.of(context);
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.primary.withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.qr_code,
+              color: theme.colorScheme.primary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'From QR Code',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                Text(
+                  'Creating transaction with ${widget.qrData!.userName}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onPrimaryContainer.withOpacity(0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTransactionTypeSelector() {
     final theme = Theme.of(context);
-    final bool isReadOnly = widget.qrData != null;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,7 +267,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 title: 'Lend Money',
                 subtitle: 'You are lending',
                 color: Colors.green,
-                isReadOnly: isReadOnly,
               ),
             ),
             const SizedBox(width: 12),
@@ -207,21 +277,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 title: 'Borrow Money',
                 subtitle: 'You are borrowing',
                 color: Colors.orange,
-                isReadOnly: isReadOnly,
               ),
             ),
           ],
         ),
-        if (isReadOnly) ...[
-          const SizedBox(height: 8),
-          Text(
-            'Transaction type is pre-selected from QR code',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -232,13 +291,12 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     required String title,
     required String subtitle,
     required Color color,
-    bool isReadOnly = false,
   }) {
     final theme = Theme.of(context);
     final isSelected = _selectedType == type;
     
     return GestureDetector(
-      onTap: isReadOnly ? null : () => setState(() => _selectedType = type),
+      onTap: () => setState(() => _selectedType = type),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -263,9 +321,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               ),
               child: Icon(
                 icon,
-                color: isReadOnly && !isSelected 
-                    ? color.withOpacity(0.5)
-                    : color,
+                color: color,
                 size: 24,
               ),
             ),
@@ -274,9 +330,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               title,
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: isSelected 
-                    ? color 
-                    : (isReadOnly ? theme.colorScheme.onSurface.withOpacity(0.5) : null),
+                color: isSelected ? color : null,
               ),
               textAlign: TextAlign.center,
             ),
@@ -344,7 +398,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           controller: _userPhoneController,
           enabled: !isReadOnly,
           decoration: InputDecoration(
-            labelText: 'Phone Number (Optional)',
+            labelText: 'Phone Number *',
             hintText: 'Enter phone number',
             prefixIcon: const Icon(Icons.phone_outlined),
             border: OutlineInputBorder(
@@ -354,6 +408,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             fillColor: isReadOnly ? theme.colorScheme.surface : null,
           ),
           keyboardType: TextInputType.phone,
+          validator: (value) {
+            if (value?.isEmpty ?? true) {
+              return 'Phone number is required';
+            }
+            if (value!.length < 10) {
+              return 'Please enter a valid phone number';
+            }
+            return null;
+          },
         ),
         if (isReadOnly) ...[
           const SizedBox(height: 8),
@@ -362,6 +425,14 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurface.withOpacity(0.6),
               fontStyle: FontStyle.italic,
+            ),
+          ),
+        ] else ...[
+          const SizedBox(height: 8),
+          Text(
+            '* Phone number is required as unique identifier',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
         ],
@@ -503,51 +574,97 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: _requiresVerification 
+            ? theme.colorScheme.primaryContainer.withOpacity(0.5)
+            : theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.1),
+          color: _requiresVerification
+              ? theme.colorScheme.primary.withOpacity(0.3)
+              : theme.colorScheme.outline.withOpacity(0.1),
         ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.verified_outlined,
-              color: theme.colorScheme.primary,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Requires Verification',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _requiresVerification
+                      ? theme.colorScheme.primary.withOpacity(0.2)
+                      : theme.colorScheme.onSurface.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                Text(
-                  'Other person will need to accept this transaction',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                  ),
+                child: Icon(
+                  _requiresVerification 
+                      ? Icons.verified_user
+                      : Icons.verified_outlined,
+                  color: _requiresVerification
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface.withOpacity(0.6),
+                  size: 20,
                 ),
-              ],
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Requires Verification',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      _requiresVerification
+                          ? 'Other person will need to accept this transaction'
+                          : 'Transaction will be automatically verified',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (!_isVerificationReadOnly)
+                Switch(
+                  value: _requiresVerification,
+                  onChanged: (value) => setState(() => _requiresVerification = value),
+                  activeColor: theme.colorScheme.primary,
+                ),
+            ],
+          ),
+          if (_isVerificationReadOnly) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Verification requirement is set by the QR code owner',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Switch(
-            value: _requiresVerification,
-            onChanged: (value) => setState(() => _requiresVerification = value),
-            activeColor: theme.colorScheme.primary,
-          ),
+          ],
         ],
       ),
     );
@@ -589,13 +706,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       final qrData = widget.qrData!;
       if (_selectedType == TransactionType.lend) {
         fromUserId = currentUser.uid;
-        toUserId = qrData.userId;
+        toUserId = '${qrData.userPhone}_user';
         fromUserName = currentUser.displayName;
         toUserName = qrData.userName;
         fromUserPhone = currentUser.phoneNumber;
         toUserPhone = qrData.userPhone;
       } else {
-        fromUserId = qrData.userId;
+        fromUserId = '${qrData.userPhone}_user';
         toUserId = currentUser.uid;
         fromUserName = qrData.userName;
         toUserName = currentUser.displayName;
@@ -603,23 +720,20 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         toUserPhone = currentUser.phoneNumber;
       }
     } else {
+      final phoneNumber = _userPhoneController.text.trim();
       if (_selectedType == TransactionType.lend) {
         fromUserId = currentUser.uid;
-        toUserId = 'manual_${DateTime.now().millisecondsSinceEpoch}';
+        toUserId = '${phoneNumber}_user';
         fromUserName = currentUser.displayName;
         toUserName = _userNameController.text.trim();
         fromUserPhone = currentUser.phoneNumber;
-        toUserPhone = _userPhoneController.text.trim().isNotEmpty 
-            ? _userPhoneController.text.trim() 
-            : null;
+        toUserPhone = phoneNumber;
       } else {
-        fromUserId = 'manual_${DateTime.now().millisecondsSinceEpoch}';
+        fromUserId = '${phoneNumber}_user';
         toUserId = currentUser.uid;
         fromUserName = _userNameController.text.trim();
         toUserName = currentUser.displayName;
-        fromUserPhone = _userPhoneController.text.trim().isNotEmpty 
-            ? _userPhoneController.text.trim() 
-            : null;
+        fromUserPhone = phoneNumber;
         toUserPhone = currentUser.phoneNumber;
       }
     }
