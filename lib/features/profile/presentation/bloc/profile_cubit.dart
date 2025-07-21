@@ -79,6 +79,8 @@ class ProfileCubit extends Cubit<ProfileState> {
   }
 
   Future<void> sendPhoneVerification(String phoneNumber) async {
+    if (state is ProfileLoading) return;
+    
     emit(const ProfileLoading());
 
     final result = await sendPhoneVerificationUseCase(phoneNumber);
@@ -92,24 +94,56 @@ class ProfileCubit extends Cubit<ProfileState> {
   }
 
   Future<void> verifyPhoneNumber(String verificationId, String smsCode, String uid) async {
+    if (state is ProfileLoading) return;
+    
     emit(const ProfileLoading());
 
-    final result = await verifyPhoneNumberUseCase(verificationId, smsCode);
+    try {
+      final result = await verifyPhoneNumberUseCase(verificationId, smsCode);
 
-    if (!isClosed) {
-      result.fold(
-        onSuccess: (_) async {
-          final profileResult = await getUserProfileUseCase(uid);
-          profileResult.fold(
-            onSuccess: (profile) {
-              final updatedProfile = profile.copyWith(phoneVerified: true);
-              emit(PhoneVerified(updatedProfile));
-            },
-            onFailure: (message, type) => emit(ProfileError(message, type)),
-          );
-        },
-        onFailure: (message, type) => emit(ProfileError(message, type)),
-      );
+      if (!isClosed) {
+        await result.fold(
+          onSuccess: (_) async {
+            await Future.delayed(const Duration(milliseconds: 500));
+            
+            final profileResult = await getUserProfileUseCase(uid);
+            
+            if (!isClosed) {
+              profileResult.fold(
+                onSuccess: (profile) {
+                  final updatedProfile = profile.copyWith(phoneVerified: true);
+                  emit(PhoneVerified(updatedProfile));
+                },
+                onFailure: (message, type) => emit(ProfileError(
+                  'Verification successful but failed to update profile: $message',
+                  type,
+                )),
+              );
+            }
+          },
+          onFailure: (message, type) {
+            String errorMessage = message;
+            if (message.contains('invalid-verification-code') || 
+                message.contains('session-expired') ||
+                message.contains('invalid')) {
+              errorMessage = 'Invalid verification code. Please try again.';
+            } else if (message.contains('too-many-requests')) {
+              errorMessage = 'Too many attempts. Please wait before trying again.';
+            } else if (message.contains('credential-already-in-use')) {
+              errorMessage = 'This phone number is already verified with another account.';
+            }
+            
+            emit(ProfileError(errorMessage, type));
+          },
+        );
+      }
+    } catch (e) {
+      if (!isClosed) {
+        emit(ProfileError(
+          'Verification failed. Please check your connection and try again.',
+          FailureType.unknown,
+        ));
+      }
     }
   }
 
@@ -128,6 +162,12 @@ class ProfileCubit extends Cubit<ProfileState> {
 
   void resetError() {
     if (state is ProfileError && !isClosed) {
+      emit(const ProfileInitial());
+    }
+  }
+
+  void reset() {
+    if (!isClosed) {
       emit(const ProfileInitial());
     }
   }

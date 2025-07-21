@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/profile/presentation/bloc/profile_cubit.dart';
+import 'package:udharoo/features/profile/presentation/pages/phone_verification_screen.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class PhoneSetupScreen extends StatefulWidget {
@@ -22,6 +23,12 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
   final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<ProfileCubit>().reset();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,10 +57,10 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
             setState(() => _isLoading = false);
             context.push(
               Routes.phoneVerification,
-              extra: {
-                'phoneNumber': state.phoneNumber,
-                'verificationId': state.verificationId,
-              },
+              extra: PhoneVerificationScreenArgs(
+                phoneNumber: _phoneController.text.trim(),
+                verificationId: state.verificationId,
+              )
             );
           }
         },
@@ -218,24 +225,34 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
 
   void _sendVerification() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_isLoading) return;
     
     setState(() => _isLoading = true);
     
     final phoneNumber = _phoneController.text.trim();
     
-    final phoneExists = await context.read<ProfileCubit>().checkPhoneExists(phoneNumber);
-    
-    if (phoneExists) {
+    try {
+      final phoneExists = await context.read<ProfileCubit>().checkPhoneExists(phoneNumber);
+      
+      if (phoneExists) {
+        setState(() => _isLoading = false);
+        CustomToast.show(
+          context,
+          message: 'This phone number is already registered with another account.',
+          isSuccess: false,
+        );
+        return;
+      }
+      
+      context.read<ProfileCubit>().sendPhoneVerification(phoneNumber);
+    } catch (e) {
       setState(() => _isLoading = false);
       CustomToast.show(
         context,
-        message: 'This phone number is already registered with another account.',
+        message: 'Failed to check phone number. Please try again.',
         isSuccess: false,
       );
-      return;
     }
-    
-    context.read<ProfileCubit>().sendPhoneVerification(phoneNumber);
   }
 
   @override

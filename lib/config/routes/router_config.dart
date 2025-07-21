@@ -75,12 +75,12 @@ class AppRouter {
         path: Routes.phoneVerification,
         name: 'phoneVerification',
         builder: (context, state) {
-          final args = state.extra as Map<String, String>;
+          final args = state.extra as PhoneVerificationScreenArgs;
           return BlocProvider.value(
             value: _profileCubit,
             child: PhoneVerificationScreen(
-              phoneNumber: args['phoneNumber']!,
-              verificationId: args['verificationId']!,
+              phoneNumber: args.phoneNumber,
+              verificationId: args.verificationId,
             ),
           );
         },

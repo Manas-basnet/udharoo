@@ -6,6 +6,16 @@ import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/features/profile/presentation/bloc/profile_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
+class PhoneVerificationScreenArgs {
+  final String phoneNumber;
+  final String verificationId;
+
+  PhoneVerificationScreenArgs({
+    required this.phoneNumber,
+    required this.verificationId,
+  });
+}
+
 class PhoneVerificationScreen extends StatefulWidget {
   final String phoneNumber;
   final String verificationId;
@@ -24,12 +34,20 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   final _codeController = TextEditingController();
   final _focusNode = FocusNode();
   bool _isLoading = false;
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
     _focusNode.requestFocus();
-    context.read<AuthCubit>().setPhoneVerificationInProgress();
+    
+    final authState = context.read<AuthCubit>().state;
+    if (authState is AuthAuthenticated) {
+      _currentUserId = authState.user.uid;
+      context.read<AuthCubit>().setPhoneVerificationInProgress();
+    }
+    
+    context.read<ProfileCubit>().resetError();
   }
 
   @override
@@ -46,6 +64,21 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
       ),
       body: MultiBlocListener(
         listeners: [
+          BlocListener<AuthCubit, AuthState>(
+            listener: (context, state) {
+              if (state is AuthUnauthenticated || state is AuthError) {
+                if (_isLoading) {
+                  setState(() => _isLoading = false);
+                  CustomToast.show(
+                    context,
+                    message: 'Verification failed. Please try again.',
+                    isSuccess: false,
+                  );
+                  Navigator.of(context).pop();
+                }
+              }
+            },
+          ),
           BlocListener<ProfileCubit, ProfileState>(
             listener: (context, state) {
               if (state is ProfileError) {
@@ -230,13 +263,42 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
       return;
     }
     
+    if (_isLoading) return;
+    
     final authState = context.read<AuthCubit>().state;
+    
     if (authState is! AuthAuthenticated) {
+      if (authState is AuthUnauthenticated) {
+        CustomToast.show(
+          context,
+          message: 'Session expired. Please sign in again.',
+          isSuccess: false,
+        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      } else if (authState is AuthError) {
+        CustomToast.show(
+          context,
+          message: 'Authentication error. Please try again.',
+          isSuccess: false,
+        );
+        Navigator.of(context).pop();
+      } else {
+        CustomToast.show(
+          context,
+          message: 'Please wait for authentication to complete.',
+          isSuccess: false,
+        );
+      }
+      return;
+    }
+    
+    if (_currentUserId != null && authState.user.uid != _currentUserId) {
       CustomToast.show(
         context,
-        message: 'Authentication required',
+        message: 'User session changed. Please try again.',
         isSuccess: false,
       );
+      Navigator.of(context).pop();
       return;
     }
     
@@ -250,6 +312,8 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   }
 
   void _resendCode() {
+    if (_isLoading) return;
+    
     context.read<ProfileCubit>().sendPhoneVerification(widget.phoneNumber);
     
     CustomToast.show(

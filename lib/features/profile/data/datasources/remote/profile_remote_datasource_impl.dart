@@ -113,29 +113,71 @@ class ProfileRemoteDatasourceImpl implements ProfileRemoteDatasource {
 
   @override
   Future<void> verifyPhoneNumber(String verificationId, String smsCode) async {
-    final credential = PhoneAuthProvider.credential(
-      verificationId: verificationId,
-      smsCode: smsCode,
-    );
-    
-    final currentUser = _auth.currentUser;
-    if (currentUser == null) {
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+      
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        throw FirebaseAuthException(
+          code: 'user-not-found',
+          message: 'No authenticated user found',
+        );
+      }
+      
+      await currentUser.linkWithCredential(credential);
+      
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      final userProfile = await getUserProfile(currentUser.uid);
+      if (userProfile != null) {
+        final updatedProfile = userProfile.copyWith(
+          phoneVerified: true,
+          phoneNumber: currentUser.phoneNumber,
+          updatedAt: DateTime.now(),
+        );
+        await updateUserProfile(updatedProfile);
+      }
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'invalid-verification-code':
+          throw FirebaseAuthException(
+            code: 'invalid-verification-code',
+            message: 'The verification code is invalid. Please try again.',
+          );
+        case 'session-expired':
+          throw FirebaseAuthException(
+            code: 'session-expired',
+            message: 'The verification session has expired. Please request a new code.',
+          );
+        case 'credential-already-in-use':
+          throw FirebaseAuthException(
+            code: 'credential-already-in-use',
+            message: 'This phone number is already verified with another account.',
+          );
+        case 'too-many-requests':
+          throw FirebaseAuthException(
+            code: 'too-many-requests',
+            message: 'Too many verification attempts. Please wait before trying again.',
+          );
+        case 'user-not-found':
+          throw FirebaseAuthException(
+            code: 'user-not-found',
+            message: 'User session expired. Please sign in again.',
+          );
+        default:
+          throw FirebaseAuthException(
+            code: e.code,
+            message: e.message ?? 'Phone verification failed. Please try again.',
+          );
+      }
+    } catch (e) {
       throw FirebaseAuthException(
-        code: 'user-not-found',
-        message: 'No authenticated user found',
+        code: 'verification-failed',
+        message: 'Phone verification failed. Please check your connection and try again.',
       );
-    }
-    
-    await currentUser.linkWithCredential(credential);
-    
-    final userProfile = await getUserProfile(currentUser.uid);
-    if (userProfile != null) {
-      final updatedProfile = userProfile.copyWith(
-        phoneVerified: true,
-        phoneNumber: currentUser.phoneNumber,
-        updatedAt: DateTime.now(),
-      );
-      await updateUserProfile(updatedProfile);
     }
   }
 
