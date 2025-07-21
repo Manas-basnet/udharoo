@@ -65,8 +65,13 @@ class AuthCubit extends Cubit<AuthState> {
                   (state as AuthAuthenticated).user.uid != user.uid) {
                 emit(AuthAuthenticated(user, profile));
               }
-            } else {
+            } else if(profile.phoneVerified != true){
               emit(AuthPhoneVerificationRequired(user, profile));
+            } else {
+              emit(AuthError(
+                'Something went wrong. Please try again later!',
+                FailureType.auth,
+              ));
             }
           },
           onFailure: (message, type) {

@@ -12,8 +12,6 @@ class ProfileRemoteDatasourceImpl implements ProfileRemoteDatasource {
   final FirebaseAuth _auth;
   static const String _usersCollection = 'users';
   static const String _profileImagesPath = 'profile_images';
-  
-  final Completer<String> _verificationIdCompleter = Completer<String>();
 
   ProfileRemoteDatasourceImpl({
     FirebaseFirestore? firestore,
@@ -74,16 +72,23 @@ class ProfileRemoteDatasourceImpl implements ProfileRemoteDatasource {
   }
 
   @override
-  Future<void> sendPhoneVerification(String phoneNumber) async {
-    final completer = Completer<void>();
+  Future<String> sendPhoneVerification(String phoneNumber) async {
+    final completer = Completer<String>();
     String formattedPhoneNumber = _formatPhoneNumber(phoneNumber);
     
     await _auth.verifyPhoneNumber(
       phoneNumber: formattedPhoneNumber,
       timeout: const Duration(seconds: 60),
-      verificationCompleted: (PhoneAuthCredential credential) {
-        if (!completer.isCompleted) {
-          completer.complete();
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        try {
+          final currentUser = _auth.currentUser;
+          if (currentUser != null) {
+            await currentUser.linkWithCredential(credential);
+          }
+        } catch (e) {
+          if (!completer.isCompleted) {
+            completer.completeError(e);
+          }
         }
       },
       verificationFailed: (FirebaseAuthException e) {
@@ -92,21 +97,18 @@ class ProfileRemoteDatasourceImpl implements ProfileRemoteDatasource {
         }
       },
       codeSent: (String verificationId, int? resendToken) {
-        if (!_verificationIdCompleter.isCompleted) {
-          _verificationIdCompleter.complete(verificationId);
-        }
         if (!completer.isCompleted) {
-          completer.complete();
+          completer.complete(verificationId);
         }
       },
       codeAutoRetrievalTimeout: (String verificationId) {
-        if (!_verificationIdCompleter.isCompleted) {
-          _verificationIdCompleter.complete(verificationId);
+        if (!completer.isCompleted) {
+          completer.complete(verificationId);
         }
       },
     );
     
-    await completer.future;
+    return await completer.future;
   }
 
   @override
@@ -117,9 +119,14 @@ class ProfileRemoteDatasourceImpl implements ProfileRemoteDatasource {
     );
     
     final currentUser = _auth.currentUser;
-    if (currentUser != null) {
-      await currentUser.linkWithCredential(credential);
+    if (currentUser == null) {
+      throw FirebaseAuthException(
+        code: 'user-not-found',
+        message: 'No authenticated user found',
+      );
     }
+    
+    await currentUser.linkWithCredential(credential);
   }
 
   @override
@@ -136,34 +143,30 @@ class ProfileRemoteDatasourceImpl implements ProfileRemoteDatasource {
     
     return newProfile;
   }
-  
-  Future<String> getVerificationId() async {
-    return await _verificationIdCompleter.future;
-  }
 
   String _formatPhoneNumber(String phoneNumber) {
-  String cleanNumber = phoneNumber.replaceAll(RegExp(r'[\s\-\(\)]'), '');
-  
-  if (cleanNumber.startsWith('+')) {
-    return cleanNumber;
-  }
-  
-  if (cleanNumber.length > 10 && !cleanNumber.startsWith('0')) {
-    return '+$cleanNumber';
-  }
-  
-  if (cleanNumber.startsWith('0')) {
-    cleanNumber = cleanNumber.substring(1);
-  }
-  
-  if (cleanNumber.length == 10) {
+    String cleanNumber = phoneNumber.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+    
+    if (cleanNumber.startsWith('+')) {
+      return cleanNumber;
+    }
+    
+    if (cleanNumber.length > 10 && !cleanNumber.startsWith('0')) {
+      return '+$cleanNumber';
+    }
+    
+    if (cleanNumber.startsWith('0')) {
+      cleanNumber = cleanNumber.substring(1);
+    }
+    
+    if (cleanNumber.length == 10) {
+      return '+977$cleanNumber';
+    }
+    
+    if (cleanNumber.length > 10) {
+      return '+$cleanNumber';
+    }
+    
     return '+977$cleanNumber';
-  }
-  
-  if (cleanNumber.length > 10) {
-    return '+$cleanNumber';
-  }
-  
-  return '+977$cleanNumber';
   }
 }

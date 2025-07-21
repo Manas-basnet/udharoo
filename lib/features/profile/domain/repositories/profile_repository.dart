@@ -9,7 +9,7 @@ abstract class ProfileRepository {
   Future<ApiResult<String>> uploadProfileImage(String uid, File imageFile);
   Future<ApiResult<void>> deleteProfileImage(String uid);
   Future<ApiResult<bool>> checkPhoneNumberExists(String phoneNumber);
-  Future<ApiResult<void>> sendPhoneVerification(String phoneNumber);
+  Future<ApiResult<String>> sendPhoneVerification(String phoneNumber);
   Future<ApiResult<void>> verifyPhoneNumber(String verificationId, String smsCode);
   Future<ApiResult<UserProfile>> createUserProfile(UserProfile profile);
 }

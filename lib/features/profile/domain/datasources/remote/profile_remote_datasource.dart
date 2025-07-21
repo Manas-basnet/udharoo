@@ -7,7 +7,7 @@ abstract class ProfileRemoteDatasource {
   Future<String> uploadProfileImage(String uid, File imageFile);
   Future<void> deleteProfileImage(String uid, String imageUrl);
   Future<bool> checkPhoneNumberExists(String phoneNumber);
-  Future<void> sendPhoneVerification(String phoneNumber);
+  Future<String> sendPhoneVerification(String phoneNumber);
   Future<void> verifyPhoneNumber(String verificationId, String smsCode);
   Future<UserProfileModel> createUserProfile(UserProfileModel profile);
 }

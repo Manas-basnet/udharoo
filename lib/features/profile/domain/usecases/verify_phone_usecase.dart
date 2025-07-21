@@ -6,7 +6,7 @@ class SendPhoneVerificationUseCase {
 
   SendPhoneVerificationUseCase(this.repository);
 
-  Future<ApiResult<void>> call(String phoneNumber) {
+  Future<ApiResult<String>> call(String phoneNumber) {
     return repository.sendPhoneVerification(phoneNumber);
   }
 }

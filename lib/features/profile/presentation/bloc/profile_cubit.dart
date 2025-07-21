@@ -85,7 +85,7 @@ class ProfileCubit extends Cubit<ProfileState> {
 
     if (!isClosed) {
       result.fold(
-        onSuccess: (_) => emit(PhoneVerificationSent('verification_id', phoneNumber)),
+        onSuccess: (verificationId) => emit(PhoneVerificationSent(verificationId, phoneNumber)),
         onFailure: (message, type) => emit(ProfileError(message, type)),
       );
     }

@@ -1,8 +1,8 @@
-// lib/features/profile/presentation/pages/phone_verification_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/features/profile/presentation/bloc/profile_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
@@ -223,13 +223,22 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
       return;
     }
     
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! AuthAuthenticated) {
+      CustomToast.show(
+        context,
+        message: 'Authentication required',
+        isSuccess: false,
+      );
+      return;
+    }
+    
     setState(() => _isLoading = true);
     
-    // TODO: Get current user ID from auth cubit
     context.read<ProfileCubit>().verifyPhoneNumber(
       widget.verificationId,
       code,
-      'current_user_id', // This should come from AuthCubit
+      authState.user.uid,
     );
   }
 

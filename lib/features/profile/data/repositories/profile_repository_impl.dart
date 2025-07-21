@@ -132,11 +132,11 @@ class ProfileRepositoryImpl extends BaseRepository implements ProfileRepository 
   }
 
   @override
-  Future<ApiResult<void>> sendPhoneVerification(String phoneNumber) async {
-    return handleRemoteCallFirst<void>(
+  Future<ApiResult<String>> sendPhoneVerification(String phoneNumber) async {
+    return handleRemoteCallFirst<String>(
       remoteCall: () async {
-        await _remoteDatasource.sendPhoneVerification(phoneNumber);
-        return ApiResult.success(null);
+        final verificationId = await _remoteDatasource.sendPhoneVerification(phoneNumber);
+        return ApiResult.success(verificationId);
       },
       saveLocalData: (_) async {},
     );
