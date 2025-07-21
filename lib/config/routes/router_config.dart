@@ -17,10 +17,6 @@ import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubi
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/contacts/presentation/pages/contacts_screen.dart';
 import 'package:udharoo/features/profile/presentation/pages/profile_screen.dart';
-import 'package:udharoo/features/profile/presentation/pages/updated_edit_profile_screen.dart';
-import 'package:udharoo/features/profile/presentation/pages/phone_setup_screen.dart';
-import 'package:udharoo/features/profile/presentation/pages/phone_verification_screen.dart';
-import 'package:udharoo/features/profile/presentation/bloc/profile_cubit.dart';
 import 'package:udharoo/shared/presentation/layouts/scaffold_with_bottom_nav_bar.dart';
 import 'package:udharoo/shared/presentation/pages/splash_screen.dart';
 
@@ -40,7 +36,6 @@ class AppRouter {
   static final _profileNavigatorKey = GlobalKey<NavigatorState>();
 
   static final _transactionCubit = di.sl<TransactionCubit>();
-  static final _profileCubit = di.sl<ProfileCubit>();
 
   static final GoRouter router = GoRouter(
     initialLocation: Routes.splash,
@@ -57,44 +52,6 @@ class AppRouter {
         path: Routes.login,
         name: 'login',
         builder: (context, state) => const LoginScreen(),
-      ),
-
-      GoRoute(
-        path: Routes.phoneSetup,
-        name: 'phoneSetup',
-        builder: (context, state) {
-          final isRequired = state.extra as bool? ?? false;
-          return BlocProvider.value(
-            value: _profileCubit,
-            child: PhoneSetupScreen(isRequired: isRequired),
-          );
-        },
-      ),
-
-      GoRoute(
-        path: Routes.phoneVerification,
-        name: 'phoneVerification',
-        builder: (context, state) {
-          final args = state.extra as PhoneVerificationScreenArgs;
-          return BlocProvider.value(
-            value: _profileCubit,
-            child: PhoneVerificationScreen(
-              phoneNumber: args.phoneNumber,
-              verificationId: args.verificationId,
-            ),
-          );
-        },
-      ),
-
-      GoRoute(
-        path: Routes.editProfile,
-        name: 'editProfile',
-        builder: (context, state) => MultiBlocProvider(
-          providers: [
-            BlocProvider.value(value: _profileCubit),
-          ],
-          child: const UpdatedEditProfileScreen(),
-        ),
       ),
 
       GoRoute(
@@ -210,12 +167,7 @@ class AppRouter {
               GoRoute(
                 path: Routes.profile,
                 name: 'profile',
-                builder: (context, state) => MultiBlocProvider(
-                  providers: [
-                    BlocProvider.value(value: _profileCubit),
-                  ],
-                  child: const ProfileScreen(),
-                ),
+                builder: (context, state) => const ProfileScreen(),
               ),
             ],
           ),

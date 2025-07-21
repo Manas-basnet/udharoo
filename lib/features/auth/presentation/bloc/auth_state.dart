@@ -1,12 +1,5 @@
 part of 'auth_cubit.dart';
 
-enum AuthenticatedUserStatus {
-  active,
-  phoneVerificationRequired,
-  phoneVerificationInProgress,
-  profileSetupRequired,
-}
-
 sealed class AuthState extends Equatable {
   const AuthState();
 
@@ -24,35 +17,11 @@ final class AuthLoading extends AuthState {
 
 final class AuthAuthenticated extends AuthState {
   final AuthUser user;
-  final UserProfile? profile;
-  final AuthenticatedUserStatus status;
 
-  const AuthAuthenticated(
-    this.user, 
-    this.profile, {
-    this.status = AuthenticatedUserStatus.active,
-  });
-
-  bool get canUseApp => status == AuthenticatedUserStatus.active;
-  bool get needsPhoneVerification => 
-      status == AuthenticatedUserStatus.phoneVerificationRequired ||
-      status == AuthenticatedUserStatus.phoneVerificationInProgress;
-  bool get needsProfileSetup => status == AuthenticatedUserStatus.profileSetupRequired;
-
-  AuthAuthenticated copyWith({
-    AuthUser? user,
-    UserProfile? profile,
-    AuthenticatedUserStatus? status,
-  }) {
-    return AuthAuthenticated(
-      user ?? this.user,
-      profile ?? this.profile,
-      status: status ?? this.status,
-    );
-  }
+  const AuthAuthenticated(this.user);
 
   @override
-  List<Object?> get props => [user, profile, status];
+  List<Object?> get props => [user];
 }
 
 final class AuthUnauthenticated extends AuthState {

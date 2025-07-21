@@ -35,8 +35,7 @@ Future<void> initAuth(GetIt sl) async {
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(
       localDatasource: sl(),
-      remoteDatasource: sl(), 
-      profileRepository: sl(),
+      remoteDatasource: sl(),
     ),
   );
 
@@ -67,9 +66,7 @@ Future<void> initAuth(GetIt sl) async {
       isAuthenticatedUseCase: sl(),
       sendPasswordResetEmailUseCase: sl(),
       sendEmailVerificationUseCase: sl(),
-      authService: sl(), 
-      getUserProfileUseCase: sl(), 
-      checkPhoneExistsUseCase: sl(),
+      authService: sl(),
     ),
   );
 }

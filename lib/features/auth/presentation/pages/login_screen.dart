@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
@@ -12,12 +11,11 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailPhoneController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isSignUp = false;
   bool _obscurePassword = true;
-  bool _isPhoneLogin = false;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const SizedBox(height: 40),
                       
+                      // Logo and Title Section
                       Column(
                         children: [
                           Container(
@@ -83,6 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       
                       const SizedBox(height: 48),
                       
+                      // Auth Form Container
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(24),
@@ -98,6 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
+                              // Form Header
                               Column(
                                 children: [
                                   Text(
@@ -121,6 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               
                               const SizedBox(height: 32),
                               
+                              // Google Sign In Button
                               Container(
                                 height: 56,
                                 width: double.infinity,
@@ -178,6 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               
                               const SizedBox(height: 24),
                               
+                              // Divider
                               Row(
                                 children: [
                                   Expanded(
@@ -204,105 +207,13 @@ class _LoginScreenState extends State<LoginScreen> {
                               
                               const SizedBox(height: 24),
                               
-                              if (!_isSignUp) ...[
-                                Container(
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: theme.colorScheme.outline.withOpacity(0.3),
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: InkWell(
-                                          onTap: () => setState(() => _isPhoneLogin = false),
-                                          borderRadius: const BorderRadius.only(
-                                            topLeft: Radius.circular(11),
-                                            bottomLeft: Radius.circular(11),
-                                          ),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(vertical: 12),
-                                            decoration: BoxDecoration(
-                                              color: !_isPhoneLogin 
-                                                  ? theme.colorScheme.primary 
-                                                  : Colors.transparent,
-                                              borderRadius: const BorderRadius.only(
-                                                topLeft: Radius.circular(11),
-                                                bottomLeft: Radius.circular(11),
-                                              ),
-                                            ),
-                                            child: Text(
-                                              'Email',
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                color: !_isPhoneLogin 
-                                                    ? theme.colorScheme.onPrimary
-                                                    : theme.colorScheme.onSurface,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        width: 1,
-                                        height: 40,
-                                        color: theme.colorScheme.outline.withOpacity(0.3),
-                                      ),
-                                      Expanded(
-                                        child: InkWell(
-                                          onTap: () => setState(() => _isPhoneLogin = true),
-                                          borderRadius: const BorderRadius.only(
-                                            topRight: Radius.circular(11),
-                                            bottomRight: Radius.circular(11),
-                                          ),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(vertical: 12),
-                                            decoration: BoxDecoration(
-                                              color: _isPhoneLogin 
-                                                  ? theme.colorScheme.primary 
-                                                  : Colors.transparent,
-                                              borderRadius: const BorderRadius.only(
-                                                topRight: Radius.circular(11),
-                                                bottomRight: Radius.circular(11),
-                                              ),
-                                            ),
-                                            child: Text(
-                                              'Phone',
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                color: _isPhoneLogin 
-                                                    ? theme.colorScheme.onPrimary
-                                                    : theme.colorScheme.onSurface,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                              ],
-                              
+                              // Email Field
                               TextFormField(
-                                controller: _emailPhoneController,
+                                controller: _emailController,
                                 decoration: InputDecoration(
-                                  labelText: _isSignUp 
-                                      ? 'Email' 
-                                      : _isPhoneLogin 
-                                          ? 'Phone Number' 
-                                          : 'Email',
-                                  hintText: _isSignUp 
-                                      ? 'Enter your email'
-                                      : _isPhoneLogin 
-                                          ? '+977 98xxxxxxxx' 
-                                          : 'Enter your email or phone',
-                                  prefixIcon: Icon(_isPhoneLogin && !_isSignUp 
-                                      ? Icons.phone_outlined 
-                                      : Icons.email_outlined),
+                                  labelText: 'Email',
+                                  hintText: 'Enter your email',
+                                  prefixIcon: const Icon(Icons.email_outlined),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     borderSide: BorderSide(
@@ -329,29 +240,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                   filled: true,
                                   fillColor: theme.colorScheme.surface,
                                 ),
-                                keyboardType: _isPhoneLogin && !_isSignUp 
-                                    ? TextInputType.phone 
-                                    : TextInputType.emailAddress,
-                                inputFormatters: _isPhoneLogin && !_isSignUp 
-                                    ? [
-                                        FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
-                                        LengthLimitingTextInputFormatter(15),
-                                      ]
-                                    : null,
+                                keyboardType: TextInputType.emailAddress,
                                 validator: (value) {
                                   if (value?.isEmpty ?? true) {
-                                    return '${_isPhoneLogin && !_isSignUp ? "Phone number" : "Email"} is required';
+                                    return 'Email is required';
                                   }
-                                  
-                                  if (_isSignUp || !_isPhoneLogin) {
-                                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                        .hasMatch(value!)) {
-                                      return 'Please enter a valid email';
-                                    }
-                                  } else {
-                                    if (value!.replaceAll(RegExp(r'[^0-9]'), '').length < 10) {
-                                      return 'Please enter a valid phone number';
-                                    }
+                                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                      .hasMatch(value!)) {
+                                    return 'Please enter a valid email';
                                   }
                                   return null;
                                 },
@@ -359,6 +255,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(height: 16),
                               
+                              // Password Field
                               TextFormField(
                                 controller: _passwordController,
                                 decoration: InputDecoration(
@@ -416,6 +313,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 enabled: state is! AuthLoading,
                               ),
                               
+                              // Forgot Password Link
                               if (!_isSignUp) ...[
                                 const SizedBox(height: 16),
                                 Align(
@@ -439,6 +337,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               
                               const SizedBox(height: 24),
                               
+                              // Sign In/Up Button
                               SizedBox(
                                 height: 56,
                                 width: double.infinity,
@@ -447,7 +346,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ? null
                                       : () {
                                           if (_formKey.currentState?.validate() ?? false) {
-                                            _handleAuthentication();
+                                            if (_isSignUp) {
+                                              context.read<AuthCubit>().signUpWithEmail(
+                                                    _emailController.text.trim(),
+                                                    _passwordController.text,
+                                                  );
+                                            } else {
+                                              context.read<AuthCubit>().signInWithEmail(
+                                                    _emailController.text.trim(),
+                                                    _passwordController.text,
+                                                  );
+                                            }
                                           }
                                         },
                                   style: FilledButton.styleFrom(
@@ -479,6 +388,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               
                               const SizedBox(height: 24),
                               
+                              // Toggle Sign In/Up
                               Center(
                                 child: TextButton(
                                   onPressed: state is AuthLoading
@@ -486,10 +396,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                       : () {
                                           setState(() {
                                             _isSignUp = !_isSignUp;
-                                            _isPhoneLogin = false;
                                           });
                                           _formKey.currentState?.reset();
-                                          _emailPhoneController.clear();
+                                          _emailController.clear();
                                           _passwordController.clear();
                                         },
                                   child: RichText(
@@ -530,27 +439,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
-  }
-
-  void _handleAuthentication() {
-    final emailOrPhone = _emailPhoneController.text.trim();
-    final password = _passwordController.text;
-
-    if (_isSignUp) {
-      context.read<AuthCubit>().signUpWithEmail(emailOrPhone, password);
-    } else {
-      if (_isPhoneLogin) {
-        // TODO: Implement phone login in AuthCubit
-        // context.read<AuthCubit>().signInWithPhone(emailOrPhone, password);
-        CustomToast.show(
-          context,
-          message: 'Phone login will be implemented soon',
-          isSuccess: false,
-        );
-      } else {
-        context.read<AuthCubit>().signInWithEmail(emailOrPhone, password);
-      }
-    }
   }
 
   void _showForgotPasswordDialog(BuildContext context) {
@@ -652,7 +540,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _emailPhoneController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }

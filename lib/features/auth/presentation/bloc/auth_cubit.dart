@@ -13,9 +13,6 @@ import 'package:udharoo/features/auth/domain/usecases/sign_in_with_email_usecase
 import 'package:udharoo/features/auth/domain/usecases/sign_in_with_google_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_up_with_email_usecase.dart';
-import 'package:udharoo/features/profile/domain/usecases/get_user_profile_usecase.dart';
-import 'package:udharoo/features/profile/domain/usecases/check_phone_exists_usecase.dart';
-import 'package:udharoo/features/profile/domain/entities/user_profile.dart';
 
 part 'auth_state.dart';
 
@@ -29,8 +26,6 @@ class AuthCubit extends Cubit<AuthState> {
   final SendPasswordResetEmailUseCase sendPasswordResetEmailUseCase;
   final SendEmailVerificationUseCase sendEmailVerificationUseCase;
   final AuthService authService;
-  final GetUserProfileUseCase getUserProfileUseCase;
-  final CheckPhoneExistsUseCase checkPhoneExistsUseCase;
 
   late final StreamSubscription<AuthUser?> _authStateSubscription;
   late final StreamSubscription<AuthEvent> _authEventSubscription;
@@ -45,56 +40,18 @@ class AuthCubit extends Cubit<AuthState> {
     required this.sendPasswordResetEmailUseCase,
     required this.sendEmailVerificationUseCase,
     required this.authService,
-    required this.getUserProfileUseCase,
-    required this.checkPhoneExistsUseCase,
   }) : super(const AuthInitial()) {
     _authStateSubscription = authService.authStateChanges.listen(_handleAuthStateChange);
     _authEventSubscription = authService.authEventStream.listen(_handleAuthEvent);
     checkAuthStatus();
   }
 
-  void _handleAuthStateChange(AuthUser? user) async {
+  void _handleAuthStateChange(AuthUser? user) {
     if (!isClosed) {
       if (user != null) {
-        final currentState = state;
-        
-        if (currentState is AuthAuthenticated && 
-            currentState.status == AuthenticatedUserStatus.phoneVerificationInProgress) {
-          return;
+        if (state is! AuthAuthenticated || (state as AuthAuthenticated).user.uid != user.uid) {
+          emit(AuthAuthenticated(user));
         }
-
-        final profileResult = await getUserProfileUseCase(user.uid);
-        
-        profileResult.fold(
-          onSuccess: (profile) {
-            AuthenticatedUserStatus status;
-            
-            if (profile.canUseApp) {
-              status = AuthenticatedUserStatus.active;
-            } else if (!profile.phoneVerified) {
-              status = AuthenticatedUserStatus.phoneVerificationRequired;
-            } else {
-              emit(AuthError(
-                'Something went wrong. Please try again later!',
-                FailureType.auth,
-              ));
-              return;
-            }
-
-            if (state is! AuthAuthenticated || 
-                (state as AuthAuthenticated).user.uid != user.uid ||
-                (state as AuthAuthenticated).status != status) {
-              emit(AuthAuthenticated(user, profile, status: status));
-            }
-          },
-          onFailure: (message, type) {
-            emit(AuthAuthenticated(
-              user, 
-              null, 
-              status: AuthenticatedUserStatus.profileSetupRequired,
-            ));
-          },
-        );
       } else {
         if (state is! AuthUnauthenticated) {
           emit(const AuthUnauthenticated());
@@ -127,35 +84,10 @@ class AuthCubit extends Cubit<AuthState> {
 
     if (!isClosed) {
       result.fold(
-        onSuccess: (user) {
-        },
+        onSuccess: (user) => emit(AuthAuthenticated(user)),
         onFailure: (message, type) => emit(AuthError(message, type)),
       );
     }
-  }
-
-  Future<void> signInWithPhone(String phoneNumber, String password) async {
-    emit(const AuthLoading());
-
-    final phoneExistsResult = await checkPhoneExistsUseCase(phoneNumber);
-    
-    phoneExistsResult.fold(
-      onSuccess: (exists) async {
-        if (!exists) {
-          emit(const AuthError(
-            'Phone number not registered. Please sign up first.',
-            FailureType.auth,
-          ));
-          return;
-        }
-
-        emit(const AuthError(
-          'Phone login not yet implemented',
-          FailureType.unknown,
-        ));
-      },
-      onFailure: (message, type) => emit(AuthError(message, type)),
-    );
   }
 
   Future<void> signUpWithEmail(String email, String password) async {
@@ -165,8 +97,7 @@ class AuthCubit extends Cubit<AuthState> {
 
     if (!isClosed) {
       result.fold(
-        onSuccess: (user) {
-        },
+        onSuccess: (user) => emit(AuthAuthenticated(user)),
         onFailure: (message, type) => emit(AuthError(message, type)),
       );
     }
@@ -179,8 +110,7 @@ class AuthCubit extends Cubit<AuthState> {
 
     if (!isClosed) {
       result.fold(
-        onSuccess: (user) {
-        },
+        onSuccess: (user) => emit(AuthAuthenticated(user)),
         onFailure: (message, type) => emit(AuthError(message, type)),
       );
     }
@@ -207,7 +137,9 @@ class AuthCubit extends Cubit<AuthState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (user) {
-          if (user == null) {
+          if (user != null) {
+            emit(AuthAuthenticated(user));
+          } else {
             emit(const AuthUnauthenticated());
           }
         },
@@ -222,6 +154,7 @@ class AuthCubit extends Cubit<AuthState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (_) {
+          // Handle success (maybe show a success message)
         },
         onFailure: (message, type) => emit(AuthError(message, type)),
       );
@@ -234,47 +167,10 @@ class AuthCubit extends Cubit<AuthState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (_) {
+          // Handle success (maybe show a success message)
         },
         onFailure: (message, type) => emit(AuthError(message, type)),
       );
-    }
-  }
-
-  void setPhoneVerificationInProgress() {
-    final currentState = state;
-    if (currentState is AuthAuthenticated && !isClosed) {
-      emit(currentState.copyWith(
-        status: AuthenticatedUserStatus.phoneVerificationInProgress,
-      ));
-    }
-  }
-
-  void setPhoneVerificationCompleted() {
-    final currentState = state;
-    if (currentState is AuthAuthenticated && !isClosed) {
-      emit(currentState.copyWith(
-        status: AuthenticatedUserStatus.active,
-      ));
-    }
-  }
-
-  void updateUserProfile(UserProfile profile) {
-    final currentState = state;
-    if (currentState is AuthAuthenticated && !isClosed) {
-      AuthenticatedUserStatus status;
-      
-      if (profile.canUseApp) {
-        status = AuthenticatedUserStatus.active;
-      } else if (!profile.phoneVerified) {
-        status = AuthenticatedUserStatus.phoneVerificationRequired;
-      } else {
-        status = currentState.status;
-      }
-
-      emit(currentState.copyWith(
-        profile: profile,
-        status: status,
-      ));
     }
   }
 

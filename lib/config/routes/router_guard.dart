@@ -12,7 +12,7 @@ class RouterGuard {
     return switch (authState) {
       AuthInitial() => _handleInitial(currentPath),
       AuthLoading() => _handleLoading(currentPath),
-      AuthAuthenticated() => _handleAuthenticated(authState, currentPath),
+      AuthAuthenticated() => _handleAuthenticated(currentPath),
       AuthUnauthenticated() => _handleUnauthenticated(currentPath),
       AuthError() => _handleError(currentPath),
     };
@@ -23,46 +23,12 @@ class RouterGuard {
   }
   
   static String? _handleLoading(String currentPath) {
-    final phoneVerificationRoutes = [
-      Routes.phoneSetup,
-      Routes.phoneVerification,
-    ];
-    
-    if (phoneVerificationRoutes.contains(currentPath)) {
-      return null;
-    }
-    
     return currentPath == Routes.splash ? null : Routes.splash;
   }
   
-  static String? _handleAuthenticated(AuthAuthenticated authState, String currentPath) {
+  static String? _handleAuthenticated(String currentPath) {
     final publicRoutes = [Routes.login, Routes.splash];
-    
-    if (publicRoutes.contains(currentPath)) {
-      if (authState.canUseApp) {
-        return Routes.home;
-      } else if (authState.needsPhoneVerification) {
-        return Routes.phoneSetup;
-      } else if (authState.needsProfileSetup) {
-        return Routes.phoneSetup;
-      }
-    }
-    
-    final phoneVerificationRoutes = [Routes.phoneSetup, Routes.phoneVerification];
-    
-    if (authState.canUseApp && phoneVerificationRoutes.contains(currentPath)) {
-      return Routes.home;
-    }
-    
-    if (authState.needsPhoneVerification && !phoneVerificationRoutes.contains(currentPath)) {
-      return Routes.phoneSetup;
-    }
-    
-    if (authState.needsProfileSetup && !phoneVerificationRoutes.contains(currentPath)) {
-      return Routes.phoneSetup;
-    }
-    
-    return null;
+    return publicRoutes.contains(currentPath) ? Routes.home : null;
   }
   
   static String? _handleUnauthenticated(String currentPath) {
@@ -70,9 +36,7 @@ class RouterGuard {
       Routes.home, 
       Routes.transactions, 
       Routes.contacts, 
-      Routes.profile,
-      Routes.phoneSetup,
-      Routes.phoneVerification,
+      Routes.profile
     ];
     if (protectedRoutes.contains(currentPath) || currentPath == Routes.splash) {
       return Routes.login;

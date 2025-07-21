@@ -222,7 +222,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                     label: 'Generate QR',
                     onTap: () {
                       Navigator.pop(context);
-                      context.push('/qr-generator');
+                      context.push(Routes.qrGenerator);
                     },
                   ),
                   _buildQuickAction(

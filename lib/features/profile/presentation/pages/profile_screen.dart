@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
-import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/log_out_dialog.dart';
 import 'package:udharoo/shared/presentation/bloc/theme_cubit/theme_cubit.dart';
@@ -38,7 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         IconButton(
-                          onPressed: () => context.push(Routes.editProfile),
+                          onPressed: () {},
                           icon: const Icon(Icons.edit_outlined),
                           style: IconButton.styleFrom(
                             backgroundColor: theme.colorScheme.surface,
@@ -63,7 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: state.user.photoURL != null
-                                    ? ClipRRect(
+                                    ? ClipRoundedRectangle(
                                         borderRadius: BorderRadius.circular(20),
                                         child: Image.network(
                                           state.user.photoURL!,
@@ -93,15 +91,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 const SizedBox(height: 4),
                                 Text(
                                   state.user.email!,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                                  ),
-                                ),
-                              ],
-                              if (state.user.phoneNumber != null) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  state.user.phoneNumber!,
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: theme.colorScheme.onSurface.withOpacity(0.6),
                                   ),
@@ -138,37 +127,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ),
                               ],
-                              if (state.needsPhoneVerification) ...[
-                                const SizedBox(height: 12),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.phone_disabled_outlined,
-                                        size: 16,
-                                        color: Colors.red,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Phone not verified',
-                                        style: theme.textTheme.labelSmall?.copyWith(
-                                          color: Colors.red,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
                             ],
                           );
                         }
@@ -185,111 +143,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     BlocBuilder<AuthCubit, AuthState>(
                       builder: (context, state) {
-                        if (state is AuthAuthenticated) {
-                          final showVerificationSections = !state.user.emailVerified || state.needsPhoneVerification;
-                          
-                          if (showVerificationSections) {
-                            return Column(
-                              children: [
-                                _ProfileSection(
-                                  title: 'Account',
-                                  items: [
-                                    if (!state.user.emailVerified)
-                                      _ProfileItem(
-                                        icon: Icons.verified_outlined,
-                                        title: 'Verify Email',
-                                        subtitle: 'Secure your account',
-                                        onTap: () {
-                                          context.read<AuthCubit>().sendEmailVerification();
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: const Text('Verification email sent!'),
-                                              backgroundColor: Colors.green,
-                                              behavior: SnackBarBehavior.floating,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                        trailing: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.orange.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: Text(
-                                            'Required',
-                                            style: theme.textTheme.labelSmall?.copyWith(
-                                              color: Colors.orange,
-                                              fontWeight: FontWeight.w500,
-                                            ),
+                        if (state is AuthAuthenticated && !state.user.emailVerified) {
+                          return Column(
+                            children: [
+                              _ProfileSection(
+                                title: 'Account',
+                                items: [
+                                  _ProfileItem(
+                                    icon: Icons.verified_outlined,
+                                    title: 'Verify Email',
+                                    subtitle: 'Secure your account',
+                                    onTap: () {
+                                      context.read<AuthCubit>().sendEmailVerification();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: const Text('Verification email sent!'),
+                                          backgroundColor: Colors.green,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
                                         ),
+                                      );
+                                    },
+                                    trailing: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
                                       ),
-                                    if (state.needsPhoneVerification)
-                                      _ProfileItem(
-                                        icon: Icons.phone_outlined,
-                                        title: 'Verify Phone Number',
-                                        subtitle: 'Required to use the app',
-                                        onTap: () {
-                                          context.push(Routes.phoneSetup, extra: true);
-                                        },
-                                        trailing: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.red.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: Text(
-                                            'Required',
-                                            style: theme.textTheme.labelSmall?.copyWith(
-                                              color: Colors.red,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        'Required',
+                                        style: theme.textTheme.labelSmall?.copyWith(
+                                          color: Colors.orange,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
-                                  ],
-                                ),
-                                const SizedBox(height: 24),
-                              ],
-                            );
-                          }
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+                          );
                         }
                         return const SizedBox.shrink();
                       },
                     ),
-                    
-                    _ProfileSection(
-                      title: 'Transactions',
-                      items: [
-                        _ProfileItem(
-                          icon: Icons.task_alt_outlined,
-                          title: 'Finished Transactions',
-                          subtitle: 'View completed transactions',
-                          onTap: () {
-                            context.push(Routes.finishedTransactions);
-                          },
-                        ),
-                        _ProfileItem(
-                          icon: Icons.qr_code,
-                          title: 'My QR Code',
-                          subtitle: 'Show your QR for transactions',
-                          onTap: () {
-                            context.push(Routes.qrGenerator);
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    
                     _ProfileSection(
                       title: 'Preferences',
                       items: [
@@ -509,6 +412,25 @@ class _ProfileItem extends StatelessWidget {
         color: theme.colorScheme.onSurface.withOpacity(0.4),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    );
+  }
+}
+
+class ClipRoundedRectangle extends StatelessWidget {
+  final Widget child;
+  final BorderRadius borderRadius;
+
+  const ClipRoundedRectangle({
+    super.key,
+    required this.child,
+    required this.borderRadius,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: child,
     );
   }
 }

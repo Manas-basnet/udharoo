@@ -6,6 +6,7 @@ import 'package:udharoo/shared/presentation/bloc/theme_cubit/theme_cubit.dart';
 import 'package:udharoo/core/theme/app_theme.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -18,14 +19,8 @@ class MyApp extends StatelessWidget {
       ],
       child: BlocListener<AuthCubit, AuthState>(
         listenWhen: (previous, current) {
-          if (previous.runtimeType == current.runtimeType) {
-            if (previous is AuthAuthenticated && current is AuthAuthenticated) {
-              return previous.status != current.status ||
-                     previous.user.uid != current.user.uid ||
-                     (previous.profile?.phoneVerified != current.profile?.phoneVerified);
-            }
-            return false;
-          }
+          if (previous.runtimeType == current.runtimeType) return false;
+
           return _shouldRefreshRouter(previous, current);
         },
         listener: (context, state) {
@@ -53,11 +48,8 @@ class MyApp extends StatelessWidget {
         (previous is AuthLoading && current is AuthUnauthenticated) ||
         (previous is AuthLoading && current is AuthError) ||
         (previous is AuthAuthenticated && current is AuthUnauthenticated) ||
-        (previous is AuthAuthenticated && current is AuthError) ||
         (previous is AuthUnauthenticated && current is AuthAuthenticated) ||
-        (previous is AuthUnauthenticated && current is AuthLoading) ||
         (previous is AuthError && current is AuthAuthenticated) ||
-        (previous is AuthError && current is AuthUnauthenticated) ||
-        (previous is AuthError && current is AuthLoading);
+        (previous is AuthError && current is AuthUnauthenticated);
   }
 }
