@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/router_config.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
@@ -119,8 +120,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               _isUpdatingPhone = false;
             });
           } else if (state is PhoneCodeSent) {
-            context.pushNamed(
-              'phoneVerification',
+            context.push(
+              Routes.phoneVerification,
               extra: PhoneVerificationExtra(
                 phoneNumber: state.phoneNumber,
                 verificationId: state.verificationId,
