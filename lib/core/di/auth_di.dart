@@ -22,6 +22,7 @@ import 'package:udharoo/features/auth/domain/usecases/sign_in_with_phone_usecase
 import 'package:udharoo/features/auth/domain/usecases/link_phone_number_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/update_phone_number_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/check_phone_verification_status_usecase.dart';
+import 'package:udharoo/features/auth/domain/usecases/check_email_verification_status_usecase.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 
 Future<void> initAuth(GetIt sl) async {
@@ -41,6 +42,7 @@ Future<void> initAuth(GetIt sl) async {
   sl.registerLazySingleton(() => LinkPhoneNumberUseCase(sl()));
   sl.registerLazySingleton(() => UpdatePhoneNumberUseCase(sl()));
   sl.registerLazySingleton(() => CheckPhoneVerificationStatusUseCase(sl()));
+  sl.registerLazySingleton(() => CheckEmailVerificationStatusUseCase(sl()));
 
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(
@@ -84,6 +86,7 @@ Future<void> initAuth(GetIt sl) async {
       linkPhoneNumberUseCase: sl(),
       updatePhoneNumberUseCase: sl(),
       checkPhoneVerificationStatusUseCase: sl(),
+      checkEmailVerificationStatusUseCase: sl(),
       authService: sl(),
     ),
   );

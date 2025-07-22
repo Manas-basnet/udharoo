@@ -110,6 +110,37 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<ApiResult<AuthUser?>> checkAndSyncEmailVerificationStatus() async {
+    return ExceptionHandler.handleExceptions(() async {
+      final user = _remoteDatasource.getCurrentUser();
+      if (user == null) {
+        return ApiResult.success(null);
+      }
+
+      await user.reload();
+      final refreshedUser = _remoteDatasource.getCurrentUser();
+      
+      if (refreshedUser == null) {
+        return ApiResult.success(null);
+      }
+
+      final currentUserModel = await _remoteDatasource.getUserFromFirestore(refreshedUser.uid);
+      
+      if (currentUserModel != null && 
+          currentUserModel.emailVerified != refreshedUser.emailVerified) {
+        
+        await _remoteDatasource.updateUserInFirestore(
+          refreshedUser.uid,
+          {'emailVerified': refreshedUser.emailVerified},
+        );
+      }
+
+      final authUser = await _processAuthenticatedUser(refreshedUser);
+      return ApiResult.success(authUser);
+    });
+  }
+
+  @override
   Future<ApiResult<bool>> isAuthenticated() async {
     return ExceptionHandler.handleExceptions(() async {
       final user = _remoteDatasource.getCurrentUser();

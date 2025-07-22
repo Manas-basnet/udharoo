@@ -11,6 +11,7 @@ abstract class AuthRepository {
   Future<ApiResult<void>> sendEmailVerification();
   Future<ApiResult<bool>> isAuthenticated();
   Future<ApiResult<AuthUser?>> getCurrentUser();
+  Future<ApiResult<AuthUser?>> checkAndSyncEmailVerificationStatus();
   Stream<AuthUser?> get authStateChanges;
   
   Future<ApiResult<String>> sendPhoneVerificationCode(String phoneNumber);

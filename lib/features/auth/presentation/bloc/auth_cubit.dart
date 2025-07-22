@@ -19,6 +19,7 @@ import 'package:udharoo/features/auth/domain/usecases/sign_in_with_phone_usecase
 import 'package:udharoo/features/auth/domain/usecases/link_phone_number_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/update_phone_number_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/check_phone_verification_status_usecase.dart';
+import 'package:udharoo/features/auth/domain/usecases/check_email_verification_status_usecase.dart';
 
 part 'auth_state.dart';
 
@@ -37,6 +38,7 @@ class AuthCubit extends Cubit<AuthState> {
   final LinkPhoneNumberUseCase linkPhoneNumberUseCase;
   final UpdatePhoneNumberUseCase updatePhoneNumberUseCase;
   final CheckPhoneVerificationStatusUseCase checkPhoneVerificationStatusUseCase;
+  final CheckEmailVerificationStatusUseCase checkEmailVerificationStatusUseCase;
   final AuthService authService;
 
   late final StreamSubscription<AuthUser?> _authStateSubscription;
@@ -62,6 +64,7 @@ class AuthCubit extends Cubit<AuthState> {
     required this.linkPhoneNumberUseCase,
     required this.updatePhoneNumberUseCase,
     required this.checkPhoneVerificationStatusUseCase,
+    required this.checkEmailVerificationStatusUseCase,
     required this.authService,
   }) : super(const AuthInitial()) {
     _authStateSubscription = authService.authStateChanges.listen(_handleAuthStateChange);
@@ -211,6 +214,31 @@ class AuthCubit extends Cubit<AuthState> {
         onFailure: (message, type) => emit(const AuthUnauthenticated()),
       );
     }
+  }
+
+  Future<void> refreshUserData() async {
+    final result = await checkEmailVerificationStatusUseCase();
+    
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (user) {
+          if (user != null) {
+            if (user.canAccessApp) {
+              emit(AuthAuthenticated(user));
+            } else {
+              emit(PhoneVerificationRequired(user));
+            }
+          }
+        },
+        onFailure: (message, type) {
+          // Silent failure for refresh
+        },
+      );
+    }
+  }
+
+  Future<void> checkEmailVerificationStatus() async {
+    await refreshUserData();
   }
 
   Future<void> sendPhoneVerificationCode(String phoneNumber, {bool isLinking = false, bool isUpdating = false}) async {
