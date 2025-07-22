@@ -340,6 +340,63 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
   }
 
   @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'user-not-found',
+        message: 'No authenticated user found',
+      );
+    }
+
+    if (user.email == null) {
+      throw FirebaseAuthException(
+        code: 'invalid-email',
+        message: 'User must have an email to change password',
+      );
+    }
+
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: currentPassword,
+    );
+
+    await user.reauthenticateWithCredential(credential);
+    await user.updatePassword(newPassword);
+  }
+
+  @override
+  Future<User> updateDisplayName(String displayName) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'user-not-found',
+        message: 'No authenticated user found',
+      );
+    }
+
+    await user.updateDisplayName(displayName);
+    await user.reload();
+    
+    final refreshedUser = _firebaseAuth.currentUser;
+    if (refreshedUser == null) {
+      throw FirebaseAuthException(
+        code: 'user-update-failed',
+        message: 'Failed to update display name',
+      );
+    }
+    
+    await updateUserInFirestore(refreshedUser.uid, {
+      'displayName': displayName,
+    });
+
+    return refreshedUser;
+  }
+
+  @override
   Future<List<UserModel>> getUsersWithPhoneNumber(String phoneNumber) async {
     try {
       final querySnapshot = await _firestore

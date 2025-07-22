@@ -30,4 +30,10 @@ abstract class AuthRemoteDatasource {
   Future<void> saveUserToFirestore(UserModel user);
   Future<UserModel?> getUserFromFirestore(String uid);
   Future<void> updateUserInFirestore(String uid, Map<String, dynamic> data);
+  
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
+  Future<User> updateDisplayName(String displayName);
 }

@@ -6,6 +6,7 @@ import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/domain/entities/auth_user.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/features/profile/presentation/widgets/password_setup_dialog.dart';
+import 'package:udharoo/features/profile/presentation/widgets/change_password_dialog.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -24,6 +25,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isUpdatingPhone = false;
   bool _isLinkingGoogle = false;
   bool _isLinkingPassword = false;
+  bool _isUpdatingDisplayName = false;
 
   final List<Map<String, String>> _countryCodes = [
     {'code': '+977', 'country': 'Nepal', 'flag': '🇳🇵'},
@@ -99,6 +101,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       isLoading: _isLinkingPassword,
     );
   }
+
+  void _showChangePasswordDialog() {
+    bool isChangingPassword = false;
+    ChangePasswordDialog.show(
+      context,
+      onChangePassword: ({required String currentPassword, required String newPassword}) async {
+        isChangingPassword = true;
+        final didUpdate = await context.read<AuthCubit>().changePassword(
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+        );
+        if(didUpdate && mounted) {
+          CustomToast.show(
+            context,
+            message: 'Password changed successfully!',
+            isSuccess: true,
+          );
+          Navigator.of(context).pop();
+        } else {
+          if(!mounted) return;
+          CustomToast.show(
+            context,
+            message: 'Failed to change password. Please try again.',
+            isSuccess: false,
+          );
+        }
+        isChangingPassword = false;
+      },
+      isLoading: isChangingPassword,
+    );
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -115,7 +148,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         actions: [
           BlocBuilder<AuthCubit, AuthState>(
             builder: (context, state) {
-              final isLoading = state is PhoneVerificationLoading;
+              final isLoading = state is PhoneVerificationLoading || _isUpdatingDisplayName;
               
               return TextButton(
                 onPressed: isLoading ? null : _saveChanges,
@@ -145,6 +178,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               _isUpdatingPhone = false;
               _isLinkingGoogle = false;
               _isLinkingPassword = false;
+              _isUpdatingDisplayName = false;
             });
           } else if (state is PhoneCodeSent) {
             context.push(
@@ -182,6 +216,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               );
               setState(() {
                 _isLinkingPassword = false;
+              });
+            } else if (_isUpdatingDisplayName) {
+              CustomToast.show(
+                context,
+                message: 'Display name updated successfully!',
+                isSuccess: true,
+              );
+              setState(() {
+                _isUpdatingDisplayName = false;
               });
             }
           }
@@ -673,22 +716,49 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       ),
                                     ),
                                     if(_hasPasswordProvider(state.user))
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          'Linked',
-                                          style: theme.textTheme.labelSmall?.copyWith(
-                                            color: Colors.green,
-                                            fontWeight: FontWeight.w600,
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.green.withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              'Linked',
+                                              style: theme.textTheme.labelSmall?.copyWith(
+                                                color: Colors.green,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
                                           ),
-                                        ),
+                                          const SizedBox(width: 8),
+                                          SizedBox(
+                                            height: 32,
+                                            child: OutlinedButton(
+                                              onPressed: _showChangePasswordDialog,
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor: theme.colorScheme.primary,
+                                                side: BorderSide(
+                                                  color: theme.colorScheme.primary,
+                                                  width: 1,
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                              ),
+                                              child: Text(
+                                                'Change',
+                                                style: theme.textTheme.labelSmall?.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              )
+                                            ),
+                                          ),
+                                        ],
                                       )
                                     else
                                       SizedBox(
@@ -814,8 +884,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (authState is AuthAuthenticated) {
       final user = authState.user;
       final newPhoneNumber = '$_selectedCountryCode${_phoneController.text.trim()}';
+      final newDisplayName = _displayNameController.text.trim();
       
-      if (user.phoneNumber != newPhoneNumber) {
+      bool hasPhoneChanged = user.phoneNumber != newPhoneNumber;
+      bool hasDisplayNameChanged = user.displayName != newDisplayName;
+      
+      if (hasDisplayNameChanged) {
+        setState(() {
+          _isUpdatingDisplayName = true;
+        });
+        context.read<AuthCubit>().updateDisplayName(newDisplayName);
+      }
+      
+      if (hasPhoneChanged) {
         setState(() {
           _isUpdatingPhone = true;
         });
@@ -825,13 +906,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         } else {
           context.read<AuthCubit>().updatePhoneNumber(newPhoneNumber);
         }
-      } else {
+      }
+      
+      if (!hasPhoneChanged && !hasDisplayNameChanged) {
         CustomToast.show(
           context,
-          message: 'Profile updated successfully!',
-          isSuccess: true,
+          message: 'No changes to save!',
+          isSuccess: false,
         );
-        context.pop();
+      } else if (!hasPhoneChanged && hasDisplayNameChanged) {
+        // Display name change will be handled in the listener
       }
     }
   }

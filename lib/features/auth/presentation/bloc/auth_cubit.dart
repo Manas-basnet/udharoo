@@ -5,6 +5,7 @@ import 'package:udharoo/core/network/api_result.dart';
 import 'package:udharoo/features/auth/domain/entities/auth_user.dart';
 import 'package:udharoo/features/auth/domain/events/auth_event.dart';
 import 'package:udharoo/features/auth/domain/services/auth_service.dart';
+import 'package:udharoo/features/auth/domain/usecases/change_password_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/get_current_user_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/is_authenticated_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/link_google_account_usecase.dart';
@@ -17,6 +18,7 @@ import 'package:udharoo/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_up_with_email_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_up_with_full_info_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/send_phone_verification_code_usecase.dart';
+import 'package:udharoo/features/auth/domain/usecases/update_display_name_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/verify_phone_code_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_in_with_phone_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/link_phone_number_usecase.dart';
@@ -45,6 +47,8 @@ class AuthCubit extends Cubit<AuthState> {
   final UpdatePhoneNumberUseCase updatePhoneNumberUseCase;
   final CheckPhoneVerificationStatusUseCase checkPhoneVerificationStatusUseCase;
   final CheckEmailVerificationStatusUseCase checkEmailVerificationStatusUseCase;
+  final ChangePasswordUseCase changePasswordUseCase;
+  final UpdateDisplayNameUseCase updateDisplayNameUseCase;
   final AuthService authService;
 
   late final StreamSubscription<AuthUser?> _authStateSubscription;
@@ -74,6 +78,8 @@ class AuthCubit extends Cubit<AuthState> {
     required this.updatePhoneNumberUseCase,
     required this.checkPhoneVerificationStatusUseCase,
     required this.checkEmailVerificationStatusUseCase,
+    required this.changePasswordUseCase,
+    required this.updateDisplayNameUseCase,
     required this.authService,
   }) : super(const AuthInitial()) {
     _authStateSubscription = authService.authStateChanges.listen(_handleAuthStateChange);
@@ -210,6 +216,38 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> linkPassword(String password) async {
     final result = await linkPasswordUseCase(password);
+    
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (user) {
+          emit(AuthAuthenticated(user));
+        },
+        onFailure: (message, type) => emit(AuthError(message, type)),
+      );
+    }
+  }
+
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final result = await changePasswordUseCase(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+    
+    if (!isClosed) {
+      if(result.isSuccess) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  Future<void> updateDisplayName(String displayName) async {
+    final result = await updateDisplayNameUseCase(displayName);
     
     if (!isClosed) {
       result.fold(

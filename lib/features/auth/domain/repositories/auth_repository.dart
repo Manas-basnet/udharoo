@@ -29,4 +29,10 @@ abstract class AuthRepository {
   Future<ApiResult<bool>> checkDeviceVerification();
   Future<ApiResult<void>> saveUserToFirestore(AuthUser user);
   Future<ApiResult<AuthUser?>> getUserFromFirestore(String uid);
+  
+  Future<ApiResult<void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
+  Future<ApiResult<AuthUser>> updateDisplayName(String displayName);
 }

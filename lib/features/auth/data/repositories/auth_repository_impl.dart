@@ -391,6 +391,30 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<ApiResult<void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    return ExceptionHandler.handleExceptions(() async {
+      await _remoteDatasource.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      return ApiResult.success(null);
+    });
+  }
+
+  @override
+  Future<ApiResult<AuthUser>> updateDisplayName(String displayName) async {
+    return ExceptionHandler.handleExceptions(() async {
+      final user = await _remoteDatasource.updateDisplayName(displayName);
+      final authUser = await _processAuthenticatedUser(user);
+      await _saveUserDataLocally(authUser);
+      return ApiResult.success(authUser);
+    });
+  }
+
+  @override
   Future<ApiResult<void>> saveUserToFirestore(AuthUser user) async {
     return ExceptionHandler.handleExceptions(() async {
       final userModel = UserModel(
