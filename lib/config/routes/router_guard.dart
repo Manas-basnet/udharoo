@@ -12,7 +12,7 @@ class RouterGuard {
     return switch (authState) {
       AuthInitial() => _handleInitial(currentPath),
       AuthLoading() => _handleLoading(currentPath),
-      AuthAuthenticated() => _handleAuthenticated(currentPath, authState),
+      AuthAuthenticated() => _handleAuthenticated(currentPath, authState, context),
       AuthUnauthenticated() => _handleUnauthenticated(currentPath),
       AuthError() => _handleError(currentPath),
       PhoneVerificationRequired() => _handlePhoneVerificationRequired(currentPath, authState),
@@ -30,20 +30,23 @@ class RouterGuard {
     return currentPath == Routes.splash ? null : Routes.splash;
   }
   
-  static String? _handleAuthenticated(String currentPath, AuthAuthenticated authState) {
+  static String? _handleAuthenticated(String currentPath, AuthAuthenticated authState, BuildContext context) {
     final publicRoutes = [Routes.login, Routes.signUp, Routes.splash];
     
     if (publicRoutes.contains(currentPath)) {
       return Routes.home;
     }
     
+    final phoneRoutes = [Routes.phoneSetup, Routes.phoneVerification];
+    final authCubit = context.read<AuthCubit>();
+    final isChangingPhone = authCubit.isChangingPhoneNumber;
+    
     if (!authState.user.phoneVerified || !authState.user.canAccessApp) {
-      final phoneRoutes = [Routes.phoneSetup, Routes.phoneVerification];
       if (!phoneRoutes.contains(currentPath)) {
         return Routes.phoneSetup;
       }
     } else {
-      if (currentPath == Routes.phoneSetup || currentPath == Routes.phoneVerification) {
+      if (phoneRoutes.contains(currentPath) && !isChangingPhone) {
         return Routes.home;
       }
     }

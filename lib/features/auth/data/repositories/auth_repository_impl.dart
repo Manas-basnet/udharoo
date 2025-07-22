@@ -202,6 +202,22 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<ApiResult<bool>> checkPhoneNumberAvailability(String phoneNumber) async {
+    return ExceptionHandler.handleExceptions(() async {
+      final currentUser = _remoteDatasource.getCurrentUser();
+      
+      final existingUsers = await _remoteDatasource.getUsersWithPhoneNumber(phoneNumber);
+      
+      if (currentUser != null) {
+        final hasOtherUserWithPhone = existingUsers.any((user) => user.uid != currentUser.uid);
+        return ApiResult.success(!hasOtherUserWithPhone);
+      } else {
+        return ApiResult.success(existingUsers.isEmpty);
+      }
+    });
+  }
+
+  @override
   Future<ApiResult<String>> sendPhoneVerificationCode(String phoneNumber) async {
     return ExceptionHandler.handleExceptions(() async {
       final currentUser = _remoteDatasource.getCurrentUser();
@@ -232,6 +248,14 @@ class AuthRepositoryImpl implements AuthRepository {
               FailureType.validation,
             );
           }
+        }
+      } else {
+        final existingUsers = await _remoteDatasource.getUsersWithPhoneNumber(phoneNumber);
+        if (existingUsers.isNotEmpty) {
+          return ApiResult.failure(
+            'This phone number is already associated with another account',
+            FailureType.validation,
+          );
         }
       }
 

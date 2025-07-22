@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
@@ -30,6 +31,8 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   int _secondsRemaining = 60;
   bool _canResend = false;
   String _currentCode = "";
+
+  bool get _isChanging => context.read<AuthCubit>().isChangingPhoneNumber;
 
   @override
   void initState() {
@@ -73,6 +76,27 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
     }
   }
 
+  void _handleBackButton() {
+    if (_isChanging) {
+      context.read<AuthCubit>().cancelPhoneNumberChange();
+      context.pop();
+    }
+  }
+
+  String _getTitle() {
+    if (_isChanging) {
+      return 'Verify New Number';
+    }
+    return 'Enter Verification Code';
+  }
+
+  String _getBackButtonText() {
+    if (_isChanging) {
+      return 'Cancel change';
+    }
+    return 'Use a different account';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -94,11 +118,21 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
               _currentCode = "";
             });
           } else if (state is PhoneVerificationCompleted || state is AuthAuthenticated) {
+            String message = 'Phone verified successfully!';
+            if (_isChanging) {
+              message = 'Phone number changed successfully!';
+              context.read<AuthCubit>().cancelPhoneNumberChange();
+            }
             CustomToast.show(
               context,
-              message: 'Phone verified successfully!',
+              message: message,
               isSuccess: true,
             );
+            
+            if (_isChanging) {
+              context.pop();
+              context.pop();
+            }
           } else if (state is PhoneCodeSent && state.verificationId != verificationId) {
             verificationId = state.verificationId;
             CustomToast.show(
@@ -114,14 +148,11 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // Header with back button
                   Row(
                     children: [
                       IconButton(
-                        onPressed: () {
-                          //TODO: show app close dialog 
-                        },
-                        icon: const Icon(Icons.close),
+                        onPressed: _isChanging ? () => context.pop() : null,
+                        icon: Icon(_isChanging ? Icons.arrow_back : Icons.close),
                         style: IconButton.styleFrom(
                           backgroundColor: theme.colorScheme.surface,
                           shape: RoundedRectangleBorder(
@@ -134,10 +165,8 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                   
                   const SizedBox(height: 32,),
                   
-                  // Content
                   Column(
                     children: [
-                      // Icon
                       Container(
                         width: 64,
                         height: 64,
@@ -154,9 +183,8 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                       
                       const SizedBox(height: 20),
                       
-                      // Title
                       Text(
-                        'Enter Verification Code',
+                        _getTitle(),
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: theme.colorScheme.onSurface,
@@ -165,7 +193,6 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                       
                       const SizedBox(height: 8),
                       
-                      // Subtitle
                       RichText(
                         textAlign: TextAlign.center,
                         text: TextSpan(
@@ -173,7 +200,9 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                             color: theme.colorScheme.onSurface.withOpacity(0.6),
                           ),
                           children: [
-                            const TextSpan(text: 'We sent a 6-digit code to\n'),
+                            TextSpan(text: _isChanging 
+                                ? 'We sent a 6-digit code to your new number\n'
+                                : 'We sent a 6-digit code to\n'),
                             TextSpan(
                               text: widget.phoneNumber,
                               style: TextStyle(
@@ -187,7 +216,6 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                       
                       const SizedBox(height: 24),
                       
-                      // PIN Input
                       Form(
                         key: _formKey,
                         child: Padding(
@@ -255,7 +283,6 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                       
                       const SizedBox(height: 20),
                       
-                      // Verify Button
                       BlocBuilder<AuthCubit, AuthState>(
                         builder: (context, state) {
                           final isLoading = state is PhoneVerificationLoading;
@@ -298,7 +325,6 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                       
                       const SizedBox(height: 16),
                       
-                      // Resend Code
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -336,11 +362,9 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                   const SizedBox(height: 32,),
                   
                   TextButton(
-                    onPressed: () {
-                      context.read<AuthCubit>().signOut();
-                    },
+                    onPressed: _handleBackButton,
                     child: Text(
-                      'Use a different account',
+                      _getBackButtonText(),
                       style: TextStyle(
                         color: theme.colorScheme.onSurface.withOpacity(0.6),
                         fontSize: 14,

@@ -19,9 +19,13 @@ class _MyAppState extends State<MyApp> {
 
   void _scheduleRouterRefresh() {
     _refreshTimer?.cancel();
-    _refreshTimer = Timer(const Duration(milliseconds: 300), () {
+    _refreshTimer = Timer(const Duration(milliseconds: 100), () {
       if (mounted) {
-        AppRouter.router.refresh();
+        try {
+          AppRouter.router.refresh();
+        } catch (e) {
+          // Ignore router refresh errors during navigation
+        }
       }
     });
   }
@@ -64,12 +68,15 @@ class _MyAppState extends State<MyApp> {
   }
 
   bool _shouldRefreshRouter(AuthState previous, AuthState current) {
-
     if (previous is PhoneVerificationCompleted && current is AuthAuthenticated) {
       return false;
     }
 
-    if(previous is PhoneVerificationLoading && current is AuthError) {
+    if (previous is PhoneVerificationLoading && current is AuthError) {
+      return false;
+    }
+
+    if (previous is PhoneCodeSent && current is PhoneVerificationLoading) {
       return false;
     }
 

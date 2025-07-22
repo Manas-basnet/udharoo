@@ -21,6 +21,7 @@ abstract class AuthRepository {
   Future<ApiResult<AuthUser?>> checkAndSyncEmailVerificationStatus();
   Stream<AuthUser?> get authStateChanges;
   
+  Future<ApiResult<bool>> checkPhoneNumberAvailability(String phoneNumber);
   Future<ApiResult<String>> sendPhoneVerificationCode(String phoneNumber);
   Future<ApiResult<AuthUser>> verifyPhoneCode(String verificationId, String smsCode);
   Future<ApiResult<AuthUser>> linkPhoneNumber(String verificationId, String smsCode);

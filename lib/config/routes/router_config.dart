@@ -56,6 +56,10 @@ class AppRouter {
     navigatorKey: _rootNavigatorKey,
     debugLogDiagnostics: true,
     redirect: RouterGuard.handleRedirect,
+    refreshListenable: null,
+    onException: (context, state, router) {
+      router.go(Routes.splash);
+    },
     routes: [
       GoRoute(
         path: Routes.splash,
@@ -76,7 +80,11 @@ class AppRouter {
       GoRoute(
         path: Routes.phoneSetup,
         name: 'phoneSetup',
-        builder: (context, state) => const PhoneSetupScreen(),
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final isChanging = extra?['isChanging'] == true;
+          return PhoneSetupScreen(isChanging: isChanging);
+        },
       ),
 
       GoRoute(

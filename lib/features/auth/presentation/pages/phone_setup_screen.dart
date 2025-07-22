@@ -7,7 +7,12 @@ import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class PhoneSetupScreen extends StatefulWidget {
-  const PhoneSetupScreen({super.key});
+  final bool isChanging;
+
+  const PhoneSetupScreen({
+    super.key,
+    this.isChanging = false,
+  });
 
   @override
   State<PhoneSetupScreen> createState() => _PhoneSetupScreenState();
@@ -19,6 +24,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
   String _selectedCountryCode = '+977';
   bool _hasExistingPhone = false;
   String? _existingPhoneNumber;
+  String? _pendingChangePhoneNumber;
 
   final List<Map<String, String>> _countryCodes = [
     {'code': '+977', 'country': 'Nepal', 'flag': '🇳🇵'},
@@ -35,33 +41,48 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
 
   void _checkExistingPhoneNumber() {
     final authState = context.read<AuthCubit>().state;
-    if (authState is AuthAuthenticated && authState.user.phoneNumber != null) {
-      setState(() {
-        _hasExistingPhone = true;
-        _existingPhoneNumber = authState.user.phoneNumber;
-      });
-      
-      final phone = authState.user.phoneNumber!;
-      final countryCode = _extractCountryCode(phone);
-      if (countryCode != null) {
-        _selectedCountryCode = countryCode;
-        _phoneController.text = phone.substring(countryCode.length);
-      } else {
-        _phoneController.text = phone;
+    final authCubit = context.read<AuthCubit>();
+    
+    if (widget.isChanging || authCubit.isChangingPhoneNumber) {
+      _pendingChangePhoneNumber = authCubit.pendingPhoneNumber;
+      if (_pendingChangePhoneNumber != null) {
+        final countryCode = _extractCountryCode(_pendingChangePhoneNumber!);
+        if (countryCode != null) {
+          _selectedCountryCode = countryCode;
+          _phoneController.text = _pendingChangePhoneNumber!.substring(countryCode.length);
+        } else {
+          _phoneController.text = _pendingChangePhoneNumber!;
+        }
       }
-    } else if (authState is PhoneVerificationRequired && authState.user.phoneNumber != null) {
-      setState(() {
-        _hasExistingPhone = true;
-        _existingPhoneNumber = authState.user.phoneNumber;
-      });
-      
-      final phone = authState.user.phoneNumber!;
-      final countryCode = _extractCountryCode(phone);
-      if (countryCode != null) {
-        _selectedCountryCode = countryCode;
-        _phoneController.text = phone.substring(countryCode.length);
-      } else {
-        _phoneController.text = phone;
+    } else {
+      if (authState is AuthAuthenticated && authState.user.phoneNumber != null) {
+        setState(() {
+          _hasExistingPhone = true;
+          _existingPhoneNumber = authState.user.phoneNumber;
+        });
+        
+        final phone = authState.user.phoneNumber!;
+        final countryCode = _extractCountryCode(phone);
+        if (countryCode != null) {
+          _selectedCountryCode = countryCode;
+          _phoneController.text = phone.substring(countryCode.length);
+        } else {
+          _phoneController.text = phone;
+        }
+      } else if (authState is PhoneVerificationRequired && authState.user.phoneNumber != null) {
+        setState(() {
+          _hasExistingPhone = true;
+          _existingPhoneNumber = authState.user.phoneNumber;
+        });
+        
+        final phone = authState.user.phoneNumber!;
+        final countryCode = _extractCountryCode(phone);
+        if (countryCode != null) {
+          _selectedCountryCode = countryCode;
+          _phoneController.text = phone.substring(countryCode.length);
+        } else {
+          _phoneController.text = phone;
+        }
       }
     }
   }
@@ -73,6 +94,56 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
       }
     }
     return null;
+  }
+
+  bool get _isChanging => widget.isChanging || context.read<AuthCubit>().isChangingPhoneNumber;
+
+  String _getTitle() {
+    if (_isChanging) {
+      return 'Verify New Phone Number';
+    }
+    return _hasExistingPhone ? 'Verify Your Device' : 'Verify Your Phone';
+  }
+
+  String _getSubtitle() {
+    if (_isChanging) {
+      return 'We need to verify your new phone number before the change takes effect.';
+    }
+    return _hasExistingPhone 
+        ? 'We need to verify this device to secure your account.'
+        : 'We need to verify your phone number to secure your account.';
+  }
+
+  String _getInfoText() {
+    if (_isChanging) {
+      return 'We\'ll send a verification code to your new number via SMS.';
+    }
+    return _hasExistingPhone
+        ? 'We\'ll send a verification code to verify this device.'
+        : 'We\'ll send a verification code to this number via SMS.';
+  }
+
+  String _getButtonText() {
+    if (_isChanging) {
+      return 'Send Verification Code';
+    }
+    return _hasExistingPhone ? 'Verify Device' : 'Send Code';
+  }
+
+  String _getBackButtonText() {
+    if (_isChanging) {
+      return 'Cancel change';
+    }
+    return 'Use a different account';
+  }
+
+  void _handleBackButton() {
+    if (_isChanging) {
+      context.read<AuthCubit>().cancelPhoneNumberChange();
+      context.pop();
+    } else {
+      context.read<AuthCubit>().signOut();
+    }
   }
 
   @override
@@ -105,14 +176,11 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // Header
                   Row(
                     children: [
                       IconButton(
-                        onPressed: () {
-                          //TODO : show close app dialog
-                        },
-                        icon: const Icon(Icons.close),
+                        onPressed: _isChanging ? () => context.pop() : null,
+                        icon: Icon(_isChanging ? Icons.arrow_back : Icons.close),
                         style: IconButton.styleFrom(
                           backgroundColor: theme.colorScheme.surface,
                           shape: RoundedRectangleBorder(
@@ -125,10 +193,8 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                   
                   const SizedBox(height: 32,),
                   
-                  // Content
                   Column(
                     children: [
-                      // Icon
                       Container(
                         width: 64,
                         height: 64,
@@ -145,9 +211,8 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                       
                       const SizedBox(height: 20),
                       
-                      // Title
                       Text(
-                        _hasExistingPhone ? 'Verify Your Device' : 'Verify Your Phone',
+                        _getTitle(),
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: theme.colorScheme.onSurface,
@@ -156,11 +221,8 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                       
                       const SizedBox(height: 8),
                       
-                      // Subtitle
                       Text(
-                        _hasExistingPhone 
-                            ? 'We need to verify this device to secure your account.'
-                            : 'We need to verify your phone number to secure your account.',
+                        _getSubtitle(),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurface.withOpacity(0.6),
                         ),
@@ -169,7 +231,6 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                       
                       const SizedBox(height: 24),
                       
-                      // Form Card
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
@@ -185,8 +246,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              if (_hasExistingPhone) ...[
-                                // Existing phone display
+                              if (_hasExistingPhone && !widget.isChanging) ...[
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
@@ -228,8 +288,46 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                                     ],
                                   ),
                                 ),
+                              ] else if (widget.isChanging && _pendingChangePhoneNumber != null) ...[
+                                Text(
+                                  'New Phone Number',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                
+                                const SizedBox(height: 12),
+                                
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary.withOpacity(0.05),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: theme.colorScheme.primary.withOpacity(0.1),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.phone,
+                                        size: 18,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _pendingChangePhoneNumber!,
+                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                            color: theme.colorScheme.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ] else ...[
-                                // Phone input
                                 Text(
                                   'Phone Number',
                                   style: theme.textTheme.titleSmall?.copyWith(
@@ -241,7 +339,6 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                                 
                                 Row(
                                   children: [
-                                    // Country code dropdown
                                     Container(
                                       decoration: BoxDecoration(
                                         border: Border.all(
@@ -287,7 +384,6 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                                     
                                     const SizedBox(width: 8),
                                     
-                                    // Phone number input
                                     Expanded(
                                       child: TextFormField(
                                         controller: _phoneController,
@@ -342,7 +438,6 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                               
                               const SizedBox(height: 16),
                               
-                              // Info box
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
@@ -362,9 +457,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        _hasExistingPhone
-                                            ? 'We\'ll send a verification code to verify this device.'
-                                            : 'We\'ll send a verification code to this number via SMS.',
+                                        _getInfoText(),
                                         style: theme.textTheme.bodySmall?.copyWith(
                                           color: theme.colorScheme.primary,
                                         ),
@@ -376,7 +469,6 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                               
                               const SizedBox(height: 20),
                               
-                              // Send Code Button
                               BlocBuilder<AuthCubit, AuthState>(
                                 builder: (context, state) {
                                   final isLoading = state is PhoneVerificationLoading;
@@ -387,8 +479,10 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                                       onPressed: isLoading
                                           ? null
                                           : () {
-                                              if (_hasExistingPhone) {
+                                              if (_hasExistingPhone && !_isChanging) {
                                                 context.read<AuthCubit>().reVerifyExistingPhone();
+                                              } else if (_isChanging && _pendingChangePhoneNumber != null) {
+                                                context.read<AuthCubit>().sendPhoneVerificationCode(_pendingChangePhoneNumber!);
                                               } else {
                                                 if (_formKey.currentState?.validate() ?? false) {
                                                   final fullPhoneNumber = 
@@ -417,7 +511,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                                               ),
                                             )
                                           : Text(
-                                              _hasExistingPhone ? 'Verify Device' : 'Send Code',
+                                              _getButtonText(),
                                               style: theme.textTheme.bodyMedium?.copyWith(
                                                 fontWeight: FontWeight.w600,
                                                 color: theme.colorScheme.onPrimary,
@@ -436,13 +530,10 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                   
                   const SizedBox(height: 32,),
                   
-                  // Skip button
                   TextButton(
-                    onPressed: () {
-                      context.read<AuthCubit>().signOut();
-                    },
+                    onPressed: _handleBackButton,
                     child: Text(
-                      'Use a different account',
+                      _getBackButtonText(),
                       style: TextStyle(
                         color: theme.colorScheme.onSurface.withOpacity(0.6),
                         fontSize: 14,

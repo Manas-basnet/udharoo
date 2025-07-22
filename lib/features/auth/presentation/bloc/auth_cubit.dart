@@ -56,8 +56,10 @@ class AuthCubit extends Cubit<AuthState> {
 
   String? _currentPhoneNumber;
   String? _currentVerificationId;
+  String? _pendingPhoneNumber;
   bool _isLinkingPhone = false;
   bool _isUpdatingPhone = false;
+  bool _isChangingPhone = false;
 
   AuthCubit({
     required this.signInWithEmailUseCase,
@@ -339,7 +341,7 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> sendPhoneVerificationCode(String phoneNumber, {bool isLinking = false, bool isUpdating = false}) async {
     _currentPhoneNumber = phoneNumber;
     _isLinkingPhone = isLinking;
-    _isUpdatingPhone = isUpdating;
+    _isUpdatingPhone = isUpdating || _isChangingPhone;
     
     emit(PhoneVerificationLoading(phoneNumber: phoneNumber));
 
@@ -385,7 +387,7 @@ class AuthCubit extends Cubit<AuthState> {
     
     if (_isLinkingPhone) {
       result = await linkPhoneNumberUseCase(verificationId, smsCode);
-    } else if (_isUpdatingPhone) {
+    } else if (_isUpdatingPhone || _isChangingPhone) {
       result = await updatePhoneNumberUseCase(verificationId, smsCode);
     } else {
       result = await verifyPhoneCodeUseCase(verificationId, smsCode);
@@ -417,6 +419,21 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> updatePhoneNumber(String phoneNumber) async {
     await sendPhoneVerificationCode(phoneNumber, isUpdating: true);
   }
+
+  void startPhoneNumberChange(String newPhoneNumber) {
+    _pendingPhoneNumber = newPhoneNumber;
+    _isChangingPhone = true;
+  }
+
+  void cancelPhoneNumberChange() {
+    _pendingPhoneNumber = null;
+    _isChangingPhone = false;
+    _resetPhoneVerificationState();
+  }
+
+  String? get pendingPhoneNumber => _pendingPhoneNumber;
+
+  bool get isChangingPhoneNumber => _isChangingPhone;
 
   Future<void> checkPhoneVerificationStatus() async {
     final result = await checkPhoneVerificationStatusUseCase();

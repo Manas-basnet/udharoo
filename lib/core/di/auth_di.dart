@@ -8,6 +8,7 @@ import 'package:udharoo/features/auth/domain/datasources/local/auth_local_dataso
 import 'package:udharoo/features/auth/domain/datasources/remote/auth_remote_datasource.dart';
 import 'package:udharoo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:udharoo/features/auth/domain/services/auth_service.dart';
+import 'package:udharoo/features/auth/domain/usecases/check_phone_availability_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/get_current_user_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/is_authenticated_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/link_google_account_usecase.dart';
@@ -53,6 +54,7 @@ Future<void> initAuth(GetIt sl) async {
   sl.registerLazySingleton(() => CheckEmailVerificationStatusUseCase(sl()));
   sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
   sl.registerLazySingleton(() => UpdateDisplayNameUseCase(sl()));
+  sl.registerLazySingleton(() => CheckPhoneAvailabilityUseCase(sl()));
 
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(
