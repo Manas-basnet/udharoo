@@ -405,6 +405,53 @@ class AuthRepositoryImpl implements AuthRepository {
     });
   }
 
+  @override
+  Future<ApiResult<AuthUser>> createUserWithFullInfo({
+    required String fullName,
+    required String email,
+    required String password,
+  }) async {
+    return ExceptionHandler.handleExceptions(() async {
+      
+      final user = await _remoteDatasource.createUserWithEmailAndPassword(email, password);
+      
+      await user.updateDisplayName(fullName);
+      await user.reload();
+      final refreshedUser = _remoteDatasource.getCurrentUser();
+      
+      if (refreshedUser == null) {
+        throw FirebaseAuthException(
+          code: 'user-creation-failed',
+          message: 'Failed to create user account.',
+        );
+      }
+      
+      final authUser = _mapFirebaseUserToAuthUser(refreshedUser).copyWith(
+        displayName: fullName,
+      );
+      
+      await _saveUserDataLocally(authUser);
+      
+      final userModel = UserModel(
+        uid: authUser.uid,
+        email: authUser.email,
+        displayName: fullName,
+        photoURL: authUser.photoURL,
+        emailVerified: authUser.emailVerified,
+        phoneVerified: false,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await _remoteDatasource.saveUserToFirestore(userModel);
+      
+      return ApiResult.success(authUser.copyWith(
+        displayName: fullName,
+        phoneVerified: false,
+        isPhoneRequired: true,
+      ));
+    });
+  }
 
   Future<void> _handleNewUserPhoneVerification(User user, String phoneNumber) async {
     final currentDevice = await _deviceInfoService.getCurrentDevice();

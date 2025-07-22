@@ -5,6 +5,7 @@ import 'package:udharoo/config/routes/router_guard.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/core/di/di.dart' as di;
 import 'package:udharoo/features/auth/presentation/pages/login_screen.dart';
+import 'package:udharoo/features/auth/presentation/pages/sign_up_screen.dart';
 import 'package:udharoo/features/auth/presentation/pages/phone_setup_screen.dart';
 import 'package:udharoo/features/auth/presentation/pages/phone_verification_screen.dart';
 import 'package:udharoo/features/home/presentation/pages/home_screen.dart';
@@ -65,6 +66,11 @@ class AppRouter {
         path: Routes.login,
         name: 'login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: Routes.signUp,
+        name: 'signUp',
+        builder: (context, state) => const SignUpScreen(),
       ),
 
       GoRoute(

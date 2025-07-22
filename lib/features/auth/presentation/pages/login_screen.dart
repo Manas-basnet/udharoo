@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
@@ -15,7 +17,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   
-  bool _isSignUp = false;
   bool _obscurePassword = true;
   bool _isEmailInput = false;
 
@@ -26,9 +27,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   String _getInputHint() {
-    if (_isSignUp) {
-      return 'Enter email address';
-    }
     if (_usernameController.text.isEmpty) {
       return 'Enter email or phone number';
     }
@@ -36,24 +34,15 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   String _getInputLabel() {
-    if (_isSignUp) {
-      return 'Email';
-    }
     return _isEmailInput ? 'Email' : 'Phone';
   }
 
   IconData _getInputIcon() {
-    if (_isSignUp) {
-      return Icons.email_outlined;
-    }
     return _isEmailInput ? Icons.email_outlined : Icons.phone;
   }
 
   TextInputType _getKeyboardType() {
-    if (_isSignUp) {
-      return TextInputType.emailAddress;
-    }
-    return TextInputType.text; // Allow both email and phone input
+    return TextInputType.text;
   }
 
   void _handleSignIn() {
@@ -61,21 +50,14 @@ class _LoginScreenState extends State<LoginScreen> {
       final username = _usernameController.text.trim();
       final password = _passwordController.text;
 
-      if (_isSignUp) {
-        // Sign up always uses email
-        context.read<AuthCubit>().signUpWithEmail(username, password);
+      if (_isEmailInput) {
+        context.read<AuthCubit>().signInWithEmail(username, password);
       } else {
-        // Sign in can use email or phone
-        if (_isEmailInput) {
-          context.read<AuthCubit>().signInWithEmail(username, password);
-        } else {
-          // For phone, we need to handle country code
-          String phoneNumber = username;
-          if (!phoneNumber.startsWith('+')) {
-            phoneNumber = '+977$phoneNumber'; // Default to Nepal
-          }
-          context.read<AuthCubit>().signInWithPhone(phoneNumber, password);
+        String phoneNumber = username;
+        if (!phoneNumber.startsWith('+')) {
+          phoneNumber = '+977$phoneNumber';
         }
+        context.read<AuthCubit>().signInWithPhone(phoneNumber, password);
       }
     }
   }
@@ -105,7 +87,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // App Logo and Title
                       Container(
                         width: 64,
                         height: 64,
@@ -137,7 +118,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       
                       const SizedBox(height: 32),
                       
-                      // Login Form Card
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
@@ -154,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Text(
-                                _isSignUp ? 'Create Account' : 'Welcome Back',
+                                'Welcome Back',
                                 style: theme.textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -162,9 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                _isSignUp
-                                    ? 'Sign up to get started'
-                                    : 'Sign in to continue',
+                                'Sign in to continue',
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: theme.colorScheme.onSurface.withOpacity(0.6),
                                 ),
@@ -173,7 +151,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               
                               const SizedBox(height: 24),
                               
-                              // Google Sign In Button
                               Container(
                                 height: 48,
                                 width: double.infinity,
@@ -228,7 +205,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               
                               const SizedBox(height: 16),
                               
-                              // Divider
                               Row(
                                 children: [
                                   Expanded(
@@ -255,7 +231,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               
                               const SizedBox(height: 16),
                               
-                              // Smart Input Field
                               TextFormField(
                                 controller: _usernameController,
                                 decoration: InputDecoration(
@@ -298,21 +273,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                   if (value?.isEmpty ?? true) {
                                     return 'This field is required';
                                   }
-                                  if (_isSignUp) {
-                                    // Sign up always requires email
+                                  if (_isEmailInput) {
                                     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value!)) {
-                                      return 'Please enter a valid email address';
+                                      return 'Please enter a valid email';
                                     }
                                   } else {
-                                    // Sign in can be email or phone
-                                    if (_isEmailInput) {
-                                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value!)) {
-                                        return 'Please enter a valid email';
-                                      }
-                                    } else {
-                                      if (value!.length < 7) {
-                                        return 'Please enter a valid phone number';
-                                      }
+                                    if (value!.length < 7) {
+                                      return 'Please enter a valid phone number';
                                     }
                                   }
                                   return null;
@@ -322,7 +289,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               
                               const SizedBox(height: 12),
                               
-                              // Password Field
                               TextFormField(
                                 controller: _passwordController,
                                 decoration: InputDecoration(
@@ -376,15 +342,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                   if (value?.isEmpty ?? true) {
                                     return 'Password is required';
                                   }
-                                  if (_isSignUp && value!.length < 6) {
-                                    return 'Password must be at least 6 characters';
-                                  }
                                   return null;
                                 },
                                 enabled: state is! AuthLoading,
                               ),
                               
-                              if (!_isSignUp && (_isEmailInput || _usernameController.text.contains('@'))) ...[
+                              if (_isEmailInput || _usernameController.text.contains('@')) ...[
                                 const SizedBox(height: 8),
                                 Align(
                                   alignment: Alignment.centerRight,
@@ -408,7 +371,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               
                               const SizedBox(height: 16),
                               
-                              // Sign In Button
                               SizedBox(
                                 height: 48,
                                 child: FilledButton(
@@ -431,7 +393,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           ),
                                         )
                                       : Text(
-                                          _isSignUp ? 'Create Account' : 'Sign In',
+                                          'Sign In',
                                           style: theme.textTheme.bodyMedium?.copyWith(
                                             fontWeight: FontWeight.w600,
                                             color: theme.colorScheme.onPrimary,
@@ -442,33 +404,20 @@ class _LoginScreenState extends State<LoginScreen> {
                               
                               const SizedBox(height: 12),
                               
-                              // Switch Sign Up/In
                               Center(
                                 child: TextButton(
                                   onPressed: state is AuthLoading
                                       ? null
-                                      : () {
-                                          setState(() {
-                                            _isSignUp = !_isSignUp;
-                                            _isEmailInput = _isSignUp; // Reset analysis based on mode
-                                          });
-                                          _formKey.currentState?.reset();
-                                          _usernameController.clear();
-                                          _passwordController.clear();
-                                        },
+                                      : () => context.push(Routes.signUp),
                                   child: RichText(
                                     text: TextSpan(
                                       style: theme.textTheme.bodySmall?.copyWith(
                                         color: theme.colorScheme.onSurface.withOpacity(0.6),
                                       ),
                                       children: [
+                                        const TextSpan(text: 'Don\'t have an account? '),
                                         TextSpan(
-                                          text: _isSignUp
-                                              ? 'Already have an account? '
-                                              : 'Don\'t have an account? ',
-                                        ),
-                                        TextSpan(
-                                          text: _isSignUp ? 'Sign In' : 'Sign Up',
+                                          text: 'Sign Up',
                                           style: TextStyle(
                                             color: theme.colorScheme.primary,
                                             fontWeight: FontWeight.w600,

@@ -13,6 +13,7 @@ import 'package:udharoo/features/auth/domain/usecases/sign_in_with_email_usecase
 import 'package:udharoo/features/auth/domain/usecases/sign_in_with_google_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_up_with_email_usecase.dart';
+import 'package:udharoo/features/auth/domain/usecases/sign_up_with_full_info_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/send_phone_verification_code_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/verify_phone_code_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_in_with_phone_usecase.dart';
@@ -26,6 +27,7 @@ part 'auth_state.dart';
 class AuthCubit extends Cubit<AuthState> {
   final SignInWithEmailUseCase signInWithEmailUseCase;
   final SignUpWithEmailUseCase signUpWithEmailUseCase;
+  final SignUpWithFullInfoUseCase signUpWithFullInfoUseCase;
   final SignInWithGoogleUseCase signInWithGoogleUseCase;
   final SignInWithPhoneUseCase signInWithPhoneUseCase;
   final SignOutUseCase signOutUseCase;
@@ -52,6 +54,7 @@ class AuthCubit extends Cubit<AuthState> {
   AuthCubit({
     required this.signInWithEmailUseCase,
     required this.signUpWithEmailUseCase,
+    required this.signUpWithFullInfoUseCase,
     required this.signInWithGoogleUseCase,
     required this.signInWithPhoneUseCase,
     required this.signOutUseCase,
@@ -144,6 +147,29 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  Future<void> signUpWithFullInfo({
+    required String fullName,
+    required String email,
+    required String password,
+  }) async {
+    emit(const AuthLoading());
+
+    final result = await signUpWithFullInfoUseCase(
+      fullName: fullName,
+      email: email,
+      password: password,
+    );
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (user) {
+          emit(PhoneVerificationRequired(user));
+        },
+        onFailure: (message, type) => emit(AuthError(message, type)),
+      );
+    }
+  }
+
   Future<void> signInWithGoogle() async {
     emit(const AuthLoading());
 
@@ -231,7 +257,6 @@ class AuthCubit extends Cubit<AuthState> {
           }
         },
         onFailure: (message, type) {
-          // Silent failure for refresh
         },
       );
     }

@@ -4,6 +4,11 @@ import 'package:udharoo/features/auth/domain/entities/auth_user.dart';
 abstract class AuthRepository {
   Future<ApiResult<AuthUser>> signInWithEmailAndPassword(String email, String password);
   Future<ApiResult<AuthUser>> createUserWithEmailAndPassword(String email, String password);
+  Future<ApiResult<AuthUser>> createUserWithFullInfo({
+    required String fullName,
+    required String email,
+    required String password,
+  });
   Future<ApiResult<AuthUser>> signInWithGoogle();
   Future<ApiResult<AuthUser>> signInWithPhoneAndPassword(String phoneNumber, String password);
   Future<ApiResult<void>> signOut();
