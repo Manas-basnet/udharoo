@@ -6,6 +6,7 @@ abstract class AuthRemoteDatasource {
   Future<User> createUserWithEmailAndPassword(String email, String password);
   Future<User> signInWithGoogle();
   Future<User> linkGoogleAccount();
+  Future<User> linkPassword(String password);
   Future<void> signOut();
   Future<void> sendPasswordResetEmail(String email);
   Future<void> sendEmailVerification();

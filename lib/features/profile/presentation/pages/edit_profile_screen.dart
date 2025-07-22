@@ -5,6 +5,7 @@ import 'package:udharoo/config/routes/router_config.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/domain/entities/auth_user.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:udharoo/features/profile/presentation/widgets/password_setup_dialog.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -22,6 +23,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String _selectedCountryCode = '+977';
   bool _isUpdatingPhone = false;
   bool _isLinkingGoogle = false;
+  bool _isLinkingPassword = false;
 
   final List<Map<String, String>> _countryCodes = [
     {'code': '+977', 'country': 'Nepal', 'flag': '🇳🇵'},
@@ -79,6 +81,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _hasGoogleProvider(AuthUser user) {
     return user.hasGoogleProvider;
   }
+
+  bool _hasPasswordProvider(AuthUser user) {
+    return user.hasEmailProvider;
+  }
+
+  void _showPasswordSetupDialog() {
+    PasswordSetupDialog.show(
+      context,
+      onSetupPassword: (password) {
+        setState(() {
+          _isLinkingPassword = true;
+        });
+        context.read<AuthCubit>().linkPassword(password);
+        Navigator.of(context).pop();
+      },
+      isLoading: _isLinkingPassword,
+    );
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -124,6 +144,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             setState(() {
               _isUpdatingPhone = false;
               _isLinkingGoogle = false;
+              _isLinkingPassword = false;
             });
           } else if (state is PhoneCodeSent) {
             context.push(
@@ -152,6 +173,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               );
               setState(() {
                 _isLinkingGoogle = false;
+              });
+            } else if (_isLinkingPassword) {
+              CustomToast.show(
+                context,
+                message: 'Password authentication linked successfully!',
+                isSuccess: true,
+              );
+              setState(() {
+                _isLinkingPassword = false;
               });
             }
           }
@@ -615,7 +645,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Icon(
-                                        Icons.email_outlined,
+                                        Icons.lock_outline,
                                         size: 18,
                                         color: theme.colorScheme.primary,
                                       ),
@@ -626,15 +656,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Email & Password',
+                                            'Password',
                                             style: theme.textTheme.bodyMedium?.copyWith(
                                               fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          Text(
+                                            _hasPasswordProvider(state.user)
+                                                ? 'Sign in with email or phone + password'
+                                                : 'Not linked',
+                                            style: theme.textTheme.bodySmall?.copyWith(
+                                              color: theme.colorScheme.onSurface.withOpacity(0.6),
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    if(state.user.providers.contains('password'))
+                                    if(_hasPasswordProvider(state.user))
                                       Container(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 8,
@@ -656,9 +694,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       SizedBox(
                                         height: 32,
                                         child: OutlinedButton(
-                                          onPressed: () {
-                                            // context.push(Routes.signUpWithEmail);
-                                          },
+                                          onPressed: _isLinkingPassword 
+                                              ? null 
+                                              : _showPasswordSetupDialog,
                                           style: OutlinedButton.styleFrom(
                                             foregroundColor: theme.colorScheme.primary,
                                             side: BorderSide(
@@ -669,12 +707,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                               borderRadius: BorderRadius.circular(8),
                                             ),
                                           ),
-                                          child: Text(
-                                            'Link',
-                                            style: theme.textTheme.labelSmall?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
+                                          child: _isLinkingPassword
+                                              ? SizedBox(
+                                                  height: 12,
+                                                  width: 12,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color: theme.colorScheme.primary,
+                                                  ),
+                                                )
+                                              : Text(
+                                                  'Link',
+                                                  style: theme.textTheme.labelSmall?.copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
                                         ),
                                       ),
                                   ],

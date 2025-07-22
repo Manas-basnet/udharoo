@@ -11,6 +11,7 @@ abstract class AuthRepository {
   });
   Future<ApiResult<AuthUser>> signInWithGoogle();
   Future<ApiResult<AuthUser>> linkGoogleAccount();
+  Future<ApiResult<AuthUser>> linkPassword(String password);
   Future<ApiResult<AuthUser>> signInWithPhoneAndPassword(String phoneNumber, String password);
   Future<ApiResult<void>> signOut();
   Future<ApiResult<void>> sendPasswordResetEmail(String email);

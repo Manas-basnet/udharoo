@@ -141,6 +141,42 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
 
     return userCredential.user!;
   }
+
+  @override
+  Future<User> linkPassword(String password) async {
+    final currentUser = _firebaseAuth.currentUser;
+    if (currentUser == null) {
+      throw FirebaseAuthException(
+        code: 'user-not-found',
+        message: 'No authenticated user found',
+      );
+    }
+
+    if (currentUser.email == null) {
+      throw FirebaseAuthException(
+        code: 'invalid-email',
+        message: 'User must have an email to link password authentication',
+      );
+    }
+
+    final credential = EmailAuthProvider.credential(
+      email: currentUser.email!,
+      password: password,
+    );
+
+    final userCredential = await currentUser.linkWithCredential(credential);
+    
+    if (userCredential.user == null) {
+      throw FirebaseAuthException(
+        code: 'password-link-failed',
+        message: 'Failed to link password authentication',
+      );
+    }
+
+    await _updateUserProviders(userCredential.user!);
+
+    return userCredential.user!;
+  }
   
   @override
   Future<void> signOut() async {
@@ -385,7 +421,6 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       final providers = user.providerData.map((info) => info.providerId).toList();
       await updateUserInFirestore(user.uid, {'providers': providers});
     } catch (e) {
-      //TODO: Handle error appropriately
     }
   }
 }

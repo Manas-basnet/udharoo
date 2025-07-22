@@ -73,6 +73,15 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<ApiResult<AuthUser>> linkPassword(String password) async {
+    return ExceptionHandler.handleExceptions(() async {
+      final user = await _remoteDatasource.linkPassword(password);
+      final authUser = await _processAuthenticatedUser(user);
+      return ApiResult.success(authUser);
+    });
+  }
+
+  @override
   Future<ApiResult<AuthUser>> signInWithPhoneAndPassword(
       String phoneNumber, String password) async {
     return ExceptionHandler.handleExceptions(() async {
@@ -277,7 +286,6 @@ class AuthRepositoryImpl implements AuthRepository {
           );
         }
         
-        // For new users, handle phone verification properly
         await _handleNewUserPhoneVerification(userCredential.user!, userCredential.user!.phoneNumber!);
         
         final authUser = await _processAuthenticatedUser(userCredential.user!);

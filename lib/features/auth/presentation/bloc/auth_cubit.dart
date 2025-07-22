@@ -8,6 +8,7 @@ import 'package:udharoo/features/auth/domain/services/auth_service.dart';
 import 'package:udharoo/features/auth/domain/usecases/get_current_user_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/is_authenticated_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/link_google_account_usecase.dart';
+import 'package:udharoo/features/auth/domain/usecases/link_password_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/send_email_verification_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/send_password_reset_email_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_in_with_email_usecase.dart';
@@ -31,6 +32,7 @@ class AuthCubit extends Cubit<AuthState> {
   final SignUpWithFullInfoUseCase signUpWithFullInfoUseCase;
   final SignInWithGoogleUseCase signInWithGoogleUseCase;
   final LinkGoogleAccountUseCase linkGoogleAccountUseCase;
+  final LinkPasswordUseCase linkPasswordUseCase;
   final SignInWithPhoneUseCase signInWithPhoneUseCase;
   final SignOutUseCase signOutUseCase;
   final GetCurrentUserUseCase getCurrentUserUseCase;
@@ -59,6 +61,7 @@ class AuthCubit extends Cubit<AuthState> {
     required this.signUpWithFullInfoUseCase,
     required this.signInWithGoogleUseCase,
     required this.linkGoogleAccountUseCase,
+    required this.linkPasswordUseCase,
     required this.signInWithPhoneUseCase,
     required this.signOutUseCase,
     required this.getCurrentUserUseCase,
@@ -194,6 +197,19 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> linkGoogleAccount() async {
     final result = await linkGoogleAccountUseCase();
+    
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (user) {
+          emit(AuthAuthenticated(user));
+        },
+        onFailure: (message, type) => emit(AuthError(message, type)),
+      );
+    }
+  }
+
+  Future<void> linkPassword(String password) async {
+    final result = await linkPasswordUseCase(password);
     
     if (!isClosed) {
       result.fold(
