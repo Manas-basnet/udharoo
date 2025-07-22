@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
-import 'package:udharoo/config/routes/router_config.dart';
-import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
@@ -27,6 +24,8 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   StreamController<ErrorAnimationType>? errorController;
 
+  late String verificationId;
+
   Timer? _timer;
   int _secondsRemaining = 60;
   bool _canResend = false;
@@ -35,6 +34,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   @override
   void initState() {
     super.initState();
+    verificationId = widget.verificationId;
     errorController = StreamController<ErrorAnimationType>();
     _startTimer();
   }
@@ -58,7 +58,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
 
   void _verifyCode() {
     if (_currentCode.length == 6) {
-      context.read<AuthCubit>().verifyPhoneCode(widget.verificationId, _currentCode);
+      context.read<AuthCubit>().verifyPhoneCode(verificationId, _currentCode);
     }
   }
 
@@ -83,7 +83,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthError) {
-            errorController?.add(ErrorAnimationType.shake);
+            errorController?.add(ErrorAnimationType.clear);
             CustomToast.show(
               context,
               message: state.message,
@@ -99,14 +99,8 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
               message: 'Phone verified successfully!',
               isSuccess: true,
             );
-          } else if (state is PhoneCodeSent && state.verificationId != widget.verificationId) {
-            context.pushReplacement(
-              Routes.phoneVerification,
-              extra: PhoneVerificationExtra(
-                phoneNumber: state.phoneNumber,
-                verificationId: state.verificationId,
-              ),
-            );
+          } else if (state is PhoneCodeSent && state.verificationId != verificationId) {
+            verificationId = state.verificationId;
             CustomToast.show(
               context,
               message: 'New code sent!',
@@ -124,8 +118,10 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                   Row(
                     children: [
                       IconButton(
-                        onPressed: () => context.pop(),
-                        icon: const Icon(Icons.arrow_back),
+                        onPressed: () {
+                          //TODO: show app close dialog 
+                        },
+                        icon: const Icon(Icons.close),
                         style: IconButton.styleFrom(
                           backgroundColor: theme.colorScheme.surface,
                           shape: RoundedRectangleBorder(
@@ -341,10 +337,10 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                   
                   TextButton(
                     onPressed: () {
-                      context.read<AuthCubit>().skipPhoneVerification();
+                      context.read<AuthCubit>().signOut();
                     },
                     child: Text(
-                      'I\'ll verify later',
+                      'Use a different account',
                       style: TextStyle(
                         color: theme.colorScheme.onSurface.withOpacity(0.6),
                         fontSize: 14,

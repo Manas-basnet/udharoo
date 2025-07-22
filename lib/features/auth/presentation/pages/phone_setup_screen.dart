@@ -90,7 +90,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
               isSuccess: false,
             );
           } else if (state is PhoneCodeSent) {
-            context.push(
+            context.go(
               Routes.phoneVerification,
               extra: PhoneVerificationExtra(
                 phoneNumber: state.phoneNumber,
@@ -109,8 +109,10 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                   Row(
                     children: [
                       IconButton(
-                        onPressed: () => context.pop(),
-                        icon: const Icon(Icons.arrow_back),
+                        onPressed: () {
+                          //TODO : show close app dialog
+                        },
+                        icon: const Icon(Icons.close),
                         style: IconButton.styleFrom(
                           backgroundColor: theme.colorScheme.surface,
                           shape: RoundedRectangleBorder(
@@ -440,7 +442,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                       context.read<AuthCubit>().signOut();
                     },
                     child: Text(
-                      'I\'ll do this later',
+                      'Use a different account',
                       style: TextStyle(
                         color: theme.colorScheme.onSurface.withOpacity(0.6),
                         fontSize: 14,

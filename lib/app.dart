@@ -64,11 +64,12 @@ class _MyAppState extends State<MyApp> {
   }
 
   bool _shouldRefreshRouter(AuthState previous, AuthState current) {
-    if (current is PhoneCodeSent) {
+
+    if (previous is PhoneVerificationCompleted && current is AuthAuthenticated) {
       return false;
     }
 
-    if (previous is PhoneVerificationCompleted && current is AuthAuthenticated) {
+    if(previous is PhoneVerificationLoading && current is AuthError) {
       return false;
     }
 
@@ -86,11 +87,8 @@ class _MyAppState extends State<MyApp> {
         (previous is AuthError && current is PhoneVerificationRequired) ||
         (previous is PhoneVerificationRequired && current is AuthAuthenticated) ||
         (previous is PhoneVerificationRequired && current is AuthUnauthenticated) ||
-        (previous is PhoneVerificationRequired && current is PhoneVerificationLoading) ||
-        (previous is PhoneVerificationLoading && current is PhoneCodeSent) ||
-        (previous is PhoneVerificationLoading && current is AuthError) ||
         (previous is PhoneVerificationLoading && current is PhoneVerificationRequired) ||
-        (previous is PhoneCodeSent && current is PhoneVerificationLoading) ||
+        (previous is PhoneVerificationLoading && current is AuthAuthenticated) ||
         (previous is PhoneCodeSent && current is AuthError) ||
         (previous is PhoneCodeSent && current is AuthAuthenticated) ||
         (previous is PhoneVerificationCompleted && current is AuthError);

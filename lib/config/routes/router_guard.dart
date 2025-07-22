@@ -42,6 +42,10 @@ class RouterGuard {
       if (!phoneRoutes.contains(currentPath)) {
         return Routes.phoneSetup;
       }
+    } else {
+      if (currentPath == Routes.phoneSetup || currentPath == Routes.phoneVerification) {
+        return Routes.home;
+      }
     }
     
     return null;

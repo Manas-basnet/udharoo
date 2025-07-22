@@ -66,7 +66,7 @@ class AuthRepositoryImpl implements AuthRepository {
         );
       }
 
-      final userModel = usersWithPhone.first;
+      final userModel = usersWithPhone.firstWhere((user) => (user.email != null && user.email?.isNotEmpty == true));
       if (!userModel.phoneVerified) {
         return ApiResult.failure(
           'Phone number not verified',
