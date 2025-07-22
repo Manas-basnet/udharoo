@@ -10,35 +10,79 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
-  final _emailController = TextEditingController();
+class _LoginScreenState extends State<LoginScreen> {
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _emailFormKey = GlobalKey<FormState>();
-  final _phoneFormKey = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
   
-  late TabController _tabController;
   bool _isSignUp = false;
   bool _obscurePassword = true;
-  String _selectedCountryCode = '+977';
+  bool _isEmailInput = false;
 
-  final List<Map<String, String>> _countryCodes = [
-    {'code': '+977', 'country': 'Nepal', 'flag': '🇳🇵'},
-    {'code': '+91', 'country': 'India', 'flag': '🇮🇳'},
-    {'code': '+1', 'country': 'USA', 'flag': '🇺🇸'},
-    {'code': '+44', 'country': 'UK', 'flag': '🇬🇧'},
-  ];
+  void _analyzeInput(String value) {
+    setState(() {
+      _isEmailInput = value.contains('@');
+    });
+  }
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+  String _getInputHint() {
+    if (_isSignUp) {
+      return 'Enter email address';
+    }
+    if (_usernameController.text.isEmpty) {
+      return 'Enter email or phone number';
+    }
+    return _isEmailInput ? 'Email address' : 'Phone number';
+  }
+
+  String _getInputLabel() {
+    if (_isSignUp) {
+      return 'Email';
+    }
+    return _isEmailInput ? 'Email' : 'Phone';
+  }
+
+  IconData _getInputIcon() {
+    if (_isSignUp) {
+      return Icons.email_outlined;
+    }
+    return _isEmailInput ? Icons.email_outlined : Icons.phone;
+  }
+
+  TextInputType _getKeyboardType() {
+    if (_isSignUp) {
+      return TextInputType.emailAddress;
+    }
+    return TextInputType.text; // Allow both email and phone input
+  }
+
+  void _handleSignIn() {
+    if (_formKey.currentState?.validate() ?? false) {
+      final username = _usernameController.text.trim();
+      final password = _passwordController.text;
+
+      if (_isSignUp) {
+        // Sign up always uses email
+        context.read<AuthCubit>().signUpWithEmail(username, password);
+      } else {
+        // Sign in can use email or phone
+        if (_isEmailInput) {
+          context.read<AuthCubit>().signInWithEmail(username, password);
+        } else {
+          // For phone, we need to handle country code
+          String phoneNumber = username;
+          if (!phoneNumber.startsWith('+')) {
+            phoneNumber = '+977$phoneNumber'; // Default to Nepal
+          }
+          context.read<AuthCubit>().signInWithPhone(phoneNumber, password);
+        }
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final size = MediaQuery.of(context).size;
     
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -55,112 +99,105 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         child: BlocBuilder<AuthCubit, AuthState>(
           builder: (context, state) {
             return SafeArea(
-              child: SingleChildScrollView(
+              child: Padding(
                 padding: const EdgeInsets.all(24.0),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: size.height - 48),
+                child: SingleChildScrollView(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 40),
-                      
-                      Column(
-                        children: [
-                          Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Icon(
-                              Icons.account_balance_wallet,
-                              size: 40,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            'Udharoo',
-                            style: theme.textTheme.headlineLarge?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: theme.colorScheme.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Your Digital Ledger',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
-                            ),
-                          ),
-                        ],
+                      // App Logo and Title
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.account_balance_wallet,
+                          size: 32,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Udharoo',
+                        style: theme.textTheme.headlineLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Your Digital Ledger',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        ),
                       ),
                       
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 32),
                       
+                      // Login Form Card
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: theme.colorScheme.outline.withOpacity(0.1),
                           ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Column(
-                              children: [
-                                Text(
-                                  _isSignUp ? 'Create Account' : 'Welcome Back',
-                                  style: theme.textTheme.headlineSmall?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                _isSignUp ? 'Create Account' : 'Welcome Back',
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  _isSignUp
-                                      ? 'Sign up to get started with your digital ledger'
-                                      : 'Sign in to manage your loans and borrows',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                            
-                            const SizedBox(height: 32),
-                            
-                            Container(
-                              height: 56,
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: theme.colorScheme.outline.withOpacity(0.3),
-                                ),
-                                borderRadius: BorderRadius.circular(12),
+                                textAlign: TextAlign.center,
                               ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(12),
-                                  onTap: state is AuthLoading
-                                      ? null
-                                      : () {
-                                          context.read<AuthCubit>().signInWithGoogle();
-                                        },
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                              const SizedBox(height: 6),
+                              Text(
+                                _isSignUp
+                                    ? 'Sign up to get started'
+                                    : 'Sign in to continue',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              
+                              const SizedBox(height: 24),
+                              
+                              // Google Sign In Button
+                              Container(
+                                height: 48,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: theme.colorScheme.outline.withOpacity(0.3),
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(8),
+                                    onTap: state is AuthLoading
+                                        ? null
+                                        : () {
+                                            context.read<AuthCubit>().signInWithGoogle();
+                                          },
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Container(
-                                          width: 20,
-                                          height: 20,
+                                          width: 18,
+                                          height: 18,
                                           decoration: const BoxDecoration(
                                             color: Colors.red,
                                             shape: BoxShape.circle,
@@ -170,13 +207,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                               'G',
                                               style: TextStyle(
                                                 color: Colors.white,
-                                                fontSize: 12,
+                                                fontSize: 10,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
                                           ),
                                         ),
-                                        const SizedBox(width: 12),
+                                        const SizedBox(width: 8),
                                         Text(
                                           'Continue with Google',
                                           style: theme.textTheme.bodyMedium?.copyWith(
@@ -188,118 +225,264 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   ),
                                 ),
                               ),
-                            ),
-                            
-                            const SizedBox(height: 24),
-                            
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Divider(
-                                    color: theme.colorScheme.outline.withOpacity(0.3),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: Text(
-                                    'or',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              
+                              const SizedBox(height: 16),
+                              
+                              // Divider
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Divider(
+                                      color: theme.colorScheme.outline.withOpacity(0.3),
                                     ),
                                   ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    child: Text(
+                                      'or',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Divider(
+                                      color: theme.colorScheme.outline.withOpacity(0.3),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              
+                              const SizedBox(height: 16),
+                              
+                              // Smart Input Field
+                              TextFormField(
+                                controller: _usernameController,
+                                decoration: InputDecoration(
+                                  labelText: _getInputLabel(),
+                                  hintText: _getInputHint(),
+                                  prefixIcon: Icon(_getInputIcon()),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: theme.colorScheme.outline.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: theme.colorScheme.outline.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: theme.colorScheme.primary,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  errorBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(color: Colors.red),
+                                  ),
+                                  filled: true,
+                                  fillColor: theme.colorScheme.surface,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 16,
+                                  ),
                                 ),
-                                Expanded(
-                                  child: Divider(
-                                    color: theme.colorScheme.outline.withOpacity(0.3),
+                                keyboardType: _getKeyboardType(),
+                                onChanged: _analyzeInput,
+                                validator: (value) {
+                                  if (value?.isEmpty ?? true) {
+                                    return 'This field is required';
+                                  }
+                                  if (_isSignUp) {
+                                    // Sign up always requires email
+                                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value!)) {
+                                      return 'Please enter a valid email address';
+                                    }
+                                  } else {
+                                    // Sign in can be email or phone
+                                    if (_isEmailInput) {
+                                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value!)) {
+                                        return 'Please enter a valid email';
+                                      }
+                                    } else {
+                                      if (value!.length < 7) {
+                                        return 'Please enter a valid phone number';
+                                      }
+                                    }
+                                  }
+                                  return null;
+                                },
+                                enabled: state is! AuthLoading,
+                              ),
+                              
+                              const SizedBox(height: 12),
+                              
+                              // Password Field
+                              TextFormField(
+                                controller: _passwordController,
+                                decoration: InputDecoration(
+                                  labelText: 'Password',
+                                  hintText: 'Enter your password',
+                                  prefixIcon: const Icon(Icons.lock_outline),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _obscurePassword = !_obscurePassword;
+                                      });
+                                    },
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: theme.colorScheme.outline.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: theme.colorScheme.outline.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: theme.colorScheme.primary,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  errorBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(color: Colors.red),
+                                  ),
+                                  filled: true,
+                                  fillColor: theme.colorScheme.surface,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 16,
+                                  ),
+                                ),
+                                obscureText: _obscurePassword,
+                                validator: (value) {
+                                  if (value?.isEmpty ?? true) {
+                                    return 'Password is required';
+                                  }
+                                  if (_isSignUp && value!.length < 6) {
+                                    return 'Password must be at least 6 characters';
+                                  }
+                                  return null;
+                                },
+                                enabled: state is! AuthLoading,
+                              ),
+                              
+                              if (!_isSignUp && (_isEmailInput || _usernameController.text.contains('@'))) ...[
+                                const SizedBox(height: 8),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
+                                    onPressed: state is AuthLoading
+                                        ? null
+                                        : () {
+                                            _showForgotPasswordDialog(context);
+                                          },
+                                    child: Text(
+                                      'Forgot Password?',
+                                      style: TextStyle(
+                                        color: theme.colorScheme.primary,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
-                            ),
-                            
-                            const SizedBox(height: 24),
-                            
-                            if (!_isSignUp) ...[
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.surface,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: TabBar(
-                                  controller: _tabController,
-                                  labelColor: theme.colorScheme.primary,
-                                  unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
-                                  indicator: BoxDecoration(
-                                    color: theme.colorScheme.primary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  indicatorSize: TabBarIndicatorSize.tab,
-                                  tabs: const [
-                                    Tab(text: 'Email'),
-                                    Tab(text: 'Phone'),
-                                  ],
-                                ),
-                              ),
                               
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 16),
                               
+                              // Sign In Button
                               SizedBox(
-                                height: 200,
-                                child: TabBarView(
-                                  controller: _tabController,
-                                  children: [
-                                    _buildEmailForm(theme, state),
-                                    _buildPhoneForm(theme, state),
-                                  ],
+                                height: 48,
+                                child: FilledButton(
+                                  onPressed: state is AuthLoading ? null : _handleSignIn,
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: theme.colorScheme.primary,
+                                    foregroundColor: theme.colorScheme.onPrimary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: state is AuthLoading
+                                      ? SizedBox(
+                                          height: 18,
+                                          width: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: theme.colorScheme.onPrimary,
+                                          ),
+                                        )
+                                      : Text(
+                                          _isSignUp ? 'Create Account' : 'Sign In',
+                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: theme.colorScheme.onPrimary,
+                                          ),
+                                        ),
                                 ),
                               ),
-                            ] else ...[
-                              _buildEmailForm(theme, state),
-                            ],
-                            
-                            const SizedBox(height: 24),
-                            
-                            Center(
-                              child: TextButton(
-                                onPressed: state is AuthLoading
-                                    ? null
-                                    : () {
-                                        setState(() {
-                                          _isSignUp = !_isSignUp;
-                                        });
-                                        _emailFormKey.currentState?.reset();
-                                        _phoneFormKey.currentState?.reset();
-                                        _emailController.clear();
-                                        _passwordController.clear();
-                                        _phoneController.clear();
-                                      },
-                                child: RichText(
-                                  text: TextSpan(
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                                    ),
-                                    children: [
-                                      TextSpan(
-                                        text: _isSignUp
-                                            ? 'Already have an account? '
-                                            : 'Don\'t have an account? ',
+                              
+                              const SizedBox(height: 12),
+                              
+                              // Switch Sign Up/In
+                              Center(
+                                child: TextButton(
+                                  onPressed: state is AuthLoading
+                                      ? null
+                                      : () {
+                                          setState(() {
+                                            _isSignUp = !_isSignUp;
+                                            _isEmailInput = _isSignUp; // Reset analysis based on mode
+                                          });
+                                          _formKey.currentState?.reset();
+                                          _usernameController.clear();
+                                          _passwordController.clear();
+                                        },
+                                  child: RichText(
+                                    text: TextSpan(
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.onSurface.withOpacity(0.6),
                                       ),
-                                      TextSpan(
-                                        text: _isSignUp ? 'Sign In' : 'Sign Up',
-                                        style: TextStyle(
-                                          color: theme.colorScheme.primary,
-                                          fontWeight: FontWeight.w600,
+                                      children: [
+                                        TextSpan(
+                                          text: _isSignUp
+                                              ? 'Already have an account? '
+                                              : 'Don\'t have an account? ',
                                         ),
-                                      ),
-                                    ],
+                                        TextSpan(
+                                          text: _isSignUp ? 'Sign In' : 'Sign Up',
+                                          style: TextStyle(
+                                            color: theme.colorScheme.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                      
-                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
@@ -307,385 +490,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             );
           },
         ),
-      ),
-    );
-  }
-
-  Widget _buildEmailForm(ThemeData theme, AuthState state) {
-    return Form(
-      key: _emailFormKey,
-      child: Column(
-        children: [
-          TextFormField(
-            controller: _emailController,
-            decoration: InputDecoration(
-              labelText: 'Email',
-              hintText: 'Enter your email',
-              prefixIcon: const Icon(Icons.email_outlined),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.outline.withOpacity(0.3),
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.outline.withOpacity(0.3),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.primary,
-                  width: 2,
-                ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.red),
-              ),
-              filled: true,
-              fillColor: theme.colorScheme.surface,
-            ),
-            keyboardType: TextInputType.emailAddress,
-            validator: (value) {
-              if (value?.isEmpty ?? true) {
-                return 'Email is required';
-              }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value!)) {
-                return 'Please enter a valid email';
-              }
-              return null;
-            },
-            enabled: state is! AuthLoading,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _passwordController,
-            decoration: InputDecoration(
-              labelText: 'Password',
-              hintText: 'Enter your password',
-              prefixIcon: const Icon(Icons.lock_outline),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.outline.withOpacity(0.3),
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.outline.withOpacity(0.3),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.primary,
-                  width: 2,
-                ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.red),
-              ),
-              filled: true,
-              fillColor: theme.colorScheme.surface,
-            ),
-            obscureText: _obscurePassword,
-            validator: (value) {
-              if (value?.isEmpty ?? true) {
-                return 'Password is required';
-              }
-              if (_isSignUp && value!.length < 6) {
-                return 'Password must be at least 6 characters';
-              }
-              return null;
-            },
-            enabled: state is! AuthLoading,
-          ),
-          if (!_isSignUp) ...[
-            const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: state is AuthLoading
-                    ? null
-                    : () {
-                        _showForgotPasswordDialog(context);
-                      },
-                child: Text(
-                  'Forgot Password?',
-                  style: TextStyle(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 56,
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: state is AuthLoading
-                  ? null
-                  : () {
-                      if (_emailFormKey.currentState?.validate() ?? false) {
-                        if (_isSignUp) {
-                          context.read<AuthCubit>().signUpWithEmail(
-                                _emailController.text.trim(),
-                                _passwordController.text,
-                              );
-                        } else {
-                          context.read<AuthCubit>().signInWithEmail(
-                                _emailController.text.trim(),
-                                _passwordController.text,
-                              );
-                        }
-                      }
-                    },
-              style: FilledButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: theme.colorScheme.onPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
-              child: state is AuthLoading
-                  ? SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: theme.colorScheme.onPrimary,
-                      ),
-                    )
-                  : Text(
-                      _isSignUp ? 'Create Account' : 'Sign In',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.onPrimary,
-                      ),
-                    ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPhoneForm(ThemeData theme, AuthState state) {
-    return Form(
-      key: _phoneFormKey,
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: theme.colorScheme.outline.withOpacity(0.3),
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedCountryCode,
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        setState(() {
-                          _selectedCountryCode = newValue;
-                        });
-                      }
-                    },
-                    items: _countryCodes.map((country) {
-                      return DropdownMenuItem<String>(
-                        value: country['code'],
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                country['flag']!,
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                country['code']!,
-                                style: theme.textTheme.bodyMedium,
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextFormField(
-                  controller: _phoneController,
-                  decoration: InputDecoration(
-                    labelText: 'Phone',
-                    hintText: 'Enter phone number',
-                    prefixIcon: const Icon(Icons.phone),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: theme.colorScheme.outline.withOpacity(0.3),
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: theme.colorScheme.outline.withOpacity(0.3),
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: theme.colorScheme.primary,
-                        width: 2,
-                      ),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.red),
-                    ),
-                    filled: true,
-                    fillColor: theme.colorScheme.surface,
-                  ),
-                  keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) {
-                      return 'Phone number is required';
-                    }
-                    if (value!.length < 7) {
-                      return 'Enter a valid phone number';
-                    }
-                    return null;
-                  },
-                  enabled: state is! AuthLoading,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _passwordController,
-            decoration: InputDecoration(
-              labelText: 'Password',
-              hintText: 'Enter your password',
-              prefixIcon: const Icon(Icons.lock_outline),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.outline.withOpacity(0.3),
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.outline.withOpacity(0.3),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.primary,
-                  width: 2,
-                ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.red),
-              ),
-              filled: true,
-              fillColor: theme.colorScheme.surface,
-            ),
-            obscureText: _obscurePassword,
-            validator: (value) {
-              if (value?.isEmpty ?? true) {
-                return 'Password is required';
-              }
-              return null;
-            },
-            enabled: state is! AuthLoading,
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 56,
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: state is AuthLoading
-                  ? null
-                  : () {
-                      if (_phoneFormKey.currentState?.validate() ?? false) {
-                        final fullPhoneNumber = 
-                            '$_selectedCountryCode${_phoneController.text.trim()}';
-                        context.read<AuthCubit>().signInWithPhone(
-                          fullPhoneNumber,
-                          _passwordController.text,
-                        );
-                      }
-                    },
-              style: FilledButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: theme.colorScheme.onPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
-              child: state is AuthLoading
-                  ? SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: theme.colorScheme.onPrimary,
-                      ),
-                    )
-                  : Text(
-                      'Sign In with Phone',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.onPrimary,
-                      ),
-                    ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -699,7 +503,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       builder: (dialogContext) => AlertDialog(
         backgroundColor: theme.colorScheme.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
         ),
         title: Text(
           'Reset Password',
@@ -725,23 +529,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 hintText: 'Enter your email',
                 prefixIcon: const Icon(Icons.email_outlined),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: theme.colorScheme.outline.withOpacity(0.3),
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: theme.colorScheme.outline.withOpacity(0.3),
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: theme.colorScheme.primary,
-                    width: 2,
-                  ),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 filled: true,
                 fillColor: theme.scaffoldBackgroundColor,
@@ -777,7 +565,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               backgroundColor: theme.colorScheme.primary,
               foregroundColor: theme.colorScheme.onPrimary,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
               ),
             ),
             child: const Text('Send Reset Link'),
@@ -789,10 +577,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
-    _phoneController.dispose();
-    _tabController.dispose();
     super.dispose();
   }
 }
