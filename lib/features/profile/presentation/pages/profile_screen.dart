@@ -73,9 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       )
                                     : Center(
                                         child: Text(
-                                          (state.user.displayName?.isNotEmpty == true 
-                                              ? state.user.displayName![0] 
-                                              : state.user.email?[0] ?? 'U').toUpperCase(),
+                                          _getInitial(state.user.displayName, state.user.email),
                                           style: theme.textTheme.headlineMedium?.copyWith(
                                             color: theme.colorScheme.primary,
                                             fontWeight: FontWeight.w600,
@@ -373,6 +371,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
+  String _getInitial(String? displayName, String? email) {
+    if (displayName != null && displayName.isNotEmpty) {
+      return displayName[0].toUpperCase();
+    }
+    
+    if (email != null && email.isNotEmpty) {
+      return email[0].toUpperCase();
+    }
+    
+    return 'U';
+  }
+
+
 }
 
 class _ProfileSection extends StatelessWidget {

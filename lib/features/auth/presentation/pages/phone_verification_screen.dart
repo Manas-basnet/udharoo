@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/router_config.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
@@ -111,8 +113,14 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
               message: 'Phone verified successfully!',
               isSuccess: true,
             );
-            // Navigation to home screen is handled by auto refresh on auth changes from auth cubit and app.dart
-          } else if (state is PhoneCodeSent) {
+          } else if (state is PhoneCodeSent && state.verificationId != widget.verificationId) {
+            context.pushReplacement(
+              Routes.phoneVerification,
+              extra: PhoneVerificationExtra(
+                phoneNumber: state.phoneNumber,
+                verificationId: state.verificationId,
+              ),
+            );
             CustomToast.show(
               context,
               message: 'New code sent!',
@@ -330,7 +338,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                 
                 TextButton(
                   onPressed: () {
-                    context.go('/home');
+                    context.read<AuthCubit>().skipPhoneVerification();
                   },
                   child: Text(
                     'I\'ll verify later',

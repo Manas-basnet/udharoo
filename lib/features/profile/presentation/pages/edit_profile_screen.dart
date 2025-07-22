@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/router_config.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
@@ -60,6 +61,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return null;
   }
 
+  String _getInitial(String? displayName, String? email) {
+    if (displayName != null && displayName.isNotEmpty) {
+      return displayName[0].toUpperCase();
+    }
+    
+    if (email != null && email.isNotEmpty) {
+      return email[0].toUpperCase();
+    }
+    
+    return 'U';
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -107,10 +121,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           } else if (state is PhoneCodeSent) {
             context.pushNamed(
               'phoneVerification',
-              extra: {
-                'phoneNumber': state.phoneNumber,
-                'verificationId': state.verificationId,
-              },
+              extra: PhoneVerificationExtra(
+                phoneNumber: state.phoneNumber,
+                verificationId: state.verificationId,
+              ),
             );
           } else if (state is PhoneVerificationCompleted || state is AuthAuthenticated) {
             if (_isUpdatingPhone) {
@@ -158,9 +172,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                         )
                                       : Center(
                                           child: Text(
-                                            (state.user.displayName?.isNotEmpty == true 
-                                                ? state.user.displayName![0] 
-                                                : state.user.email?[0] ?? 'U').toUpperCase(),
+                                            _getInitial(state.user.displayName, state.user.email),
                                             style: theme.textTheme.headlineLarge?.copyWith(
                                               color: theme.colorScheme.primary,
                                               fontWeight: FontWeight.w600,

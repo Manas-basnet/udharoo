@@ -1,5 +1,3 @@
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:udharoo/features/auth/data/datasources/local/shared_prefs_auth_local_datasource_impl.dart';
@@ -10,7 +8,6 @@ import 'package:udharoo/features/auth/domain/datasources/local/auth_local_dataso
 import 'package:udharoo/features/auth/domain/datasources/remote/auth_remote_datasource.dart';
 import 'package:udharoo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:udharoo/features/auth/domain/services/auth_service.dart';
-import 'package:udharoo/features/auth/domain/services/device_info_service.dart';
 import 'package:udharoo/features/auth/domain/usecases/get_current_user_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/is_authenticated_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/send_email_verification_usecase.dart';
@@ -28,13 +25,7 @@ import 'package:udharoo/features/auth/domain/usecases/check_phone_verification_s
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 
 Future<void> initAuth(GetIt sl) async {
-  sl.registerLazySingleton(() => FirebaseAuth.instance);
   sl.registerLazySingleton(() => GoogleSignIn());
-  sl.registerLazySingleton(() => DeviceInfoPlugin());
-
-  sl.registerLazySingleton<DeviceInfoService>(
-    () => DeviceInfoServiceImpl(deviceInfoPlugin: sl()),
-  );
 
   sl.registerLazySingleton(() => SignInWithEmailUseCase(sl()));
   sl.registerLazySingleton(() => SignUpWithEmailUseCase(sl()));

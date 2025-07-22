@@ -43,6 +43,7 @@ class AuthCubit extends Cubit<AuthState> {
   late final StreamSubscription<AuthEvent> _authEventSubscription;
 
   String? _currentPhoneNumber;
+  String? _currentVerificationId;
   bool _isLinkingPhone = false;
   bool _isUpdatingPhone = false;
 
@@ -186,6 +187,10 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> checkAuthStatus() async {
+    if (state is PhoneVerificationLoading || state is PhoneCodeSent) {
+      return;
+    }
+    
     emit(const AuthLoading());
 
     final result = await getCurrentUserUseCase();
@@ -220,12 +225,23 @@ class AuthCubit extends Cubit<AuthState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (verificationId) {
-          emit(PhoneCodeSent(
-            phoneNumber: phoneNumber,
-            verificationId: verificationId,
-          ));
+          _currentVerificationId = verificationId;
+          if (verificationId == 'auto-verified') {
+            checkAuthStatus();
+          } else {
+            emit(PhoneCodeSent(
+              phoneNumber: phoneNumber,
+              verificationId: verificationId,
+            ));
+          }
         },
-        onFailure: (message, type) => emit(AuthError(message, type)),
+        onFailure: (message, type) {
+          _currentPhoneNumber = null;
+          _currentVerificationId = null;
+          _isLinkingPhone = false;
+          _isUpdatingPhone = false;
+          emit(AuthError(message, type));
+        },
       );
     }
   }
@@ -236,32 +252,24 @@ class AuthCubit extends Cubit<AuthState> {
       verificationId: verificationId,
     ));
 
-    ApiResult<AuthUser> result;
-
-    if (_isLinkingPhone) {
-      result = await linkPhoneNumberUseCase(verificationId, smsCode);
-    } else if (_isUpdatingPhone) {
-      result = await updatePhoneNumberUseCase(verificationId, smsCode);
-    } else {
-      result = await verifyPhoneCodeUseCase(verificationId, smsCode);
-    }
+    final result = await verifyPhoneCodeUseCase(verificationId, smsCode);
 
     if (!isClosed) {
       result.fold(
         onSuccess: (user) {
           emit(PhoneVerificationCompleted(user));
+          _resetPhoneVerificationState();
           
           if (user.canAccessApp) {
             emit(AuthAuthenticated(user));
           }
         },
-        onFailure: (message, type) => emit(AuthError(message, type)),
+        onFailure: (message, type) {
+          _resetPhoneVerificationState();
+          emit(AuthError(message, type));
+        },
       );
     }
-
-    _isLinkingPhone = false;
-    _isUpdatingPhone = false;
-    _currentPhoneNumber = null;
   }
 
   Future<void> linkPhoneNumber(String phoneNumber) async {
@@ -313,7 +321,14 @@ class AuthCubit extends Cubit<AuthState> {
 
   void resetError() {
     if (state is AuthError && !isClosed) {
-      emit(const AuthInitial());
+      if (_currentVerificationId != null && _currentPhoneNumber != null) {
+        emit(PhoneCodeSent(
+          phoneNumber: _currentPhoneNumber!,
+          verificationId: _currentVerificationId!,
+        ));
+      } else {
+        emit(const AuthInitial());
+      }
     }
   }
 
@@ -322,6 +337,13 @@ class AuthCubit extends Cubit<AuthState> {
       final user = (state as PhoneVerificationRequired).user;
       emit(AuthAuthenticated(user.copyWith(isPhoneRequired: false)));
     }
+  }
+
+  void _resetPhoneVerificationState() {
+    _currentPhoneNumber = null;
+    _currentVerificationId = null;
+    _isLinkingPhone = false;
+    _isUpdatingPhone = false;
   }
 
   @override

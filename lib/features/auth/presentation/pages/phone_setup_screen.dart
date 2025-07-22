@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
+import 'package:udharoo/config/routes/router_config.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
@@ -41,10 +42,10 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
           } else if (state is PhoneCodeSent) {
             context.push(
               Routes.phoneVerification,
-              extra: {
-                'phoneNumber': state.phoneNumber,
-                'verificationId': state.verificationId,
-              },
+              extra: PhoneVerificationExtra(
+                phoneNumber: state.phoneNumber,
+                verificationId: state.verificationId,
+              ),
             );
           }
         },

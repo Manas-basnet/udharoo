@@ -145,14 +145,33 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<ApiResult<String>> sendPhoneVerificationCode(String phoneNumber) async {
     return ExceptionHandler.handleExceptions(() async {
+      final currentUser = _remoteDatasource.getCurrentUser();
+      
+      if (currentUser != null) {
+        final existingUsers = await _remoteDatasource.getUsersWithPhoneNumber(phoneNumber);
+        final hasOtherUserWithPhone = existingUsers.any((user) => user.uid != currentUser.uid);
+        
+        if (hasOtherUserWithPhone) {
+          return ApiResult.failure(
+            'This phone number is already associated with another account',
+            FailureType.validation,
+          );
+        }
+      }
+
       _verificationCompleter = Completer<String>();
 
       await _remoteDatasource.sendPhoneVerificationCode(
         phoneNumber,
         verificationCompleted: (PhoneAuthCredential credential) async {
           try {
-            final user = await _remoteDatasource.signInWithPhoneCredential(credential);
-            await _processAuthenticatedUser(user);
+            if (currentUser != null) {
+              final user = await _remoteDatasource.linkPhoneCredential(credential);
+              await _processAuthenticatedUser(user);
+            } else {
+              final user = await _remoteDatasource.signInWithPhoneCredential(credential);
+              await _processAuthenticatedUser(user);
+            }
             _verificationCompleter?.complete('auto-verified');
           } catch (e) {
             _verificationCompleter?.completeError(e);
@@ -177,17 +196,30 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<ApiResult<AuthUser>> verifyPhoneCode(String verificationId, String smsCode) async {
     return ExceptionHandler.handleExceptions(() async {
-      final userCredential = await _remoteDatasource.verifyPhoneCode(verificationId, smsCode);
+      final currentUser = _remoteDatasource.getCurrentUser();
       
-      if (userCredential.user == null) {
-        return ApiResult.failure(
-          'Phone verification failed',
-          FailureType.auth,
-        );
+      User resultUser;
+      
+      if (currentUser != null) {
+        resultUser = await _remoteDatasource.linkPhoneNumber(verificationId, smsCode);
+      } else {
+        final userCredential = await _remoteDatasource.verifyPhoneCode(verificationId, smsCode);
+        if (userCredential.user == null) {
+          return ApiResult.failure(
+            'Phone verification failed',
+            FailureType.auth,
+          );
+        }
+        resultUser = userCredential.user!;
       }
 
-      final authUser = await _processAuthenticatedUser(userCredential.user!);
-      return ApiResult.success(authUser);
+      final authUser = await _processAuthenticatedUser(resultUser);
+      
+      if (currentUser != null) {
+        await _updateUserPhoneVerification(authUser.uid, resultUser.phoneNumber!, true);
+      }
+      
+      return ApiResult.success(authUser.copyWith(phoneVerified: true));
     });
   }
 

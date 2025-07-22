@@ -20,6 +20,7 @@ abstract class AuthRemoteDatasource {
   });
   Future<UserCredential> verifyPhoneCode(String verificationId, String smsCode);
   Future<User> signInWithPhoneCredential(PhoneAuthCredential credential);
+  Future<User> linkPhoneCredential(PhoneAuthCredential credential);
   Future<User> linkPhoneNumber(String verificationId, String smsCode);
   Future<User> updatePhoneNumber(String verificationId, String smsCode);
   Future<List<UserModel>> getUsersWithPhoneNumber(String phoneNumber);

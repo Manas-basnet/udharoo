@@ -23,6 +23,16 @@ import 'package:udharoo/features/profile/presentation/pages/edit_profile_screen.
 import 'package:udharoo/shared/presentation/layouts/scaffold_with_bottom_nav_bar.dart';
 import 'package:udharoo/shared/presentation/pages/splash_screen.dart';
 
+class PhoneVerificationExtra {
+  final String phoneNumber;
+  final String verificationId;
+
+  const PhoneVerificationExtra({
+    required this.phoneNumber,
+    required this.verificationId,
+  });
+}
+
 class AppRouter {
   static final AppRouter _instance = AppRouter._internal();
 
@@ -67,10 +77,21 @@ class AppRouter {
         path: Routes.phoneVerification,
         name: 'phoneVerification',
         builder: (context, state) {
-          final extra = state.extra as Map<String, String>?;
+          final extra = state.extra;
+          String phoneNumber = '';
+          String verificationId = '';
+          
+          if (extra is PhoneVerificationExtra) {
+            phoneNumber = extra.phoneNumber;
+            verificationId = extra.verificationId;
+          } else if (extra is Map<String, dynamic>) {
+            phoneNumber = extra['phoneNumber']?.toString() ?? '';
+            verificationId = extra['verificationId']?.toString() ?? '';
+          }
+          
           return PhoneVerificationScreen(
-            phoneNumber: extra?['phoneNumber'] ?? '',
-            verificationId: extra?['verificationId'] ?? '',
+            phoneNumber: phoneNumber,
+            verificationId: verificationId,
           );
         },
       ),

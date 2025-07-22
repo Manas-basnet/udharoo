@@ -160,6 +160,28 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
   }
 
   @override
+  Future<User> linkPhoneCredential(PhoneAuthCredential credential) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'user-not-found',
+        message: 'No authenticated user found',
+      );
+    }
+
+    final userCredential = await user.linkWithCredential(credential);
+    
+    if (userCredential.user == null) {
+      throw FirebaseAuthException(
+        code: 'phone-link-failed',
+        message: 'Failed to link phone number',
+      );
+    }
+
+    return userCredential.user!;
+  }
+
+  @override
   Future<User> linkPhoneNumber(String verificationId, String smsCode) async {
     final user = _firebaseAuth.currentUser;
     if (user == null) {
