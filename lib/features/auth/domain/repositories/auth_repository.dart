@@ -10,6 +10,7 @@ abstract class AuthRepository {
     required String password,
   });
   Future<ApiResult<AuthUser>> signInWithGoogle();
+  Future<ApiResult<AuthUser>> linkGoogleAccount();
   Future<ApiResult<AuthUser>> signInWithPhoneAndPassword(String phoneNumber, String password);
   Future<ApiResult<void>> signOut();
   Future<ApiResult<void>> sendPasswordResetEmail(String email);

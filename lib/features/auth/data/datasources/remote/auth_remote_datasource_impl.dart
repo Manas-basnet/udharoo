@@ -31,6 +31,8 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       );
     }
     
+    await _updateUserProviders(credential.user!);
+    
     return credential.user!;
   }
   
@@ -48,6 +50,8 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       );
     }
     
+    await _updateUserProviders(credential.user!);
+    
     return credential.user!;
   }
 
@@ -60,6 +64,21 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
         code: 'sign-in-aborted',
         message: 'Google Sign In was cancelled',
       );
+    }
+    
+    final existingUser = await _checkIfUserExistsInFirestore(googleUser.email);
+    
+    if (existingUser != null) {
+      final hasGoogleProvider = await _checkIfUserHasGoogleProvider(googleUser.email);
+      
+      if (!hasGoogleProvider) {
+        await _googleSignIn.signOut();
+        throw FirebaseAuthException(
+          code: 'account-exists-with-different-credential',
+          message: 'An account already exists with this email. Please sign in with your existing method first, then link your Google account from the profile settings.',
+        );
+      }
+      
     }
     
     final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -78,6 +97,48 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       );
     }
     
+    await _updateUserProviders(userCredential.user!);
+    
+    return userCredential.user!;
+  }
+
+  @override
+  Future<User> linkGoogleAccount() async {
+    final currentUser = _firebaseAuth.currentUser;
+    if (currentUser == null) {
+      throw FirebaseAuthException(
+        code: 'user-not-found',
+        message: 'No authenticated user found',
+      );
+    }
+
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    
+    if (googleUser == null) {
+      throw FirebaseAuthException(
+        code: 'sign-in-aborted',
+        message: 'Google Sign In was cancelled',
+      );
+    }
+    
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final userCredential = await currentUser.linkWithCredential(credential);
+    
+    if (userCredential.user == null) {
+      throw FirebaseAuthException(
+        code: 'google-link-failed',
+        message: 'Failed to link Google account',
+      );
+    }
+
+    await _updateUserProviders(userCredential.user!);
+
     return userCredential.user!;
   }
   
@@ -142,7 +203,13 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       smsCode: smsCode,
     );
     
-    return await _firebaseAuth.signInWithCredential(credential);
+    final userCredential = await _firebaseAuth.signInWithCredential(credential);
+    
+    if (userCredential.user != null) {
+      await _updateUserProviders(userCredential.user!);
+    }
+    
+    return userCredential;
   }
 
   @override
@@ -155,6 +222,8 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
         message: 'Failed to sign in with phone number',
       );
     }
+    
+    await _updateUserProviders(userCredential.user!);
     
     return userCredential.user!;
   }
@@ -177,6 +246,8 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
         message: 'Failed to link phone number',
       );
     }
+
+    await _updateUserProviders(userCredential.user!);
 
     return userCredential.user!;
   }
@@ -205,6 +276,8 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       );
     }
 
+    await _updateUserProviders(userCredential.user!);
+
     return userCredential.user!;
   }
 
@@ -224,6 +297,8 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
     );
 
     await user.updatePhoneNumber(credential);
+    
+    await _updateUserProviders(user);
     
     return user;
   }
@@ -276,5 +351,41 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
           ...data,
           'updatedAt': DateTime.now().toIso8601String(),
         });
+  }
+
+  Future<UserModel?> _checkIfUserExistsInFirestore(String email) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return UserModel.fromJson(querySnapshot.docs.first.data());
+      }
+      
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<bool> _checkIfUserHasGoogleProvider(String email) async {
+    try {
+      final existingUser = await _checkIfUserExistsInFirestore(email);
+      return existingUser?.hasGoogleProvider ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<void> _updateUserProviders(User user) async {
+    try {
+      final providers = user.providerData.map((info) => info.providerId).toList();
+      await updateUserInFirestore(user.uid, {'providers': providers});
+    } catch (e) {
+      //TODO: Handle error appropriately
+    }
   }
 }

@@ -10,6 +10,7 @@ import 'package:udharoo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:udharoo/features/auth/domain/services/auth_service.dart';
 import 'package:udharoo/features/auth/domain/usecases/get_current_user_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/is_authenticated_usecase.dart';
+import 'package:udharoo/features/auth/domain/usecases/link_google_account_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/send_email_verification_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/send_password_reset_email_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_in_with_email_usecase.dart';
@@ -33,6 +34,7 @@ Future<void> initAuth(GetIt sl) async {
   sl.registerLazySingleton(() => SignUpWithEmailUseCase(sl()));
   sl.registerLazySingleton(() => SignUpWithFullInfoUseCase(sl()));
   sl.registerLazySingleton(() => SignInWithGoogleUseCase(sl()));
+  sl.registerLazySingleton(() => LinkGoogleAccountUseCase(sl()));
   sl.registerLazySingleton(() => SignInWithPhoneUseCase(sl()));
   sl.registerLazySingleton(() => SignOutUseCase(sl()));
   sl.registerLazySingleton(() => GetCurrentUserUseCase(sl()));
@@ -87,6 +89,7 @@ Future<void> initAuth(GetIt sl) async {
       sendPhoneVerificationCodeUseCase: sl(),
       verifyPhoneCodeUseCase: sl(),
       linkPhoneNumberUseCase: sl(),
+      linkGoogleAccountUseCase: sl(),
       updatePhoneNumberUseCase: sl(),
       checkPhoneVerificationStatusUseCase: sl(),
       checkEmailVerificationStatusUseCase: sl(),

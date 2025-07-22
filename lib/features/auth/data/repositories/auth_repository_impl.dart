@@ -47,7 +47,26 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<ApiResult<AuthUser>> signInWithGoogle() async {
     return ExceptionHandler.handleExceptions(() async {
-      final user = await _remoteDatasource.signInWithGoogle();
+      try {
+        final user = await _remoteDatasource.signInWithGoogle();
+        final authUser = await _processAuthenticatedUser(user);
+        return ApiResult.success(authUser);
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'account-exists-with-different-credential') {
+          return ApiResult.failure(
+            e.message ?? 'Account already exists with different sign-in method. Please sign in with your existing method first.',
+            FailureType.auth,
+          );
+        }
+        rethrow;
+      }
+    });
+  }
+
+  @override
+  Future<ApiResult<AuthUser>> linkGoogleAccount() async {
+    return ExceptionHandler.handleExceptions(() async {
+      final user = await _remoteDatasource.linkGoogleAccount();
       final authUser = await _processAuthenticatedUser(user);
       return ApiResult.success(authUser);
     });
@@ -641,6 +660,8 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   AuthUser _mapFirebaseUserToAuthUser(User user) {
+    final providers = user.providerData.map((info) => info.providerId).toList();
+    
     return AuthUser(
       uid: user.uid,
       email: user.email,
@@ -649,6 +670,7 @@ class AuthRepositoryImpl implements AuthRepository {
       photoURL: user.photoURL,
       emailVerified: user.emailVerified,
       phoneVerified: user.phoneNumber != null,
+      providers: providers,
     );
   }
 }

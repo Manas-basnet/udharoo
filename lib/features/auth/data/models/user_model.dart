@@ -13,6 +13,7 @@ class UserModel extends Equatable {
   final DateTime updatedAt;
   final List<UserDevice> verifiedDevices;
   final Map<String, dynamic>? additionalData;
+  final List<String> providers;
 
   const UserModel({
     required this.uid,
@@ -26,6 +27,7 @@ class UserModel extends Equatable {
     required this.updatedAt,
     this.verifiedDevices = const [],
     this.additionalData,
+    this.providers = const [],
   });
 
   UserModel copyWith({
@@ -40,6 +42,7 @@ class UserModel extends Equatable {
     DateTime? updatedAt,
     List<UserDevice>? verifiedDevices,
     Map<String, dynamic>? additionalData,
+    List<String>? providers,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -53,6 +56,7 @@ class UserModel extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       verifiedDevices: verifiedDevices ?? this.verifiedDevices,
       additionalData: additionalData ?? this.additionalData,
+      providers: providers ?? this.providers, // Add this line
     );
   }
 
@@ -60,6 +64,8 @@ class UserModel extends Equatable {
     return verifiedDevices.any((device) => 
         device.deviceId == deviceId && device.isActive);
   }
+
+  bool get hasGoogleProvider => providers.contains('google.com');
 
   UserModel addVerifiedDevice(UserDevice device) {
     final updatedDevices = [...verifiedDevices];
@@ -104,6 +110,7 @@ class UserModel extends Equatable {
       'updatedAt': updatedAt.toIso8601String(),
       'verifiedDevices': verifiedDevices.map((device) => device.toJson()).toList(),
       'additionalData': additionalData,
+      'providers': providers, // Add this line
     };
   }
 
@@ -123,6 +130,7 @@ class UserModel extends Equatable {
               .toList() ??
           [],
       additionalData: json['additionalData'] as Map<String, dynamic>?,
+      providers: (json['providers'] as List<dynamic>?)?.cast<String>() ?? [],
     );
   }
 
@@ -139,5 +147,6 @@ class UserModel extends Equatable {
         updatedAt,
         verifiedDevices,
         additionalData,
+        providers, // Add this line
       ];
 }

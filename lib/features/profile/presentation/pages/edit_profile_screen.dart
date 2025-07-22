@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/router_config.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
+import 'package:udharoo/features/auth/domain/entities/auth_user.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
@@ -20,6 +21,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   
   String _selectedCountryCode = '+977';
   bool _isUpdatingPhone = false;
+  bool _isLinkingGoogle = false;
 
   final List<Map<String, String>> _countryCodes = [
     {'code': '+977', 'country': 'Nepal', 'flag': '🇳🇵'},
@@ -74,7 +76,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return 'U';
   }
 
-
+  bool _hasGoogleProvider(AuthUser user) {
+    return user.hasGoogleProvider;
+  }
+  
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -118,6 +123,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             );
             setState(() {
               _isUpdatingPhone = false;
+              _isLinkingGoogle = false;
             });
           } else if (state is PhoneCodeSent) {
             context.push(
@@ -138,6 +144,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 _isUpdatingPhone = false;
               });
               context.pop();
+            } else if (_isLinkingGoogle) {
+              CustomToast.show(
+                context,
+                message: 'Google account linked successfully!',
+                isSuccess: true,
+              );
+              setState(() {
+                _isLinkingGoogle = false;
+              });
             }
           }
         },
@@ -453,6 +468,282 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ),
                             ),
                           ],
+                          
+                          const SizedBox(height: 32),
+                          
+                          Text(
+                            'Linked Accounts',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 16),
+                          
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: theme.colorScheme.outline.withOpacity(0.1),
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Container(
+                                        width: 18,
+                                        height: 18,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Center(
+                                          child: Text(
+                                            'G',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Google Account',
+                                            style: theme.textTheme.bodyMedium?.copyWith(
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          Text(
+                                            _hasGoogleProvider(state.user) 
+                                                ? 'Linked to ${state.user.email}'
+                                                : 'Not linked',
+                                            style: theme.textTheme.bodySmall?.copyWith(
+                                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (_hasGoogleProvider(state.user))
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          'Linked',
+                                          style: theme.textTheme.labelSmall?.copyWith(
+                                            color: Colors.green,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      SizedBox(
+                                        height: 32,
+                                        child: OutlinedButton(
+                                          onPressed: _isLinkingGoogle 
+                                              ? null 
+                                              : () {
+                                                  setState(() {
+                                                    _isLinkingGoogle = true;
+                                                  });
+                                                  context.read<AuthCubit>().linkGoogleAccount();
+                                                },
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: theme.colorScheme.primary,
+                                            side: BorderSide(
+                                              color: theme.colorScheme.primary,
+                                              width: 1,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          child: _isLinkingGoogle
+                                              ? SizedBox(
+                                                  height: 12,
+                                                  width: 12,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color: theme.colorScheme.primary,
+                                                  ),
+                                                )
+                                              : Text(
+                                                  'Link',
+                                                  style: theme.textTheme.labelSmall?.copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                
+                                Divider(
+                                  height: 24,
+                                  thickness: 0.5,
+                                  color: theme.colorScheme.outline.withOpacity(0.2),
+                                ),
+                                
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.primary.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        Icons.email_outlined,
+                                        size: 18,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Email & Password',
+                                            style: theme.textTheme.bodyMedium?.copyWith(
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if(state.user.providers.contains('password'))
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          'Linked',
+                                          style: theme.textTheme.labelSmall?.copyWith(
+                                            color: Colors.green,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      SizedBox(
+                                        height: 32,
+                                        child: OutlinedButton(
+                                          onPressed: () {
+                                            // context.push(Routes.signUpWithEmail);
+                                          },
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: theme.colorScheme.primary,
+                                            side: BorderSide(
+                                              color: theme.colorScheme.primary,
+                                              width: 1,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'Link',
+                                            style: theme.textTheme.labelSmall?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                
+                                if (state.user.phoneVerified) ...[
+                                  Divider(
+                                    height: 24,
+                                    thickness: 0.5,
+                                    color: theme.colorScheme.outline.withOpacity(0.2),
+                                  ),
+                                  
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme.primary.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(
+                                          Icons.phone,
+                                          size: 18,
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Phone Number',
+                                              style: theme.textTheme.bodyMedium?.copyWith(
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            Text(
+                                              state.user.phoneNumber ?? 'Not provided',
+                                              style: theme.textTheme.bodySmall?.copyWith(
+                                                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          'Verified',
+                                          style: theme.textTheme.labelSmall?.copyWith(
+                                            color: Colors.green,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
                         ],
                       );
                     }
