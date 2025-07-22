@@ -148,14 +148,31 @@ class AuthRepositoryImpl implements AuthRepository {
       final currentUser = _remoteDatasource.getCurrentUser();
       
       if (currentUser != null) {
-        final existingUsers = await _remoteDatasource.getUsersWithPhoneNumber(phoneNumber);
-        final hasOtherUserWithPhone = existingUsers.any((user) => user.uid != currentUser.uid);
+        final currentUserModel = await _remoteDatasource.getUserFromFirestore(currentUser.uid);
         
-        if (hasOtherUserWithPhone) {
-          return ApiResult.failure(
-            'This phone number is already associated with another account',
-            FailureType.validation,
-          );
+        if (currentUser.phoneNumber == phoneNumber) {
+          if (currentUserModel?.phoneVerified == true) {
+            final currentDevice = await _deviceInfoService.getCurrentDevice();
+            final isDeviceVerified = currentUserModel?.isDeviceVerified(currentDevice.deviceId) ?? false;
+            
+            if (!isDeviceVerified) {
+            } else {
+              return ApiResult.failure(
+                'Phone number is already verified on this device',
+                FailureType.validation,
+              );
+            }
+          }
+        } else {
+          final existingUsers = await _remoteDatasource.getUsersWithPhoneNumber(phoneNumber);
+          final hasOtherUserWithPhone = existingUsers.any((user) => user.uid != currentUser.uid);
+          
+          if (hasOtherUserWithPhone) {
+            return ApiResult.failure(
+              'This phone number is already associated with another account',
+              FailureType.validation,
+            );
+          }
         }
       }
 
@@ -166,8 +183,12 @@ class AuthRepositoryImpl implements AuthRepository {
         verificationCompleted: (PhoneAuthCredential credential) async {
           try {
             if (currentUser != null) {
-              final user = await _remoteDatasource.linkPhoneCredential(credential);
-              await _processAuthenticatedUser(user);
+              if (currentUser.phoneNumber == phoneNumber) {
+                await _handleExistingPhoneVerification(currentUser, phoneNumber);
+              } else {
+                final user = await _remoteDatasource.linkPhoneCredential(credential);
+                await _processAuthenticatedUser(user);
+              }
             } else {
               final user = await _remoteDatasource.signInWithPhoneCredential(credential);
               await _processAuthenticatedUser(user);
@@ -184,7 +205,6 @@ class AuthRepositoryImpl implements AuthRepository {
           _verificationCompleter?.complete(verificationId);
         },
         codeAutoRetrievalTimeout: (String verificationId) {
-
         },
       );
 
@@ -198,11 +218,7 @@ class AuthRepositoryImpl implements AuthRepository {
     return ExceptionHandler.handleExceptions(() async {
       final currentUser = _remoteDatasource.getCurrentUser();
       
-      User resultUser;
-      
-      if (currentUser != null) {
-        resultUser = await _remoteDatasource.linkPhoneNumber(verificationId, smsCode);
-      } else {
+      if (currentUser == null) {
         final userCredential = await _remoteDatasource.verifyPhoneCode(verificationId, smsCode);
         if (userCredential.user == null) {
           return ApiResult.failure(
@@ -210,16 +226,51 @@ class AuthRepositoryImpl implements AuthRepository {
             FailureType.auth,
           );
         }
-        resultUser = userCredential.user!;
+        
+        // For new users, handle phone verification properly
+        await _handleNewUserPhoneVerification(userCredential.user!, userCredential.user!.phoneNumber!);
+        
+        final authUser = await _processAuthenticatedUser(userCredential.user!);
+        return ApiResult.success(authUser.copyWith(phoneVerified: true));
       }
 
-      final authUser = await _processAuthenticatedUser(resultUser);
-      
-      if (currentUser != null) {
-        await _updateUserPhoneVerification(authUser.uid, resultUser.phoneNumber!, true);
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+
+      try {
+        User resultUser;
+        
+        if (currentUser.phoneNumber == null) {
+          resultUser = await _remoteDatasource.linkPhoneCredential(credential);
+          await _updateUserPhoneVerification(resultUser.uid, resultUser.phoneNumber!, true);
+        } else {
+          final testCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+          if (testCredential.user?.phoneNumber == currentUser.phoneNumber) {
+            resultUser = currentUser;
+            await _handleExistingPhoneVerification(currentUser, currentUser.phoneNumber!);
+          } else {
+            return ApiResult.failure(
+              'Phone number verification failed',
+              FailureType.auth,
+            );
+          }
+        }
+
+        final authUser = await _processAuthenticatedUser(resultUser);
+        return ApiResult.success(authUser.copyWith(phoneVerified: true));
+        
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'provider-already-linked' || e.code == 'credential-already-in-use') {
+          if (currentUser.phoneNumber != null) {
+            await _handleExistingPhoneVerification(currentUser, currentUser.phoneNumber!);
+            final authUser = await _processAuthenticatedUser(currentUser);
+            return ApiResult.success(authUser.copyWith(phoneVerified: true));
+          }
+        }
+        rethrow;
       }
-      
-      return ApiResult.success(authUser.copyWith(phoneVerified: true));
     });
   }
 
@@ -253,7 +304,9 @@ class AuthRepositoryImpl implements AuthRepository {
       final user = _remoteDatasource.getCurrentUser();
       if (user?.phoneNumber != null) {
         final userModel = await _remoteDatasource.getUserFromFirestore(user!.uid);
-        return ApiResult.success(userModel?.phoneVerified ?? false);
+        final currentDevice = await _deviceInfoService.getCurrentDevice();
+        final isDeviceVerified = userModel?.isDeviceVerified(currentDevice.deviceId) ?? false;
+        return ApiResult.success(userModel?.phoneVerified == true && isDeviceVerified);
       }
       return ApiResult.success(false);
     });
@@ -321,26 +374,100 @@ class AuthRepositoryImpl implements AuthRepository {
     });
   }
 
+
+  Future<void> _handleNewUserPhoneVerification(User user, String phoneNumber) async {
+    final currentDevice = await _deviceInfoService.getCurrentDevice();
+    
+    final existingUserModel = await _remoteDatasource.getUserFromFirestore(user.uid);
+    
+    if (existingUserModel != null) {
+      final updatedUserModel = existingUserModel.copyWith(
+        phoneNumber: phoneNumber,
+        phoneVerified: true,
+        updatedAt: DateTime.now(),
+      ).addVerifiedDevice(currentDevice);
+      
+      await _remoteDatasource.saveUserToFirestore(updatedUserModel);
+    } else {
+      final newUserModel = UserModel(
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        phoneNumber: phoneNumber,
+        photoURL: user.photoURL,
+        emailVerified: user.emailVerified,
+        phoneVerified: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        verifiedDevices: [currentDevice],
+      );
+      
+      await _remoteDatasource.saveUserToFirestore(newUserModel);
+    }
+  }
+
+  Future<void> _handleExistingPhoneVerification(User user, String phoneNumber) async {
+    final currentDevice = await _deviceInfoService.getCurrentDevice();
+    final userModel = await _remoteDatasource.getUserFromFirestore(user.uid);
+    
+    if (userModel != null) {
+      final updatedUserModel = userModel.copyWith(
+        phoneNumber: phoneNumber,
+        phoneVerified: true,
+        updatedAt: DateTime.now(),
+      ).addVerifiedDevice(currentDevice);
+      
+      await _remoteDatasource.saveUserToFirestore(updatedUserModel);
+    } else {
+      final newUserModel = UserModel(
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        phoneNumber: phoneNumber,
+        photoURL: user.photoURL,
+        emailVerified: user.emailVerified,
+        phoneVerified: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        verifiedDevices: [currentDevice],
+      );
+      
+      await _remoteDatasource.saveUserToFirestore(newUserModel);
+    }
+  }
+
   Future<AuthUser> _processNewUser(User firebaseUser) async {
     final authUser = _mapFirebaseUserToAuthUser(firebaseUser);
     
     await _saveUserDataLocally(authUser);
     
-    final userModel = UserModel(
-      uid: authUser.uid,
-      email: authUser.email,
-      displayName: authUser.displayName,
-      phoneNumber: authUser.phoneNumber,
-      photoURL: authUser.photoURL,
-      emailVerified: authUser.emailVerified,
-      phoneVerified: false,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-
-    await _remoteDatasource.saveUserToFirestore(userModel);
+    final existingUserModel = await _remoteDatasource.getUserFromFirestore(authUser.uid);
     
-    return authUser.copyWith(phoneVerified: false);
+    if (existingUserModel == null) {
+      final userModel = UserModel(
+        uid: authUser.uid,
+        email: authUser.email,
+        displayName: authUser.displayName,
+        phoneNumber: authUser.phoneNumber,
+        photoURL: authUser.photoURL,
+        emailVerified: authUser.emailVerified,
+        phoneVerified: authUser.phoneNumber != null,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await _remoteDatasource.saveUserToFirestore(userModel);
+      
+      return authUser.copyWith(phoneVerified: authUser.phoneNumber != null);
+    }
+    
+    final currentDevice = await _deviceInfoService.getCurrentDevice();
+    final isDeviceVerified = existingUserModel.isDeviceVerified(currentDevice.deviceId);
+    
+    return authUser.copyWith(
+      phoneVerified: existingUserModel.phoneVerified && isDeviceVerified,
+      isPhoneRequired: !(existingUserModel.phoneVerified && isDeviceVerified),
+    );
   }
 
   Future<AuthUser> _processAuthenticatedUser(User firebaseUser) async {
@@ -351,10 +478,22 @@ class AuthRepositoryImpl implements AuthRepository {
     final userModel = await _remoteDatasource.getUserFromFirestore(authUser.uid);
     
     if (userModel != null) {
+      final currentDevice = await _deviceInfoService.getCurrentDevice();
+      final isDeviceVerified = userModel.isDeviceVerified(currentDevice.deviceId);
+      
+      bool effectivePhoneVerified = userModel.phoneVerified && isDeviceVerified;
+      
+      if (authUser.phoneNumber != null && userModel.phoneNumber == null) {
+        final updatedUserModel = userModel.copyWith(
+          phoneNumber: authUser.phoneNumber,
+          updatedAt: DateTime.now(),
+        );
+        await _remoteDatasource.saveUserToFirestore(updatedUserModel);
+      }
       
       return authUser.copyWith(
-        phoneVerified: userModel.phoneVerified,
-        isPhoneRequired: !userModel.phoneVerified,
+        phoneVerified: effectivePhoneVerified,
+        isPhoneRequired: !effectivePhoneVerified,
       );
     } else {
       final newUserModel = UserModel(
@@ -380,20 +519,35 @@ class AuthRepositoryImpl implements AuthRepository {
 
   Future<void> _updateUserPhoneVerification(String uid, String phoneNumber, bool verified) async {
     final currentDevice = await _deviceInfoService.getCurrentDevice();
+    final userModel = await _remoteDatasource.getUserFromFirestore(uid);
     
-    final updateData = {
-      'phoneNumber': phoneNumber,
-      'phoneVerified': verified,
-    };
-
-    if (verified) {
-      final userModel = await _remoteDatasource.getUserFromFirestore(uid);
-      if (userModel != null) {
-        final updatedUserModel = userModel.addVerifiedDevice(currentDevice);
-        await _remoteDatasource.saveUserToFirestore(updatedUserModel);
-      }
+    if (userModel != null) {
+      final updatedUserModel = userModel.copyWith(
+        phoneNumber: phoneNumber,
+        phoneVerified: verified,
+        updatedAt: DateTime.now(),
+      );
+      
+      final finalUserModel = verified 
+          ? updatedUserModel.addVerifiedDevice(currentDevice)
+          : updatedUserModel;
+          
+      await _remoteDatasource.saveUserToFirestore(finalUserModel);
     } else {
-      await _remoteDatasource.updateUserInFirestore(uid, updateData);
+      final newUserModel = UserModel(
+        uid: uid,
+        email: null,
+        displayName: null,
+        phoneNumber: phoneNumber,
+        photoURL: null,
+        emailVerified: false,
+        phoneVerified: verified,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        verifiedDevices: verified ? [currentDevice] : [],
+      );
+      
+      await _remoteDatasource.saveUserToFirestore(newUserModel);
     }
   }
 

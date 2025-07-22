@@ -1,3 +1,5 @@
+// lib/features/auth/presentation/bloc/auth_cubit.dart
+
 import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -236,13 +238,19 @@ class AuthCubit extends Cubit<AuthState> {
           }
         },
         onFailure: (message, type) {
-          _currentPhoneNumber = null;
-          _currentVerificationId = null;
-          _isLinkingPhone = false;
-          _isUpdatingPhone = false;
+          _resetPhoneVerificationState();
           emit(AuthError(message, type));
         },
       );
+    }
+  }
+
+  Future<void> reVerifyExistingPhone() async {
+    final currentState = state;
+    if (currentState is AuthAuthenticated && currentState.user.phoneNumber != null) {
+      await sendPhoneVerificationCode(currentState.user.phoneNumber!);
+    } else if (currentState is PhoneVerificationRequired && currentState.user.phoneNumber != null) {
+      await sendPhoneVerificationCode(currentState.user.phoneNumber!);
     }
   }
 
@@ -252,16 +260,25 @@ class AuthCubit extends Cubit<AuthState> {
       verificationId: verificationId,
     ));
 
-    final result = await verifyPhoneCodeUseCase(verificationId, smsCode);
+    ApiResult<AuthUser> result;
+    
+    if (_isLinkingPhone) {
+      result = await linkPhoneNumberUseCase(verificationId, smsCode);
+    } else if (_isUpdatingPhone) {
+      result = await updatePhoneNumberUseCase(verificationId, smsCode);
+    } else {
+      result = await verifyPhoneCodeUseCase(verificationId, smsCode);
+    }
 
     if (!isClosed) {
       result.fold(
         onSuccess: (user) {
-          emit(PhoneVerificationCompleted(user));
           _resetPhoneVerificationState();
           
           if (user.canAccessApp) {
             emit(AuthAuthenticated(user));
+          } else {
+            emit(PhoneVerificationCompleted(user));
           }
         },
         onFailure: (message, type) {
@@ -337,6 +354,46 @@ class AuthCubit extends Cubit<AuthState> {
       final user = (state as PhoneVerificationRequired).user;
       emit(AuthAuthenticated(user.copyWith(isPhoneRequired: false)));
     }
+  }
+
+  void forceRefreshAuthState() {
+    checkAuthStatus();
+  }
+
+  void retryPhoneVerification() {
+    if (_currentPhoneNumber != null) {
+      sendPhoneVerificationCode(_currentPhoneNumber!);
+    }
+  }
+
+  void clearVerificationData() {
+    _resetPhoneVerificationState();
+  }
+
+  bool get isPhoneVerificationInProgress {
+    return state is PhoneVerificationLoading || 
+           state is PhoneCodeSent || 
+           _currentVerificationId != null;
+  }
+
+  bool get hasExistingPhoneNumber {
+    final currentState = state;
+    if (currentState is AuthAuthenticated) {
+      return currentState.user.phoneNumber != null;
+    } else if (currentState is PhoneVerificationRequired) {
+      return currentState.user.phoneNumber != null;
+    }
+    return false;
+  }
+
+  String? get currentPhoneNumber {
+    final currentState = state;
+    if (currentState is AuthAuthenticated) {
+      return currentState.user.phoneNumber;
+    } else if (currentState is PhoneVerificationRequired) {
+      return currentState.user.phoneNumber;
+    }
+    return null;
   }
 
   void _resetPhoneVerificationState() {

@@ -19,7 +19,7 @@ class _MyAppState extends State<MyApp> {
 
   void _scheduleRouterRefresh() {
     _refreshTimer?.cancel();
-    _refreshTimer = Timer(const Duration(milliseconds: 100), () {
+    _refreshTimer = Timer(const Duration(milliseconds: 300), () {
       if (mounted) {
         AppRouter.router.refresh();
       }
@@ -64,8 +64,11 @@ class _MyAppState extends State<MyApp> {
   }
 
   bool _shouldRefreshRouter(AuthState previous, AuthState current) {
-
     if (current is PhoneCodeSent) {
+      return false;
+    }
+
+    if (previous is PhoneVerificationCompleted && current is AuthAuthenticated) {
       return false;
     }
 
@@ -84,15 +87,12 @@ class _MyAppState extends State<MyApp> {
         (previous is PhoneVerificationRequired && current is AuthAuthenticated) ||
         (previous is PhoneVerificationRequired && current is AuthUnauthenticated) ||
         (previous is PhoneVerificationRequired && current is PhoneVerificationLoading) ||
-        (previous is PhoneVerificationRequired && current is PhoneCodeSent) ||
         (previous is PhoneVerificationLoading && current is PhoneCodeSent) ||
         (previous is PhoneVerificationLoading && current is AuthError) ||
         (previous is PhoneVerificationLoading && current is PhoneVerificationRequired) ||
         (previous is PhoneCodeSent && current is PhoneVerificationLoading) ||
         (previous is PhoneCodeSent && current is AuthError) ||
-        (previous is PhoneCodeSent && current is PhoneVerificationCompleted) ||
         (previous is PhoneCodeSent && current is AuthAuthenticated) ||
-        (previous is PhoneVerificationCompleted && current is AuthAuthenticated) ||
         (previous is PhoneVerificationCompleted && current is AuthError);
   }
 }

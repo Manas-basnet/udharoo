@@ -17,6 +17,8 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
   final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String _selectedCountryCode = '+977';
+  bool _hasExistingPhone = false;
+  String? _existingPhoneNumber;
 
   final List<Map<String, String>> _countryCodes = [
     {'code': '+977', 'country': 'Nepal', 'flag': '🇳🇵'},
@@ -24,6 +26,54 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
     {'code': '+1', 'country': 'USA', 'flag': '🇺🇸'},
     {'code': '+44', 'country': 'UK', 'flag': '🇬🇧'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkExistingPhoneNumber();
+  }
+
+  void _checkExistingPhoneNumber() {
+    final authState = context.read<AuthCubit>().state;
+    if (authState is AuthAuthenticated && authState.user.phoneNumber != null) {
+      setState(() {
+        _hasExistingPhone = true;
+        _existingPhoneNumber = authState.user.phoneNumber;
+      });
+      
+      final phone = authState.user.phoneNumber!;
+      final countryCode = _extractCountryCode(phone);
+      if (countryCode != null) {
+        _selectedCountryCode = countryCode;
+        _phoneController.text = phone.substring(countryCode.length);
+      } else {
+        _phoneController.text = phone;
+      }
+    } else if (authState is PhoneVerificationRequired && authState.user.phoneNumber != null) {
+      setState(() {
+        _hasExistingPhone = true;
+        _existingPhoneNumber = authState.user.phoneNumber;
+      });
+      
+      final phone = authState.user.phoneNumber!;
+      final countryCode = _extractCountryCode(phone);
+      if (countryCode != null) {
+        _selectedCountryCode = countryCode;
+        _phoneController.text = phone.substring(countryCode.length);
+      } else {
+        _phoneController.text = phone;
+      }
+    }
+  }
+
+  String? _extractCountryCode(String phoneNumber) {
+    for (final country in _countryCodes) {
+      if (phoneNumber.startsWith(country['code']!)) {
+        return country['code']!;
+      }
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +140,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                 const SizedBox(height: 32),
                 
                 Text(
-                  'Verify Your Phone',
+                  _hasExistingPhone ? 'Verify Your Device' : 'Verify Your Phone',
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: theme.colorScheme.onSurface,
@@ -100,7 +150,9 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                 const SizedBox(height: 12),
                 
                 Text(
-                  'We need to verify your phone number to secure your account and enable all features.',
+                  _hasExistingPhone 
+                      ? 'We need to verify this device to secure your account and enable all features.'
+                      : 'We need to verify your phone number to secure your account and enable all features.',
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.onSurface.withOpacity(0.6),
                   ),
@@ -133,99 +185,162 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                         
                         const SizedBox(height: 16),
                         
-                        Row(
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: theme.colorScheme.outline.withOpacity(0.3),
-                                ),
-                                borderRadius: BorderRadius.circular(12),
+                        if (_hasExistingPhone) ...[
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: theme.colorScheme.primary.withOpacity(0.1),
                               ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedCountryCode,
-                                  onChanged: (String? newValue) {
-                                    if (newValue != null) {
-                                      setState(() {
-                                        _selectedCountryCode = newValue;
-                                      });
-                                    }
-                                  },
-                                  items: _countryCodes.map((country) {
-                                    return DropdownMenuItem<String>(
-                                      value: country['code'],
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              country['flag']!,
-                                              style: const TextStyle(fontSize: 16),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              country['code']!,
-                                              style: theme.textTheme.bodyMedium,
-                                            ),
-                                          ],
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.phone,
+                                  size: 20,
+                                  color: theme.colorScheme.primary,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Current Phone Number',
+                                        style: theme.textTheme.labelMedium?.copyWith(
+                                          color: theme.colorScheme.primary,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
-                                    );
-                                  }).toList(),
+                                      Text(
+                                        _existingPhoneNumber!,
+                                        style: theme.textTheme.bodyMedium?.copyWith(
+                                          color: theme.colorScheme.primary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 16),
+                          
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: true,
+                                onChanged: null,
+                                activeColor: theme.colorScheme.primary,
+                              ),
+                              Expanded(
+                                child: Text(
+                                  'Verify this phone number on this device',
+                                  style: theme.textTheme.bodyMedium,
                                 ),
                               ),
-                            ),
-                            
-                            const SizedBox(width: 12),
-                            
-                            Expanded(
-                              child: TextFormField(
-                                controller: _phoneController,
-                                decoration: InputDecoration(
-                                  hintText: 'Enter phone number',
-                                  prefixIcon: const Icon(Icons.phone),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: theme.colorScheme.outline.withOpacity(0.3),
-                                    ),
+                            ],
+                          ),
+                        ] else ...[
+                          Row(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: theme.colorScheme.outline.withOpacity(0.3),
                                   ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: theme.colorScheme.outline.withOpacity(0.3),
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: theme.colorScheme.primary,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Colors.red),
-                                  ),
-                                  filled: true,
-                                  fillColor: theme.colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                keyboardType: TextInputType.phone,
-                                validator: (value) {
-                                  if (value?.isEmpty ?? true) {
-                                    return 'Phone number is required';
-                                  }
-                                  if (value!.length < 7) {
-                                    return 'Enter a valid phone number';
-                                  }
-                                  return null;
-                                },
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: _selectedCountryCode,
+                                    onChanged: (String? newValue) {
+                                      if (newValue != null) {
+                                        setState(() {
+                                          _selectedCountryCode = newValue;
+                                        });
+                                      }
+                                    },
+                                    items: _countryCodes.map((country) {
+                                      return DropdownMenuItem<String>(
+                                        value: country['code'],
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                country['flag']!,
+                                                style: const TextStyle(fontSize: 16),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                country['code']!,
+                                                style: theme.textTheme.bodyMedium,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                              
+                              const SizedBox(width: 12),
+                              
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _phoneController,
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter phone number',
+                                    prefixIcon: const Icon(Icons.phone),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color: theme.colorScheme.primary,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    errorBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(color: Colors.red),
+                                    ),
+                                    filled: true,
+                                    fillColor: theme.colorScheme.surface,
+                                  ),
+                                  keyboardType: TextInputType.phone,
+                                  validator: (value) {
+                                    if (value?.isEmpty ?? true) {
+                                      return 'Phone number is required';
+                                    }
+                                    if (value!.length < 7) {
+                                      return 'Enter a valid phone number';
+                                    }
+                                    return null;
+                                  },
+                                  enabled: !_hasExistingPhone,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                         
                         const SizedBox(height: 24),
                         
@@ -248,7 +363,9 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  'We\'ll send a verification code to this number via SMS.',
+                                  _hasExistingPhone
+                                      ? 'We\'ll send a verification code to verify this device.'
+                                      : 'We\'ll send a verification code to this number via SMS.',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.primary,
                                   ),
@@ -271,12 +388,16 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                                 onPressed: isLoading
                                     ? null
                                     : () {
-                                        if (_formKey.currentState?.validate() ?? false) {
-                                          final fullPhoneNumber = 
-                                              '$_selectedCountryCode${_phoneController.text.trim()}';
-                                          context.read<AuthCubit>().sendPhoneVerificationCode(
-                                            fullPhoneNumber,
-                                          );
+                                        if (_hasExistingPhone) {
+                                          context.read<AuthCubit>().reVerifyExistingPhone();
+                                        } else {
+                                          if (_formKey.currentState?.validate() ?? false) {
+                                            final fullPhoneNumber = 
+                                                '$_selectedCountryCode${_phoneController.text.trim()}';
+                                            context.read<AuthCubit>().sendPhoneVerificationCode(
+                                              fullPhoneNumber,
+                                            );
+                                          }
                                         }
                                       },
                                 style: FilledButton.styleFrom(
@@ -297,7 +418,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                                         ),
                                       )
                                     : Text(
-                                        'Send Code',
+                                        _hasExistingPhone ? 'Verify Device' : 'Send Code',
                                         style: theme.textTheme.bodyLarge?.copyWith(
                                           fontWeight: FontWeight.w600,
                                           color: theme.colorScheme.onPrimary,
@@ -316,7 +437,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                 
                 TextButton(
                   onPressed: () {
-                    context.pop();
+                    context.read<AuthCubit>().skipPhoneVerification();
                   },
                   child: Text(
                     'I\'ll do this later',

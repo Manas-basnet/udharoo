@@ -12,10 +12,10 @@ class RouterGuard {
     return switch (authState) {
       AuthInitial() => _handleInitial(currentPath),
       AuthLoading() => _handleLoading(currentPath),
-      AuthAuthenticated() => _handleAuthenticated(currentPath),
+      AuthAuthenticated() => _handleAuthenticated(currentPath, authState),
       AuthUnauthenticated() => _handleUnauthenticated(currentPath),
       AuthError() => _handleError(currentPath),
-      PhoneVerificationRequired() => _handlePhoneVerificationRequired(currentPath),
+      PhoneVerificationRequired() => _handlePhoneVerificationRequired(currentPath, authState),
       PhoneVerificationLoading() => _handlePhoneVerificationLoading(currentPath),
       PhoneCodeSent() => _handlePhoneCodeSent(currentPath),
       PhoneVerificationCompleted() => _handlePhoneVerificationCompleted(currentPath),
@@ -30,9 +30,21 @@ class RouterGuard {
     return currentPath == Routes.splash ? null : Routes.splash;
   }
   
-  static String? _handleAuthenticated(String currentPath) {
-    final publicRoutes = [Routes.login, Routes.splash, Routes.phoneSetup, Routes.phoneVerification];
-    return publicRoutes.contains(currentPath) ? Routes.home : null;
+  static String? _handleAuthenticated(String currentPath, AuthAuthenticated authState) {
+    final publicRoutes = [Routes.login, Routes.splash];
+    
+    if (publicRoutes.contains(currentPath)) {
+      return Routes.home;
+    }
+    
+    if (!authState.user.phoneVerified || !authState.user.canAccessApp) {
+      final phoneRoutes = [Routes.phoneSetup, Routes.phoneVerification];
+      if (!phoneRoutes.contains(currentPath)) {
+        return Routes.phoneSetup;
+      }
+    }
+    
+    return null;
   }
   
   static String? _handleUnauthenticated(String currentPath) {
@@ -58,11 +70,15 @@ class RouterGuard {
     return currentPath == Routes.login ? null : Routes.login;
   }
 
-  static String? _handlePhoneVerificationRequired(String currentPath) {
+  static String? _handlePhoneVerificationRequired(String currentPath, PhoneVerificationRequired authState) {
     final phoneVerificationRoutes = [Routes.phoneSetup, Routes.phoneVerification];
     
     if (phoneVerificationRoutes.contains(currentPath)) {
       return null;
+    }
+    
+    if (authState.user.phoneNumber != null) {
+      return Routes.phoneSetup;
     }
     
     return Routes.phoneSetup;
@@ -78,7 +94,7 @@ class RouterGuard {
   }
 
   static String? _handlePhoneVerificationCompleted(String currentPath) {
-    final publicRoutes = [Routes.login, Routes.splash, Routes.phoneSetup, Routes.phoneVerification];
-    return publicRoutes.contains(currentPath) ? Routes.home : null;
+    final verificationRoutes = [Routes.login, Routes.splash, Routes.phoneSetup, Routes.phoneVerification];
+    return verificationRoutes.contains(currentPath) ? Routes.home : null;
   }
 }
