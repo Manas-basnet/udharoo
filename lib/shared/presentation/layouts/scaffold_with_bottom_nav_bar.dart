@@ -231,7 +231,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                     label: 'Lend Money',
                     onTap: () {
                       Navigator.pop(context);
-                      context.push('/transaction-form');
+                      context.push(Routes.transactionForm);
                     },
                   ),
                   _buildQuickAction(
@@ -240,7 +240,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                     label: 'Borrow Money',
                     onTap: () {
                       Navigator.pop(context);
-                      context.push('/transaction-form');
+                      context.push(Routes.transactionForm);
                     },
                   ),
                 ],

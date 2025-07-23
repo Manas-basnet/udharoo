@@ -7,21 +7,23 @@ import 'package:udharoo/features/phone_verification/presentation/bloc/phone_veri
 import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
-class PhoneVerificationScreen extends StatefulWidget {
-  final String phoneNumber;
+class ChangePhoneVerificationScreen extends StatefulWidget {
+  final String currentPhoneNumber;
+  final String newPhoneNumber;
   final String verificationId;
 
-  const PhoneVerificationScreen({
+  const ChangePhoneVerificationScreen({
     super.key,
-    required this.phoneNumber,
+    required this.currentPhoneNumber,
+    required this.newPhoneNumber,
     required this.verificationId,
   });
 
   @override
-  State<PhoneVerificationScreen> createState() => _PhoneVerificationScreenState();
+  State<ChangePhoneVerificationScreen> createState() => _ChangePhoneVerificationScreenState();
 }
 
-class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
+class _ChangePhoneVerificationScreenState extends State<ChangePhoneVerificationScreen> {
   final TextEditingController _codeController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   StreamController<ErrorAnimationType>? errorController;
@@ -82,15 +84,11 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
     }
   }
 
-  void _handleBackButton() {
+  void _handleCancel() {
+    final cubit = context.read<PhoneVerificationCubit>();
+    cubit.cancelPhoneNumberChange();
     context.pop();
-  }
-
-  void _navigateToHomeScreen() {
-    while (context.canPop()) {
-      context.pop();
-    }
-    context.go('/home');
+    context.pop();
   }
 
   @override
@@ -119,26 +117,37 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
             if (mounted) {
               CustomToast.show(
                 context,
-                message: 'Phone verified successfully!',
+                message: 'Phone number changed successfully!',
                 isSuccess: true,
               );
               
               context.read<AuthSessionCubit>().setUser(state.user);
-              _navigateToHomeScreen();
+              context.read<PhoneVerificationCubit>().cancelPhoneNumberChange();
+              
+              context.pop();
+              context.pop();
+              context.pop();
             }
           case PhoneCodeResent():
             if (mounted) {
               verificationId = state.verificationId;
               CustomToast.show(
                 context,
-                message: 'New code sent!',
+                message: 'New code sent to your new number!',
                 isSuccess: true,
               );
             }
           case PhoneVerificationAutoCompleted():
             if (mounted) {
               context.read<AuthSessionCubit>().checkAuthStatus();
-              _navigateToHomeScreen();
+              CustomToast.show(
+                context,
+                message: 'Phone number changed successfully!',
+                isSuccess: true,
+              );
+              context.pop();
+              context.pop();
+              context.pop();
             }
           default:
             break;
@@ -154,7 +163,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                 child: Row(
                   children: [
                     IconButton(
-                      onPressed: _handleBackButton,
+                      onPressed: _handleCancel,
                       icon: const Icon(Icons.arrow_back),
                       style: IconButton.styleFrom(
                         backgroundColor: theme.colorScheme.surface,
@@ -199,7 +208,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                         const SizedBox(height: 24),
                         
                         Text(
-                          'Enter Verification Code',
+                          'Verify New Number',
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: theme.colorScheme.onSurface,
@@ -218,9 +227,9 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                                 color: theme.colorScheme.onSurface.withOpacity(0.6),
                               ),
                               children: [
-                                const TextSpan(text: 'We sent a 6-digit code to\n'),
+                                const TextSpan(text: 'We sent a 6-digit code to your new number\n'),
                                 TextSpan(
-                                  text: widget.phoneNumber,
+                                  text: widget.newPhoneNumber,
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     color: theme.colorScheme.primary,
@@ -381,12 +390,83 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                           ],
                         ),
                         
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
+                        
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: theme.colorScheme.outline.withOpacity(0.1),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    size: 16,
+                                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Changing from:',
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const SizedBox(width: 24),
+                                  Expanded(
+                                    child: Text(
+                                      widget.currentPhoneNumber,
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        decoration: TextDecoration.lineThrough,
+                                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const SizedBox(width: 24),
+                                  Icon(
+                                    Icons.arrow_downward,
+                                    size: 12,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      widget.newPhoneNumber,
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 24),
                         
                         TextButton(
-                          onPressed: _handleBackButton,
+                          onPressed: _handleCancel,
                           child: Text(
-                            'Back',
+                            'Cancel Change',
                             style: TextStyle(
                               color: theme.colorScheme.onSurface.withOpacity(0.6),
                               fontSize: 16,

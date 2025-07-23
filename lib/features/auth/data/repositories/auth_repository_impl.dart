@@ -377,17 +377,17 @@ class AuthRepositoryImpl implements AuthRepository {
         );
       }
 
-      try {
-        final credential = PhoneAuthProvider.credential(
-          verificationId: verificationId,
-          smsCode: smsCode,
-        );
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
 
+      try {
         await currentUser.updatePhoneNumber(credential);
-        await currentUser.reload();
         
+        await currentUser.reload();
         final updatedUser = _remoteDatasource.getCurrentUser();
-        if (updatedUser == null) {
+        if (updatedUser == null || updatedUser.phoneNumber == null) {
           return ApiResult.failure(
             'Failed to update phone number',
             FailureType.unknown,
@@ -399,9 +399,37 @@ class AuthRepositoryImpl implements AuthRepository {
         final authUser = await _processAuthenticatedUser(updatedUser);
         return ApiResult.success(authUser.copyWith(phoneVerified: true));
         
+      } on FirebaseAuthException catch (e) {
+        switch (e.code) {
+          case 'invalid-verification-code':
+            return ApiResult.failure(
+              'Invalid verification code. Please try again.',
+              FailureType.validation,
+            );
+          case 'invalid-verification-id':
+            return ApiResult.failure(
+              'Invalid verification session. Please request a new code.',
+              FailureType.validation,
+            );
+          case 'session-expired':
+            return ApiResult.failure(
+              'Verification session expired. Please request a new code.',
+              FailureType.validation,
+            );
+          case 'quota-exceeded':
+            return ApiResult.failure(
+              'Too many verification attempts. Please try again later.',
+              FailureType.server,
+            );
+          default:
+            return ApiResult.failure(
+              e.message ?? 'Failed to update phone number',
+              FailureType.unknown,
+            );
+        }
       } catch (e) {
         return ApiResult.failure(
-          'Failed to update phone number: ${e.toString()}',
+          'Unexpected error occurred while updating phone number',
           FailureType.unknown,
         );
       }

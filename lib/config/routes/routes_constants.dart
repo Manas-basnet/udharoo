@@ -9,6 +9,8 @@ class Routes {
   static const String editProfile = '/edit-profile';
   static const String phoneSetup = '/phone-setup';
   static const String phoneVerification = '/phone-verification';
+  static const String changePhoneSetup = '/change-phone-setup';
+  static const String changePhoneVerification = '/change-phone-verification';
   static const String transactionForm = '/transaction-form';
   static const String transactionDetail = '/transaction-detail';
   static const String qrScanner = '/qr-scanner';

@@ -105,13 +105,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  void _showChangePhoneDialog(PhoneVerificationCubit phoneVerificationCubit) {
+  void _showChangePhoneDialog() {
     ChangePhoneDialog.show(
       context,
       onChangePhone: (phoneNumber) {
+        final phoneVerificationCubit = context.read<PhoneVerificationCubit>();
         phoneVerificationCubit.startPhoneNumberChange(phoneNumber);
         Navigator.of(context).pop();
-        context.push(Routes.phoneSetup, extra: {'isChanging': true});
+        context.push(Routes.changePhoneSetup, extra: phoneNumber);
       },
     );
   }
@@ -615,96 +616,65 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       color: theme.colorScheme.outline.withOpacity(0.2),
                                     ),
                                     
-                                    BlocBuilder<PhoneVerificationCubit, PhoneVerificationState>(
-                                      builder: (context, phoneState) {
-                                        final phoneVerificationCubit = context.read<PhoneVerificationCubit>();
-                                        
-                                        return Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(8),
-                                              decoration: BoxDecoration(
-                                                color: theme.colorScheme.primary.withOpacity(0.1),
-                                                borderRadius: BorderRadius.circular(8),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.primary.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(
+                                            Icons.phone,
+                                            size: 18,
+                                            color: theme.colorScheme.primary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Phone Number',
+                                                style: theme.textTheme.bodyMedium?.copyWith(
+                                                  fontWeight: FontWeight.w500,
+                                                ),
                                               ),
-                                              child: Icon(
-                                                Icons.phone,
-                                                size: 18,
-                                                color: theme.colorScheme.primary,
+                                              Text(
+                                                state.user.phoneNumber ?? 'Not linked',
+                                                style: theme.textTheme.bodySmall?.copyWith(
+                                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    'Phone Number',
-                                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                                      fontWeight: FontWeight.w500,
-                                                    ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (state.user.phoneVerified && state.user.phoneNumber != null)
+                                          Row(
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  'Verified',
+                                                  style: theme.textTheme.labelSmall?.copyWith(
+                                                    color: Colors.green,
+                                                    fontWeight: FontWeight.w600,
                                                   ),
-                                                  Text(
-                                                    state.user.phoneNumber ?? 'Not linked',
-                                                    style: theme.textTheme.bodySmall?.copyWith(
-                                                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                                                    ),
-                                                  ),
-                                                ],
+                                                ),
                                               ),
-                                            ),
-                                            if (state.user.phoneVerified && state.user.phoneNumber != null)
-                                              Row(
-                                                children: [
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4,
-                                                    ),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.green.withOpacity(0.1),
-                                                      borderRadius: BorderRadius.circular(12),
-                                                    ),
-                                                    child: Text(
-                                                      'Verified',
-                                                      style: theme.textTheme.labelSmall?.copyWith(
-                                                        color: Colors.green,
-                                                        fontWeight: FontWeight.w600,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  SizedBox(
-                                                    height: 32,
-                                                    child: OutlinedButton(
-                                                      onPressed: () => _showChangePhoneDialog(phoneVerificationCubit),
-                                                      style: OutlinedButton.styleFrom(
-                                                        foregroundColor: theme.colorScheme.primary,
-                                                        side: BorderSide(
-                                                          color: theme.colorScheme.primary,
-                                                          width: 1,
-                                                        ),
-                                                        shape: RoundedRectangleBorder(
-                                                          borderRadius: BorderRadius.circular(8),
-                                                        ),
-                                                      ),
-                                                      child: Text(
-                                                        'Change',
-                                                        style: theme.textTheme.labelSmall?.copyWith(
-                                                          fontWeight: FontWeight.w600,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              )
-                                            else
+                                              const SizedBox(width: 8),
                                               SizedBox(
                                                 height: 32,
                                                 child: OutlinedButton(
-                                                  onPressed: () {
-                                                    context.push(Routes.phoneSetup, extra: {'isChanging': true});
-                                                  },
+                                                  onPressed: _showChangePhoneDialog,
                                                   style: OutlinedButton.styleFrom(
                                                     foregroundColor: theme.colorScheme.primary,
                                                     side: BorderSide(
@@ -716,16 +686,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                                     ),
                                                   ),
                                                   child: Text(
-                                                    'Link',
+                                                    'Change',
                                                     style: theme.textTheme.labelSmall?.copyWith(
                                                       fontWeight: FontWeight.w600,
                                                     ),
                                                   ),
                                                 ),
                                               ),
-                                          ],
-                                        );
-                                      },
+                                            ],
+                                          )
+                                        else
+                                          SizedBox(
+                                            height: 32,
+                                            child: OutlinedButton(
+                                              onPressed: () {
+                                                context.push(Routes.phoneSetup);
+                                              },
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor: theme.colorScheme.primary,
+                                                side: BorderSide(
+                                                  color: theme.colorScheme.primary,
+                                                  width: 1,
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                              ),
+                                              child: Text(
+                                                'Link',
+                                                style: theme.textTheme.labelSmall?.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ],
                                 ),

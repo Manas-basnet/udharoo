@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/phone_verification/presentation/bloc/phone_verification_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/log_out_dialog.dart';
@@ -40,12 +41,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               message: 'Email verification status updated!',
               isSuccess: true,
             );
-          case PhoneVerificationError():
-            CustomToast.show(
-              context,
-              message: state.message,
-              isSuccess: false,
-            );
           default:
             break;
         }
@@ -74,7 +69,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             IconButton(
                               onPressed: () {
-                                context.pushNamed('editProfile');
+                                context.push(Routes.editProfile);
                               },
                               icon: const Icon(Icons.edit_outlined),
                               style: IconButton.styleFrom(
@@ -236,7 +231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         title: 'Verify Phone Number',
                                         subtitle: 'Secure your account and enable all features',
                                         onTap: () {
-                                          context.pushNamed('phoneSetup');
+                                          context.push(Routes.phoneSetup);
                                         },
                                         trailing: Container(
                                           padding: const EdgeInsets.symmetric(

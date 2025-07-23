@@ -24,10 +24,7 @@ class PhoneVerificationCubit extends Cubit<PhoneVerificationState> {
   String? _currentPhoneNumber;
   String? _currentVerificationId;
   String? _pendingPhoneNumber;
-  bool _isLinkingPhone = false;
-  bool _isUpdatingPhone = false;
-  bool _isChangingPhone = false;
-  bool _isResending = false;
+  PhoneVerificationMode _currentMode = PhoneVerificationMode.standard;
 
   PhoneVerificationCubit({
     required this.sendPhoneVerificationCodeUseCase,
@@ -39,11 +36,9 @@ class PhoneVerificationCubit extends Cubit<PhoneVerificationState> {
     required this.checkEmailVerificationStatusUseCase,
   }) : super(const PhoneVerificationInitial());
 
-  Future<void> sendPhoneVerificationCode(String phoneNumber, {bool isLinking = false, bool isUpdating = false, bool isResending = false}) async {
+  Future<void> sendPhoneVerificationCode(String phoneNumber) async {
     _currentPhoneNumber = phoneNumber;
-    _isLinkingPhone = isLinking;
-    _isUpdatingPhone = isUpdating || _isChangingPhone;
-    _isResending = isResending;
+    _currentMode = PhoneVerificationMode.standard;
     
     emit(PhoneVerificationLoading(phoneNumber: phoneNumber));
 
@@ -56,21 +51,72 @@ class PhoneVerificationCubit extends Cubit<PhoneVerificationState> {
           if (verificationId == 'auto-verified') {
             emit(const PhoneVerificationAutoCompleted());
           } else {
-            if (_isResending) {
-              emit(PhoneCodeResent(
-                phoneNumber: phoneNumber,
-                verificationId: verificationId,
-              ));
-            } else {
-              emit(PhoneCodeSent(
-                phoneNumber: phoneNumber,
-                verificationId: verificationId,
-              ));
-            }
+            emit(PhoneCodeSent(
+              phoneNumber: phoneNumber,
+              verificationId: verificationId,
+            ));
           }
         },
         onFailure: (message, type) {
-          _resetPhoneVerificationState();
+          _resetState();
+          emit(PhoneVerificationError(message, type));
+        },
+      );
+    }
+  }
+
+  Future<void> linkPhoneNumber(String phoneNumber) async {
+    _currentPhoneNumber = phoneNumber;
+    _currentMode = PhoneVerificationMode.linking;
+    
+    emit(PhoneVerificationLoading(phoneNumber: phoneNumber));
+
+    final result = await sendPhoneVerificationCodeUseCase(phoneNumber);
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (verificationId) {
+          _currentVerificationId = verificationId;
+          if (verificationId == 'auto-verified') {
+            emit(const PhoneVerificationAutoCompleted());
+          } else {
+            emit(PhoneCodeSent(
+              phoneNumber: phoneNumber,
+              verificationId: verificationId,
+            ));
+          }
+        },
+        onFailure: (message, type) {
+          _resetState();
+          emit(PhoneVerificationError(message, type));
+        },
+      );
+    }
+  }
+
+  Future<void> updatePhoneNumber(String phoneNumber) async {
+    _currentPhoneNumber = phoneNumber;
+    _currentMode = PhoneVerificationMode.updating;
+    
+    emit(PhoneVerificationLoading(phoneNumber: phoneNumber));
+
+    final result = await sendPhoneVerificationCodeUseCase(phoneNumber);
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (verificationId) {
+          _currentVerificationId = verificationId;
+          if (verificationId == 'auto-verified') {
+            emit(const PhoneVerificationAutoCompleted());
+          } else {
+            emit(PhoneCodeSent(
+              phoneNumber: phoneNumber,
+              verificationId: verificationId,
+            ));
+          }
+        },
+        onFailure: (message, type) {
+          _resetState();
           emit(PhoneVerificationError(message, type));
         },
       );
@@ -79,12 +125,28 @@ class PhoneVerificationCubit extends Cubit<PhoneVerificationState> {
 
   Future<void> resendPhoneVerificationCode() async {
     if (_currentPhoneNumber != null) {
-      await sendPhoneVerificationCode(
-        _currentPhoneNumber!,
-        isLinking: _isLinkingPhone,
-        isUpdating: _isUpdatingPhone,
-        isResending: true,
-      );
+      emit(PhoneVerificationLoading(phoneNumber: _currentPhoneNumber));
+
+      final result = await sendPhoneVerificationCodeUseCase(_currentPhoneNumber!);
+
+      if (!isClosed) {
+        result.fold(
+          onSuccess: (verificationId) {
+            _currentVerificationId = verificationId;
+            if (verificationId == 'auto-verified') {
+              emit(const PhoneVerificationAutoCompleted());
+            } else {
+              emit(PhoneCodeResent(
+                phoneNumber: _currentPhoneNumber!,
+                verificationId: verificationId,
+              ));
+            }
+          },
+          onFailure: (message, type) {
+            emit(PhoneVerificationError(message, type));
+          },
+        );
+      }
     }
   }
 
@@ -96,45 +158,38 @@ class PhoneVerificationCubit extends Cubit<PhoneVerificationState> {
 
     ApiResult<AuthUser> result;
     
-    if (_isLinkingPhone) {
-      result = await linkPhoneNumberUseCase(verificationId, smsCode);
-    } else if (_isUpdatingPhone || _isChangingPhone) {
-      result = await updatePhoneNumberUseCase(verificationId, smsCode);
-    } else {
+    switch (_currentMode) {
+      case PhoneVerificationMode.linking:
+        result = await linkPhoneNumberUseCase(verificationId, smsCode);
+        break;
+      case PhoneVerificationMode.updating:
+        result = await updatePhoneNumberUseCase(verificationId, smsCode);
+        break;
+      case PhoneVerificationMode.standard:
       result = await verifyPhoneCodeUseCase(verificationId, smsCode);
+        break;
     }
 
     if (!isClosed) {
       result.fold(
         onSuccess: (user) {
-          _resetPhoneVerificationState();
+          _resetState();
           emit(PhoneVerificationCompleted(user));
         },
         onFailure: (message, type) {
-          _resetPhoneVerificationState();
           emit(PhoneVerificationError(message, type));
         },
       );
     }
   }
 
-  Future<void> linkPhoneNumber(String phoneNumber) async {
-    await sendPhoneVerificationCode(phoneNumber, isLinking: true);
-  }
-
-  Future<void> updatePhoneNumber(String phoneNumber) async {
-    await sendPhoneVerificationCode(phoneNumber, isUpdating: true);
-  }
-
   void startPhoneNumberChange(String newPhoneNumber) {
     _pendingPhoneNumber = newPhoneNumber;
-    _isChangingPhone = true;
   }
 
   void cancelPhoneNumberChange() {
     _pendingPhoneNumber = null;
-    _isChangingPhone = false;
-    _resetPhoneVerificationState();
+    _resetState();
     emit(const PhoneVerificationInitial());
   }
 
@@ -177,21 +232,15 @@ class PhoneVerificationCubit extends Cubit<PhoneVerificationState> {
     }
   }
 
-  void retryPhoneVerification() {
-    if (_currentPhoneNumber != null) {
-      sendPhoneVerificationCode(_currentPhoneNumber!);
-    }
-  }
-
   void resetState() {
-    _resetPhoneVerificationState();
+    _resetState();
     if (!isClosed) {
       emit(const PhoneVerificationInitial());
     }
   }
 
   String? get pendingPhoneNumber => _pendingPhoneNumber;
-  bool get isChangingPhoneNumber => _isChangingPhone;
+  bool get isChangingPhoneNumber => _pendingPhoneNumber != null;
 
   bool get isPhoneVerificationInProgress {
     return state is PhoneVerificationLoading || 
@@ -200,11 +249,15 @@ class PhoneVerificationCubit extends Cubit<PhoneVerificationState> {
            _currentVerificationId != null;
   }
 
-  void _resetPhoneVerificationState() {
+  void _resetState() {
     _currentPhoneNumber = null;
     _currentVerificationId = null;
-    _isLinkingPhone = false;
-    _isUpdatingPhone = false;
-    _isResending = false;
+    _currentMode = PhoneVerificationMode.standard;
   }
+}
+
+enum PhoneVerificationMode {
+  standard,
+  linking,
+  updating,
 }

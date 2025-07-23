@@ -5,6 +5,8 @@ import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/core/di/di.dart' as di;
 import 'package:udharoo/features/phone_verification/presentation/pages/phone_setup_screen.dart';
 import 'package:udharoo/features/phone_verification/presentation/pages/phone_verification_screen.dart';
+import 'package:udharoo/features/phone_verification/presentation/pages/change_phone_setup_screen.dart';
+import 'package:udharoo/features/phone_verification/presentation/pages/change_phone_verification_screen.dart';
 import 'package:udharoo/features/home/presentation/pages/home_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transactions_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
@@ -20,16 +22,6 @@ import 'package:udharoo/features/profile/presentation/pages/profile_screen.dart'
 import 'package:udharoo/features/profile/presentation/pages/edit_profile_screen.dart';
 import 'package:udharoo/shared/presentation/layouts/scaffold_with_bottom_nav_bar.dart';
 import 'package:udharoo/shared/presentation/widgets/auth_wrapper.dart';
-
-class PhoneVerificationExtra {
-  final String phoneNumber;
-  final String verificationId;
-
-  const PhoneVerificationExtra({
-    required this.phoneNumber,
-    required this.verificationId,
-  });
-}
 
 class AppRouter {
   static final AppRouter _instance = AppRouter._internal();
@@ -136,10 +128,32 @@ class AppRouter {
         path: Routes.phoneSetup,
         name: 'phoneSetup',
         builder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>?;
+          return PhoneSetupScreen();
+        },
+      ),
+
+      GoRoute(
+        path: Routes.changePhoneSetup,
+        name: 'changePhoneSetup',
+        builder: (context, state) {
+          final newPhoneNumber = state.extra as String;
           
-          return PhoneSetupScreen(
-            isChanging: extra?['isChanging'] ?? false,
+          return ChangePhoneSetupScreen(
+            newPhoneNumber: newPhoneNumber,
+          );
+        },
+      ),
+
+      GoRoute(
+        path: Routes.changePhoneVerification,
+        name: 'changePhoneVerification',
+        builder: (context, state) {
+          final extra = state.extra as ChangePhoneVerificationExtra;
+          
+          return ChangePhoneVerificationScreen(
+            currentPhoneNumber: extra.currentPhoneNumber,
+            newPhoneNumber: extra.newPhoneNumber,
+            verificationId: extra.verificationId,
           );
         },
       ),
