@@ -360,10 +360,8 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<ApiResult<AuthUser>> linkPhoneNumber(String verificationId, String smsCode) async {
     return ExceptionHandler.handleExceptions(() async {
       final user = await _remoteDatasource.linkPhoneNumber(verificationId, smsCode);
+      await _updateUserPhoneVerification(user.uid, user.phoneNumber!, true);
       final authUser = await _processAuthenticatedUser(user);
-      
-      await _updateUserPhoneVerification(authUser.uid, user.phoneNumber!, true);
-      
       return ApiResult.success(authUser.copyWith(phoneVerified: true));
     });
   }
@@ -371,12 +369,42 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<ApiResult<AuthUser>> updatePhoneNumber(String verificationId, String smsCode) async {
     return ExceptionHandler.handleExceptions(() async {
-      final user = await _remoteDatasource.updatePhoneNumber(verificationId, smsCode);
-      final authUser = await _processAuthenticatedUser(user);
-      
-      await _updateUserPhoneVerification(authUser.uid, user.phoneNumber!, true);
-      
-      return ApiResult.success(authUser.copyWith(phoneVerified: true));
+      final currentUser = _remoteDatasource.getCurrentUser();
+      if (currentUser == null) {
+        return ApiResult.failure(
+          'No authenticated user found',
+          FailureType.auth,
+        );
+      }
+
+      try {
+        final credential = PhoneAuthProvider.credential(
+          verificationId: verificationId,
+          smsCode: smsCode,
+        );
+
+        await currentUser.updatePhoneNumber(credential);
+        await currentUser.reload();
+        
+        final updatedUser = _remoteDatasource.getCurrentUser();
+        if (updatedUser == null) {
+          return ApiResult.failure(
+            'Failed to update phone number',
+            FailureType.unknown,
+          );
+        }
+
+        await _updateUserPhoneVerification(updatedUser.uid, updatedUser.phoneNumber!, true);
+        
+        final authUser = await _processAuthenticatedUser(updatedUser);
+        return ApiResult.success(authUser.copyWith(phoneVerified: true));
+        
+      } catch (e) {
+        return ApiResult.failure(
+          'Failed to update phone number: ${e.toString()}',
+          FailureType.unknown,
+        );
+      }
     });
   }
 

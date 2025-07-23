@@ -45,6 +45,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   void _startTimer() {
     _canResend = false;
     _secondsRemaining = 60;
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
@@ -55,6 +56,8 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
             timer.cancel();
           }
         });
+      } else {
+        timer.cancel();
       }
     });
   }
@@ -67,12 +70,14 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
 
   void _resendCode(PhoneVerificationCubit cubit) {
     if (_canResend) {
-      cubit.sendPhoneVerificationCode(widget.phoneNumber);
+      cubit.resendPhoneVerificationCode();
       _startTimer();
-      _codeController.clear();
-      setState(() {
-        _currentCode = "";
-      });
+      if (mounted) {
+        _codeController.clear();
+        setState(() {
+          _currentCode = "";
+        });
+      }
     }
   }
 
@@ -81,6 +86,8 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   void _handleBackButton(PhoneVerificationCubit cubit) {
     if (_isChanging) {
       cubit.cancelPhoneNumberChange();
+      context.pop();
+    } else {
       context.pop();
     }
   }
@@ -96,7 +103,19 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
     if (_isChanging) {
       return 'Cancel change';
     }
-    return 'Use a different account';
+    return 'Back';
+  }
+
+  void _navigateToHomeOrBack() {
+    if (_isChanging) {
+      context.pop();
+      context.pop();
+    } else {
+      while (context.canPop()) {
+        context.pop();
+      }
+      context.go('/home');
+    }
   }
 
   @override
@@ -112,43 +131,49 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
             listener: (context, state) {
               switch (state) {
                 case PhoneVerificationError():
-                  errorController?.add(ErrorAnimationType.clear);
-                  CustomToast.show(
-                    context,
-                    message: state.message,
-                    isSuccess: false,
-                  );
-                  _codeController.clear();
-                  setState(() {
-                    _currentCode = "";
-                  });
+                  if (mounted) {
+                    errorController?.add(ErrorAnimationType.clear);
+                    CustomToast.show(
+                      context,
+                      message: state.message,
+                      isSuccess: false,
+                    );
+                    _codeController.clear();
+                    setState(() {
+                      _currentCode = "";
+                    });
+                  }
                 case PhoneVerificationCompleted():
-                  String message = 'Phone verified successfully!';
-                  if (_isChanging) {
-                    message = 'Phone number changed successfully!';
-                    context.read<PhoneVerificationCubit>().cancelPhoneNumberChange();
+                  if (mounted) {
+                    String message = 'Phone verified successfully!';
+                    if (_isChanging) {
+                      message = 'Phone number changed successfully!';
+                      context.read<PhoneVerificationCubit>().cancelPhoneNumberChange();
+                    }
+                    CustomToast.show(
+                      context,
+                      message: message,
+                      isSuccess: true,
+                    );
+                    
+                    context.read<AuthSessionCubit>().setUser(state.user);
+                    
+                    _navigateToHomeOrBack();
                   }
-                  CustomToast.show(
-                    context,
-                    message: message,
-                    isSuccess: true,
-                  );
-                  
-                  context.read<AuthSessionCubit>().setUser(state.user);
-                  
-                  if (_isChanging) {
-                    context.pop();
-                    context.pop();
+                case PhoneCodeResent():
+                  if (mounted) {
+                    verificationId = state.verificationId;
+                    CustomToast.show(
+                      context,
+                      message: 'New code sent!',
+                      isSuccess: true,
+                    );
                   }
-                case PhoneCodeSent() when state.verificationId != verificationId:
-                  verificationId = state.verificationId;
-                  CustomToast.show(
-                    context,
-                    message: 'New code sent!',
-                    isSuccess: true,
-                  );
                 case PhoneVerificationAutoCompleted():
-                  context.read<AuthSessionCubit>().checkAuthStatus();
+                  if (mounted) {
+                    context.read<AuthSessionCubit>().checkAuthStatus();
+                    _navigateToHomeOrBack();
+                  }
                 default:
                   break;
               }
@@ -166,7 +191,10 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                     Row(
                       children: [
                         IconButton(
-                          onPressed: () => context.pop(),
+                          onPressed: () {
+                            final cubit = context.read<PhoneVerificationCubit>();
+                            _handleBackButton(cubit);
+                          },
                           icon: Icon(Icons.arrow_back),
                           style: IconButton.styleFrom(
                             backgroundColor: theme.colorScheme.surface,
@@ -286,9 +314,11 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                                 _verifyCode(cubit);
                               },
                               onChanged: (value) {
-                                setState(() {
-                                  _currentCode = value;
-                                });
+                                if (mounted) {
+                                  setState(() {
+                                    _currentCode = value;
+                                  });
+                                }
                               },
                               beforeTextPaste: (text) {
                                 return true;
@@ -354,9 +384,10 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                             BlocBuilder<PhoneVerificationCubit, PhoneVerificationState>(
                               builder: (context, state) {
                                 final cubit = context.read<PhoneVerificationCubit>();
+                                final isLoading = state is PhoneVerificationLoading;
                                 
                                 return TextButton(
-                                  onPressed: _canResend ? () => _resendCode(cubit) : null,
+                                  onPressed: (_canResend && !isLoading) ? () => _resendCode(cubit) : null,
                                   style: TextButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(horizontal: 4),
                                     minimumSize: Size.zero,
@@ -367,7 +398,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                                         ? 'Resend'
                                         : 'Resend in ${_secondsRemaining}s',
                                     style: TextStyle(
-                                      color: _canResend
+                                      color: (_canResend && !isLoading)
                                           ? theme.colorScheme.primary
                                           : theme.colorScheme.onSurface.withOpacity(0.4),
                                       fontWeight: FontWeight.w600,

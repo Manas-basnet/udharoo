@@ -36,6 +36,21 @@ final class PhoneCodeSent extends PhoneVerificationState {
   List<Object?> get props => [phoneNumber, verificationId, resendToken];
 }
 
+final class PhoneCodeResent extends PhoneVerificationState {
+  final String phoneNumber;
+  final String verificationId;
+  final int? resendToken;
+
+  const PhoneCodeResent({
+    required this.phoneNumber,
+    required this.verificationId,
+    this.resendToken,
+  });
+
+  @override
+  List<Object?> get props => [phoneNumber, verificationId, resendToken];
+}
+
 final class PhoneVerificationCompleted extends PhoneVerificationState {
   final AuthUser user;
 

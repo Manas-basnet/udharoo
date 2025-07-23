@@ -17,7 +17,8 @@ class AuthWrapper extends StatelessWidget {
         return switch (state) {
           AuthSessionLoading() => const SplashScreen(),
           AuthSessionUnauthenticated() => const LoginScreen(),
-          AuthSessionAuthenticated() when !state.user.canAccessApp => const PhoneVerificationFlow(),
+          AuthSessionAuthenticated() when !state.user.canAccessApp => 
+            const PhoneVerificationFlow(),
           AuthSessionAuthenticated() => child,
           AuthSessionError() => const LoginScreen(),
         };

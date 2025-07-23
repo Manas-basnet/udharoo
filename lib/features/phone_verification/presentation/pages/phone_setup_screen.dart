@@ -147,6 +147,13 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
     }
   }
 
+  void _navigateToHomeScreen() {
+    while (context.canPop()) {
+      context.pop();
+    }
+    context.go('/home');
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -172,6 +179,14 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
               );
             case PhoneVerificationAutoCompleted():
               context.read<AuthSessionCubit>().checkAuthStatus();
+              _navigateToHomeScreen();
+            case PhoneVerificationCompleted():
+              context.read<AuthSessionCubit>().setUser(state.user);
+              if (_isChanging) {
+                context.pop();
+              } else {
+                _navigateToHomeScreen();
+              }
             default:
               break;
           }
