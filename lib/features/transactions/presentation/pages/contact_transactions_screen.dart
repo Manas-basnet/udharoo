@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_detail_screen.dart';
@@ -47,8 +47,8 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   }
 
   void _loadContactTransactions() {
-    final authState = context.read<AuthCubit>().state;
-    if (authState is AuthAuthenticated) {
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is AuthSessionAuthenticated) {
       context.read<TransactionCubit>().searchTransactions(
         userId: authState.user.uid,
         query: _searchQuery.isNotEmpty ? _searchQuery : widget.contactPhone,

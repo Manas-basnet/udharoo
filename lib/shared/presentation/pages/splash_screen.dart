@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -20,7 +20,7 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(seconds: 1));
     
     if (mounted) {
-      context.read<AuthCubit>().checkAuthStatus();
+      context.read<AuthSessionCubit>().checkAuthStatus();
     }
   }
 

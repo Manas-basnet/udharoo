@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:udharoo/config/routes/router_guard.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/core/di/di.dart' as di;
-import 'package:udharoo/features/auth/presentation/pages/login_screen.dart';
-import 'package:udharoo/features/auth/presentation/pages/sign_up_screen.dart';
-import 'package:udharoo/features/auth/presentation/pages/phone_setup_screen.dart';
-import 'package:udharoo/features/auth/presentation/pages/phone_verification_screen.dart';
+import 'package:udharoo/features/phone_verification/presentation/pages/phone_setup_screen.dart';
+import 'package:udharoo/features/phone_verification/presentation/pages/phone_verification_screen.dart';
 import 'package:udharoo/features/home/presentation/pages/home_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transactions_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
@@ -22,7 +19,7 @@ import 'package:udharoo/features/contacts/presentation/pages/contacts_screen.dar
 import 'package:udharoo/features/profile/presentation/pages/profile_screen.dart';
 import 'package:udharoo/features/profile/presentation/pages/edit_profile_screen.dart';
 import 'package:udharoo/shared/presentation/layouts/scaffold_with_bottom_nav_bar.dart';
-import 'package:udharoo/shared/presentation/pages/splash_screen.dart';
+import 'package:udharoo/shared/presentation/widgets/auth_wrapper.dart';
 
 class PhoneVerificationExtra {
   final String phoneNumber;
@@ -44,47 +41,72 @@ class AppRouter {
   }
 
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
+  static final _transactionCubit = di.sl<TransactionCubit>();
+
   static final _homeNavigatorKey = GlobalKey<NavigatorState>();
   static final _transactionsNavigatorKey = GlobalKey<NavigatorState>();
   static final _contactsNavigatorKey = GlobalKey<NavigatorState>();
   static final _profileNavigatorKey = GlobalKey<NavigatorState>();
 
-  static final _transactionCubit = di.sl<TransactionCubit>();
-
   static final GoRouter router = GoRouter(
-    initialLocation: Routes.splash,
+    initialLocation: '/home',
     navigatorKey: _rootNavigatorKey,
     debugLogDiagnostics: true,
-    redirect: RouterGuard.handleRedirect,
-    refreshListenable: null,
-    onException: (context, state, router) {
-      router.go(Routes.splash);
-    },
     routes: [
-      GoRoute(
-        path: Routes.splash,
-        name: 'splash',
-        builder: (context, state) => const SplashScreen(),
-      ),
-      GoRoute(
-        path: Routes.login,
-        name: 'login',
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: Routes.signUp,
-        name: 'signUp',
-        builder: (context, state) => const SignUpScreen(),
-      ),
-
-      GoRoute(
-        path: Routes.phoneSetup,
-        name: 'phoneSetup',
-        builder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>?;
-          final isChanging = extra?['isChanging'] == true;
-          return PhoneSetupScreen(isChanging: isChanging);
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return AuthWrapper(
+            child: ScaffoldWithBottomNavBar(navigationShell: navigationShell),
+          );
         },
+        branches: [
+          StatefulShellBranch(
+            navigatorKey: _homeNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/home',
+                name: 'home',
+                builder: (context, state) => const HomeScreen(),
+              ),
+            ],
+          ),
+
+          StatefulShellBranch(
+            navigatorKey: _transactionsNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/transactions',
+                name: 'transactions',
+                builder: (context, state) => BlocProvider.value(
+                  value: _transactionCubit,
+                  child: const TransactionsScreen(),
+                ),
+              ),
+            ],
+          ),
+
+          StatefulShellBranch(
+            navigatorKey: _contactsNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/contacts',
+                name: 'contacts',
+                builder: (context, state) => const ContactsScreen(),
+              ),
+            ],
+          ),
+
+          StatefulShellBranch(
+            navigatorKey: _profileNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/profile',
+                name: 'profile',
+                builder: (context, state) => const ProfileScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
 
       GoRoute(
@@ -106,6 +128,18 @@ class AppRouter {
           return PhoneVerificationScreen(
             phoneNumber: phoneNumber,
             verificationId: verificationId,
+          );
+        },
+      ),
+
+      GoRoute(
+        path: Routes.phoneSetup,
+        name: 'phoneSetup',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          
+          return PhoneSetupScreen(
+            isChanging: extra?['isChanging'] ?? false,
           );
         },
       ),
@@ -180,60 +214,6 @@ class AppRouter {
         path: Routes.editProfile,
         name: 'editProfile',
         builder: (context, state) => const EditProfileScreen(),
-      ),
-
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          return ScaffoldWithBottomNavBar(navigationShell: navigationShell);
-        },
-        branches: [
-          StatefulShellBranch(
-            navigatorKey: _homeNavigatorKey,
-            routes: [
-              GoRoute(
-                path: Routes.home,
-                name: 'home',
-                builder: (context, state) => const HomeScreen(),
-              ),
-            ],
-          ),
-
-          StatefulShellBranch(
-            navigatorKey: _transactionsNavigatorKey,
-            routes: [
-              GoRoute(
-                path: Routes.transactions,
-                name: 'transactions',
-                builder: (context, state) => BlocProvider.value(
-                  value: _transactionCubit,
-                  child: const TransactionsScreen(),
-                ),
-              ),
-            ],
-          ),
-
-          StatefulShellBranch(
-            navigatorKey: _contactsNavigatorKey,
-            routes: [
-              GoRoute(
-                path: Routes.contacts,
-                name: 'contacts',
-                builder: (context, state) => const ContactsScreen(),
-              ),
-            ],
-          ),
-
-          StatefulShellBranch(
-            navigatorKey: _profileNavigatorKey,
-            routes: [
-              GoRoute(
-                path: Routes.profile,
-                name: 'profile',
-                builder: (context, state) => const ProfileScreen(),
-              ),
-            ],
-          ),
-        ],
       ),
     ],
   );

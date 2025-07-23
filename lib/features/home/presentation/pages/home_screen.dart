@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -27,9 +27,9 @@ class HomeScreen extends StatelessWidget {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            BlocBuilder<AuthCubit, AuthState>(
+                            BlocBuilder<AuthSessionCubit, AuthSessionState>(
                               builder: (context, state) {
-                                final userName = state is AuthAuthenticated 
+                                final userName = state is AuthSessionAuthenticated 
                                     ? state.user.displayName?.split(' ').first ?? 'User'
                                     : 'User';
                                 return Text(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/qr_transaction_data.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
@@ -686,8 +686,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   void _submitForm() {
     if (!_formKey.currentState!.validate()) return;
 
-    final authState = context.read<AuthCubit>().state;
-    if (authState is! AuthAuthenticated) {
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is! AuthSessionAuthenticated) {
       CustomToast.show(
         context,
         message: 'Please login to create transactions',

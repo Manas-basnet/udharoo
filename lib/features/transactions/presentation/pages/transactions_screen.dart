@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
-import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_detail_screen.dart';
@@ -38,8 +38,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   void _loadTransactions() {
-    final authState = context.read<AuthCubit>().state;
-    if (authState is AuthAuthenticated) {
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is AuthSessionAuthenticated) {
       context.read<TransactionCubit>().getTransactions(
         userId: authState.user.uid,
         type: _getTransactionTypeFromFilter(),
@@ -49,8 +49,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   void _loadSummary() {
-    final authState = context.read<AuthCubit>().state;
-    if (authState is AuthAuthenticated) {
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is AuthSessionAuthenticated) {
       context.read<TransactionCubit>().getTransactionSummary(authState.user.uid);
     }
   }
@@ -543,8 +543,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   void _performSearch() {
-    final authState = context.read<AuthCubit>().state;
-    if (authState is AuthAuthenticated) {
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is AuthSessionAuthenticated) {
       context.read<TransactionCubit>().searchTransactions(
         userId: authState.user.uid,
         query: _searchQuery,

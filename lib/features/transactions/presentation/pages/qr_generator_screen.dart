@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/core/di/di.dart' as di;
-import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/services/qr_service.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
@@ -28,8 +28,8 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
   }
 
   void _checkPhoneNumberAndGenerateQr() {
-    final authState = context.read<AuthCubit>().state;
-    if (authState is AuthAuthenticated) {
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is AuthSessionAuthenticated) {
       final user = authState.user;
       
       if (user.phoneNumber == null || user.phoneNumber!.isEmpty) {
@@ -44,8 +44,8 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
   }
 
   void _generateQrCode() {
-    final authState = context.read<AuthCubit>().state;
-    if (authState is AuthAuthenticated) {
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is AuthSessionAuthenticated) {
       final user = authState.user;
       
       if (user.phoneNumber == null || user.phoneNumber!.isEmpty) {
@@ -178,9 +178,9 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
                     children: [
                       const SizedBox(height: 20),
                       
-                      BlocBuilder<AuthCubit, AuthState>(
+                      BlocBuilder<AuthSessionCubit, AuthSessionState>(
                         builder: (context, state) {
-                          if (state is AuthAuthenticated) {
+                          if (state is AuthSessionAuthenticated) {
                             return Column(
                               children: [
                                 Container(

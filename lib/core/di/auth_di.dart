@@ -10,26 +10,27 @@ import 'package:udharoo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:udharoo/features/auth/domain/services/auth_service.dart';
 import 'package:udharoo/features/auth/domain/usecases/check_phone_availability_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/get_current_user_usecase.dart';
-import 'package:udharoo/features/auth/domain/usecases/is_authenticated_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/link_google_account_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/link_password_usecase.dart';
-import 'package:udharoo/features/auth/domain/usecases/send_email_verification_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/send_password_reset_email_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_in_with_email_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_in_with_google_usecase.dart';
+import 'package:udharoo/features/auth/domain/usecases/sign_in_with_phone_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_up_with_email_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_up_with_full_info_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/send_phone_verification_code_usecase.dart';
+import 'package:udharoo/features/auth/domain/usecases/update_display_name_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/verify_phone_code_usecase.dart';
-import 'package:udharoo/features/auth/domain/usecases/sign_in_with_phone_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/link_phone_number_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/update_phone_number_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/check_phone_verification_status_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/check_email_verification_status_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/change_password_usecase.dart';
-import 'package:udharoo/features/auth/domain/usecases/update_display_name_usecase.dart';
-import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:udharoo/features/auth/domain/usecases/send_email_verification_usecase.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
+import 'package:udharoo/features/auth/presentation/bloc/signin_cubit.dart';
+import 'package:udharoo/features/phone_verification/presentation/bloc/phone_verification_cubit.dart';
 
 Future<void> initAuth(GetIt sl) async {
   sl.registerLazySingleton(() => GoogleSignIn());
@@ -43,7 +44,6 @@ Future<void> initAuth(GetIt sl) async {
   sl.registerLazySingleton(() => SignInWithPhoneUseCase(sl()));
   sl.registerLazySingleton(() => SignOutUseCase(sl()));
   sl.registerLazySingleton(() => GetCurrentUserUseCase(sl()));
-  sl.registerLazySingleton(() => IsAuthenticatedUseCase(sl()));
   sl.registerLazySingleton(() => SendPasswordResetEmailUseCase(sl()));
   sl.registerLazySingleton(() => SendEmailVerificationUseCase(sl()));
   sl.registerLazySingleton(() => SendPhoneVerificationCodeUseCase(sl()));
@@ -83,28 +83,38 @@ Future<void> initAuth(GetIt sl) async {
   );
 
   sl.registerFactory(
-    () => AuthCubit(
+    () => AuthSessionCubit(
+      getCurrentUserUseCase: sl(),
+      signOutUseCase: sl(),
+      updateDisplayNameUseCase: sl(),
+      changePasswordUseCase: sl(),
+      checkEmailVerificationStatusUseCase: sl(),
+      authService: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => SignInCubit(
       signInWithEmailUseCase: sl(),
-      signUpWithEmailUseCase: sl(),
-      signUpWithFullInfoUseCase: sl(),
       signInWithGoogleUseCase: sl(),
       signInWithPhoneUseCase: sl(),
-      signOutUseCase: sl(),
-      getCurrentUserUseCase: sl(),
-      isAuthenticatedUseCase: sl(),
+      signUpWithEmailUseCase: sl(),
+      signUpWithFullInfoUseCase: sl(),
       sendPasswordResetEmailUseCase: sl(),
-      sendEmailVerificationUseCase: sl(),
+      linkGoogleAccountUseCase: sl(),
+      linkPasswordUseCase: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => PhoneVerificationCubit(
       sendPhoneVerificationCodeUseCase: sl(),
       verifyPhoneCodeUseCase: sl(),
       linkPhoneNumberUseCase: sl(),
-      linkGoogleAccountUseCase: sl(),
-      linkPasswordUseCase: sl(),
       updatePhoneNumberUseCase: sl(),
       checkPhoneVerificationStatusUseCase: sl(),
+      sendEmailVerificationUseCase: sl(),
       checkEmailVerificationStatusUseCase: sl(),
-      changePasswordUseCase: sl(),
-      updateDisplayNameUseCase: sl(),
-      authService: sl(),
     ),
   );
 }

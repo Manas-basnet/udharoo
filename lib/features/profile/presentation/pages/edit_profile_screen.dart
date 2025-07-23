@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/domain/entities/auth_user.dart';
-import 'package:udharoo/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
+import 'package:udharoo/features/auth/presentation/bloc/signin_cubit.dart';
+import 'package:udharoo/features/phone_verification/presentation/bloc/phone_verification_cubit.dart';
 import 'package:udharoo/features/profile/presentation/widgets/password_setup_dialog.dart';
 import 'package:udharoo/features/profile/presentation/widgets/change_password_dialog.dart';
 import 'package:udharoo/features/profile/presentation/widgets/change_phone_dialog.dart';
@@ -31,8 +33,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _initializeUserData() {
-    final authState = context.read<AuthCubit>().state;
-    if (authState is AuthAuthenticated) {
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is AuthSessionAuthenticated) {
       final user = authState.user;
       _displayNameController.text = user.displayName ?? '';
     }
@@ -58,14 +60,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return user.hasEmailProvider;
   }
 
-  void _showPasswordSetupDialog() {
+  void _showPasswordSetupDialog(SignInCubit signInCubit) {
     PasswordSetupDialog.show(
       context,
       onSetupPassword: (password) {
         setState(() {
           _isLinkingPassword = true;
         });
-        context.read<AuthCubit>().linkPassword(password);
+        signInCubit.linkPassword(password);
         Navigator.of(context).pop();
       },
       isLoading: _isLinkingPassword,
@@ -78,7 +80,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       context,
       onChangePassword: ({required String currentPassword, required String newPassword}) async {
         isChangingPassword = true;
-        final didUpdate = await context.read<AuthCubit>().changePassword(
+        final didUpdate = await context.read<AuthSessionCubit>().changePassword(
           currentPassword: currentPassword,
           newPassword: newPassword,
         );
@@ -103,11 +105,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  void _showChangePhoneDialog() {
+  void _showChangePhoneDialog(PhoneVerificationCubit phoneVerificationCubit) {
     ChangePhoneDialog.show(
       context,
       onChangePhone: (phoneNumber) {
-        context.read<AuthCubit>().startPhoneNumberChange(phoneNumber);
+        phoneVerificationCubit.startPhoneNumberChange(phoneNumber);
         Navigator.of(context).pop();
         context.push(Routes.phoneSetup, extra: {'isChanging': true});
       },
@@ -118,68 +120,49 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Edit Profile'),
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back),
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<SignInCubit, SignInState>(
+          listener: (context, state) {
+            switch (state) {
+              case GoogleAccountLinked():
+                CustomToast.show(
+                  context,
+                  message: 'Google account linked successfully!',
+                  isSuccess: true,
+                );
+                context.read<AuthSessionCubit>().setUser(state.user);
+                setState(() {
+                  _isLinkingGoogle = false;
+                });
+              case PasswordLinked():
+                CustomToast.show(
+                  context,
+                  message: 'Password authentication linked successfully!',
+                  isSuccess: true,
+                );
+                context.read<AuthSessionCubit>().setUser(state.user);
+                setState(() {
+                  _isLinkingPassword = false;
+                });
+              case SignInError():
+                CustomToast.show(
+                  context,
+                  message: state.message,
+                  isSuccess: false,
+                );
+                setState(() {
+                  _isLinkingGoogle = false;
+                  _isLinkingPassword = false;
+                });
+              default:
+                break;
+            }
+          },
         ),
-        actions: [
-          BlocBuilder<AuthCubit, AuthState>(
-            builder: (context, state) {
-              final isLoading = _isUpdatingDisplayName;
-              
-              return TextButton(
-                onPressed: isLoading ? null : _saveChanges,
-                child: Text(
-                  'Save',
-                  style: TextStyle(
-                    color: isLoading 
-                        ? theme.colorScheme.onSurface.withOpacity(0.4)
-                        : theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: BlocListener<AuthCubit, AuthState>(
-        listener: (context, state) {
-          if (state is AuthError) {
-            CustomToast.show(
-              context,
-              message: state.message,
-              isSuccess: false,
-            );
-            setState(() {
-              _isLinkingGoogle = false;
-              _isLinkingPassword = false;
-              _isUpdatingDisplayName = false;
-            });
-          } else if (state is AuthAuthenticated) {
-            if (_isLinkingGoogle) {
-              CustomToast.show(
-                context,
-                message: 'Google account linked successfully!',
-                isSuccess: true,
-              );
-              setState(() {
-                _isLinkingGoogle = false;
-              });
-            } else if (_isLinkingPassword) {
-              CustomToast.show(
-                context,
-                message: 'Password authentication linked successfully!',
-                isSuccess: true,
-              );
-              setState(() {
-                _isLinkingPassword = false;
-              });
-            } else if (_isUpdatingDisplayName) {
+        BlocListener<AuthSessionCubit, AuthSessionState>(
+          listener: (context, state) {
+            if (state is AuthSessionAuthenticated && _isUpdatingDisplayName) {
               CustomToast.show(
                 context,
                 message: 'Display name updated successfully!',
@@ -188,19 +171,58 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               setState(() {
                 _isUpdatingDisplayName = false;
               });
+            } else if (state is AuthSessionError) {
+              CustomToast.show(
+                context,
+                message: state.message,
+                isSuccess: false,
+              );
+              setState(() {
+                _isUpdatingDisplayName = false;
+              });
             }
-          }
-        },
-        child: SingleChildScrollView(
+          },
+        ),
+      ],
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          title: const Text('Edit Profile'),
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            icon: const Icon(Icons.arrow_back),
+          ),
+          actions: [
+            BlocBuilder<AuthSessionCubit, AuthSessionState>(
+              builder: (context, state) {
+                final isLoading = _isUpdatingDisplayName;
+                
+                return TextButton(
+                  onPressed: isLoading ? null : _saveChanges,
+                  child: Text(
+                    'Save',
+                    style: TextStyle(
+                      color: isLoading 
+                          ? theme.colorScheme.onSurface.withOpacity(0.4)
+                          : theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        body: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                BlocBuilder<AuthCubit, AuthState>(
+                BlocBuilder<AuthSessionCubit, AuthSessionState>(
                   builder: (context, state) {
-                    if (state is AuthAuthenticated) {
+                    if (state is AuthSessionAuthenticated) {
                       return Column(
                         children: [
                           Center(
@@ -339,171 +361,71 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           
                           const SizedBox(height: 16),
                           
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surface,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: theme.colorScheme.outline.withOpacity(0.1),
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
+                          BlocBuilder<SignInCubit, SignInState>(
+                            builder: (context, signInState) {
+                              final signInCubit = context.read<SignInCubit>();
+                              
+                              return Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: theme.colorScheme.outline.withOpacity(0.1),
+                                  ),
+                                ),
+                                child: Column(
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Container(
-                                        width: 18,
-                                        height: 18,
-                                        decoration: const BoxDecoration(
-                                          color: Colors.red,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Center(
-                                          child: Text(
-                                            'G',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Google Account',
-                                            style: theme.textTheme.bodyMedium?.copyWith(
-                                              fontWeight: FontWeight.w500,
+                                          child: Container(
+                                            width: 18,
+                                            height: 18,
+                                            decoration: const BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
                                             ),
-                                          ),
-                                          Text(
-                                            _hasGoogleProvider(state.user) 
-                                                ? 'Linked to ${state.user.email}'
-                                                : 'Not linked',
-                                            style: theme.textTheme.bodySmall?.copyWith(
-                                              color: theme.colorScheme.onSurface.withOpacity(0.6),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    if (_hasGoogleProvider(state.user))
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          'Linked',
-                                          style: theme.textTheme.labelSmall?.copyWith(
-                                            color: Colors.green,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      )
-                                    else
-                                      SizedBox(
-                                        height: 32,
-                                        child: OutlinedButton(
-                                          onPressed: _isLinkingGoogle 
-                                              ? null 
-                                              : () {
-                                                  setState(() {
-                                                    _isLinkingGoogle = true;
-                                                  });
-                                                  context.read<AuthCubit>().linkGoogleAccount();
-                                                },
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: theme.colorScheme.primary,
-                                            side: BorderSide(
-                                              color: theme.colorScheme.primary,
-                                              width: 1,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                          ),
-                                          child: _isLinkingGoogle
-                                              ? SizedBox(
-                                                  height: 12,
-                                                  width: 12,
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    color: theme.colorScheme.primary,
-                                                  ),
-                                                )
-                                              : Text(
-                                                  'Link',
-                                                  style: theme.textTheme.labelSmall?.copyWith(
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
+                                            child: const Center(
+                                              child: Text(
+                                                'G',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
                                                 ),
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                  ],
-                                ),
-                                
-                                Divider(
-                                  height: 24,
-                                  thickness: 0.5,
-                                  color: theme.colorScheme.outline.withOpacity(0.2),
-                                ),
-                                
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: theme.colorScheme.primary.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Icon(
-                                        Icons.lock_outline,
-                                        size: 18,
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Password',
-                                            style: theme.textTheme.bodyMedium?.copyWith(
-                                              fontWeight: FontWeight.w500,
-                                            ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Google Account',
+                                                style: theme.textTheme.bodyMedium?.copyWith(
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              Text(
+                                                _hasGoogleProvider(state.user) 
+                                                    ? 'Linked to ${state.user.email}'
+                                                    : 'Not linked',
+                                                style: theme.textTheme.bodySmall?.copyWith(
+                                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          Text(
-                                            _hasPasswordProvider(state.user)
-                                                ? 'Sign in with email or phone + password'
-                                                : 'Not linked',
-                                            style: theme.textTheme.bodySmall?.copyWith(
-                                              color: theme.colorScheme.onSurface.withOpacity(0.6),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    if(_hasPasswordProvider(state.user))
-                                      Row(
-                                        children: [
+                                        ),
+                                        if (_hasGoogleProvider(state.user))
                                           Container(
                                             padding: const EdgeInsets.symmetric(
                                               horizontal: 8,
@@ -520,12 +442,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                                 fontWeight: FontWeight.w600,
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 8),
+                                          )
+                                        else
                                           SizedBox(
                                             height: 32,
                                             child: OutlinedButton(
-                                              onPressed: _showChangePasswordDialog,
+                                              onPressed: (_isLinkingGoogle || signInState is SignInLoading)
+                                                  ? null 
+                                                  : () {
+                                                      setState(() {
+                                                        _isLinkingGoogle = true;
+                                                      });
+                                                      signInCubit.linkGoogleAccount();
+                                                    },
                                               style: OutlinedButton.styleFrom(
                                                 foregroundColor: theme.colorScheme.primary,
                                                 side: BorderSide(
@@ -536,118 +465,120 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                                   borderRadius: BorderRadius.circular(8),
                                                 ),
                                               ),
-                                              child: Text(
-                                                'Change',
-                                                style: theme.textTheme.labelSmall?.copyWith(
-                                                  fontWeight: FontWeight.w600,
+                                              child: (_isLinkingGoogle || signInState is SignInLoading)
+                                                  ? SizedBox(
+                                                      height: 12,
+                                                      width: 12,
+                                                      child: CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: theme.colorScheme.primary,
+                                                      ),
+                                                    )
+                                                  : Text(
+                                                      'Link',
+                                                      style: theme.textTheme.labelSmall?.copyWith(
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    
+                                    Divider(
+                                      height: 24,
+                                      thickness: 0.5,
+                                      color: theme.colorScheme.outline.withOpacity(0.2),
+                                    ),
+                                    
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.primary.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(
+                                            Icons.lock_outline,
+                                            size: 18,
+                                            color: theme.colorScheme.primary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Password',
+                                                style: theme.textTheme.bodyMedium?.copyWith(
+                                                  fontWeight: FontWeight.w500,
                                                 ),
-                                              )
-                                            ),
+                                              ),
+                                              Text(
+                                                _hasPasswordProvider(state.user)
+                                                    ? 'Sign in with email or phone + password'
+                                                    : 'Not linked',
+                                                style: theme.textTheme.bodySmall?.copyWith(
+                                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      )
-                                    else
-                                      SizedBox(
-                                        height: 32,
-                                        child: OutlinedButton(
-                                          onPressed: _isLinkingPassword 
-                                              ? null 
-                                              : _showPasswordSetupDialog,
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: theme.colorScheme.primary,
-                                            side: BorderSide(
-                                              color: theme.colorScheme.primary,
-                                              width: 1,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                          ),
-                                          child: _isLinkingPassword
-                                              ? SizedBox(
-                                                  height: 12,
-                                                  width: 12,
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    color: theme.colorScheme.primary,
-                                                  ),
-                                                )
-                                              : Text(
-                                                  'Link',
+                                        ),
+                                        if(_hasPasswordProvider(state.user))
+                                          Row(
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  'Linked',
                                                   style: theme.textTheme.labelSmall?.copyWith(
+                                                    color: Colors.green,
                                                     fontWeight: FontWeight.w600,
                                                   ),
                                                 ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                
-                                Divider(
-                                  height: 24,
-                                  thickness: 0.5,
-                                  color: theme.colorScheme.outline.withOpacity(0.2),
-                                ),
-                                
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: theme.colorScheme.primary.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Icon(
-                                        Icons.phone,
-                                        size: 18,
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Phone Number',
-                                            style: theme.textTheme.bodyMedium?.copyWith(
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          Text(
-                                            state.user.phoneNumber ?? 'Not linked',
-                                            style: theme.textTheme.bodySmall?.copyWith(
-                                              color: theme.colorScheme.onSurface.withOpacity(0.6),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    if (state.user.phoneVerified && state.user.phoneNumber != null)
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.green.withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              'Verified',
-                                              style: theme.textTheme.labelSmall?.copyWith(
-                                                color: Colors.green,
-                                                fontWeight: FontWeight.w600,
                                               ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
+                                              const SizedBox(width: 8),
+                                              SizedBox(
+                                                height: 32,
+                                                child: OutlinedButton(
+                                                  onPressed: _showChangePasswordDialog,
+                                                  style: OutlinedButton.styleFrom(
+                                                    foregroundColor: theme.colorScheme.primary,
+                                                    side: BorderSide(
+                                                      color: theme.colorScheme.primary,
+                                                      width: 1,
+                                                    ),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    'Change',
+                                                    style: theme.textTheme.labelSmall?.copyWith(
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  )
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        else
                                           SizedBox(
                                             height: 32,
                                             child: OutlinedButton(
-                                              onPressed: _showChangePhoneDialog,
+                                              onPressed: (_isLinkingPassword || signInState is SignInLoading)
+                                                  ? null 
+                                                  : () => _showPasswordSetupDialog(signInCubit),
                                               style: OutlinedButton.styleFrom(
                                                 foregroundColor: theme.colorScheme.primary,
                                                 side: BorderSide(
@@ -658,45 +589,148 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                                   borderRadius: BorderRadius.circular(8),
                                                 ),
                                               ),
-                                              child: Text(
-                                                'Change',
-                                                style: theme.textTheme.labelSmall?.copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                ),
+                                              child: (_isLinkingPassword || signInState is SignInLoading)
+                                                  ? SizedBox(
+                                                      height: 12,
+                                                      width: 12,
+                                                      child: CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: theme.colorScheme.primary,
+                                                      ),
+                                                    )
+                                                  : Text(
+                                                      'Link',
+                                                      style: theme.textTheme.labelSmall?.copyWith(
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    
+                                    Divider(
+                                      height: 24,
+                                      thickness: 0.5,
+                                      color: theme.colorScheme.outline.withOpacity(0.2),
+                                    ),
+                                    
+                                    BlocBuilder<PhoneVerificationCubit, PhoneVerificationState>(
+                                      builder: (context, phoneState) {
+                                        final phoneVerificationCubit = context.read<PhoneVerificationCubit>();
+                                        
+                                        return Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: theme.colorScheme.primary.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: Icon(
+                                                Icons.phone,
+                                                size: 18,
+                                                color: theme.colorScheme.primary,
                                               ),
                                             ),
-                                          ),
-                                        ],
-                                      )
-                                    else
-                                      SizedBox(
-                                        height: 32,
-                                        child: OutlinedButton(
-                                          onPressed: () {
-                                            context.push(Routes.phoneSetup, extra: {'isChanging': true});
-                                          },
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: theme.colorScheme.primary,
-                                            side: BorderSide(
-                                              color: theme.colorScheme.primary,
-                                              width: 1,
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'Phone Number',
+                                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    state.user.phoneNumber ?? 'Not linked',
+                                                    style: theme.textTheme.bodySmall?.copyWith(
+                                                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                          ),
-                                          child: Text(
-                                            'Link',
-                                            style: theme.textTheme.labelSmall?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
+                                            if (state.user.phoneVerified && state.user.phoneNumber != null)
+                                              Row(
+                                                children: [
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.green.withOpacity(0.1),
+                                                      borderRadius: BorderRadius.circular(12),
+                                                    ),
+                                                    child: Text(
+                                                      'Verified',
+                                                      style: theme.textTheme.labelSmall?.copyWith(
+                                                        color: Colors.green,
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  SizedBox(
+                                                    height: 32,
+                                                    child: OutlinedButton(
+                                                      onPressed: () => _showChangePhoneDialog(phoneVerificationCubit),
+                                                      style: OutlinedButton.styleFrom(
+                                                        foregroundColor: theme.colorScheme.primary,
+                                                        side: BorderSide(
+                                                          color: theme.colorScheme.primary,
+                                                          width: 1,
+                                                        ),
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(8),
+                                                        ),
+                                                      ),
+                                                      child: Text(
+                                                        'Change',
+                                                        style: theme.textTheme.labelSmall?.copyWith(
+                                                          fontWeight: FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              )
+                                            else
+                                              SizedBox(
+                                                height: 32,
+                                                child: OutlinedButton(
+                                                  onPressed: () {
+                                                    context.push(Routes.phoneSetup, extra: {'isChanging': true});
+                                                  },
+                                                  style: OutlinedButton.styleFrom(
+                                                    foregroundColor: theme.colorScheme.primary,
+                                                    side: BorderSide(
+                                                      color: theme.colorScheme.primary,
+                                                      width: 1,
+                                                    ),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    'Link',
+                                                    style: theme.textTheme.labelSmall?.copyWith(
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        );
+                                      },
+                                    ),
                                   ],
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
                         ],
                       );
@@ -717,8 +751,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
-    final authState = context.read<AuthCubit>().state;
-    if (authState is AuthAuthenticated) {
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is AuthSessionAuthenticated) {
       final user = authState.user;
       final newDisplayName = _displayNameController.text.trim();
       
@@ -728,7 +762,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         setState(() {
           _isUpdatingDisplayName = true;
         });
-        context.read<AuthCubit>().updateDisplayName(newDisplayName);
+        context.read<AuthSessionCubit>().updateDisplayName(newDisplayName);
       } else {
         CustomToast.show(
           context,
