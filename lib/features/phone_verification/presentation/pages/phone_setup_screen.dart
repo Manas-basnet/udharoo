@@ -163,7 +163,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                 isSuccess: false,
               );
             case PhoneCodeSent():
-              context.go(
+              context.push(
                 Routes.phoneVerification,
                 extra: PhoneVerificationExtra(
                   phoneNumber: state.phoneNumber,

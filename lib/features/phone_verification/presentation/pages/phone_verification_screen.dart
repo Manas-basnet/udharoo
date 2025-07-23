@@ -166,8 +166,8 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                     Row(
                       children: [
                         IconButton(
-                          onPressed: _isChanging ? () => context.pop() : null,
-                          icon: Icon(_isChanging ? Icons.arrow_back : Icons.close),
+                          onPressed: () => context.pop(),
+                          icon: Icon(Icons.arrow_back),
                           style: IconButton.styleFrom(
                             backgroundColor: theme.colorScheme.surface,
                             shape: RoundedRectangleBorder(
