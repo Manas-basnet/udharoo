@@ -15,9 +15,7 @@ class TransactionsScreen extends StatefulWidget {
   State<TransactionsScreen> createState() => _TransactionsScreenState();
 }
 
-class _TransactionsScreenState extends State<TransactionsScreen>
-    with TickerProviderStateMixin {
-  late TabController _tabController;
+class _TransactionsScreenState extends State<TransactionsScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   
@@ -29,17 +27,12 @@ class _TransactionsScreenState extends State<TransactionsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(_onTabChanged);
     _scrollController.addListener(_onScroll);
-    
     _loadInitialData();
   }
 
   @override
   void dispose() {
-    _tabController.removeListener(_onTabChanged);
-    _tabController.dispose();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _searchController.dispose();
@@ -50,26 +43,6 @@ class _TransactionsScreenState extends State<TransactionsScreen>
     final cubit = context.read<TransactionCubit>();
     cubit.getTransactions(refresh: true);
     cubit.getTransactionStats();
-  }
-
-  void _onTabChanged() {
-    setState(() {
-      switch (_tabController.index) {
-        case 0:
-          _selectedStatus = null;
-          break;
-        case 1:
-          _selectedStatus = TransactionStatus.pending;
-          break;
-        case 2:
-          _selectedStatus = TransactionStatus.verified;
-          break;
-        case 3:
-          _selectedStatus = TransactionStatus.completed;
-          break;
-      }
-    });
-    _refreshTransactions();
   }
 
   void _onScroll() {
@@ -84,6 +57,159 @@ class _TransactionsScreenState extends State<TransactionsScreen>
         );
       }
     }
+  }
+
+  Widget _buildSliverContent(ThemeData theme) {
+    return RefreshIndicator(
+      onRefresh: () async => _refreshTransactions(),
+      child: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          SliverAppBar(
+            expandedHeight: _stats != null ? 280.0 : 200.0,
+            floating: true,
+            pinned: true,
+            snap: false,
+            backgroundColor: theme.colorScheme.surface,
+            surfaceTintColor: theme.colorScheme.surface,
+            elevation: 0,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                color: theme.colorScheme.surface,
+                child: _buildExpandedHeader(theme),
+              ),
+            ),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(60),
+              child: Container(
+                color: theme.colorScheme.surface,
+                child: Column(
+                  children: [
+                    _buildStatusChips(theme),
+                    const SizedBox(height: 12),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          _buildSliverTransactionsList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpandedHeader(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Transactions',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      context.push('/qr-scanner');
+                    },
+                    icon: const Icon(Icons.qr_code_scanner),
+                    style: IconButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                      foregroundColor: theme.colorScheme.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () {
+                      _showFilterDialog();
+                    },
+                    icon: Stack(
+                      children: [
+                        const Icon(Icons.tune),
+                        if (_selectedType != null)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    style: IconButton.styleFrom(
+                      backgroundColor: _selectedType != null 
+                          ? theme.colorScheme.primary.withOpacity(0.1)
+                          : theme.colorScheme.surface,
+                      foregroundColor: _selectedType != null 
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          
+          if (_stats != null) ...[
+            const SizedBox(height: 20),
+            _buildStatsCards(theme),
+          ],
+          
+          const SizedBox(height: 20),
+          
+          TextField(
+            controller: _searchController,
+            onChanged: _onSearchChanged,
+            decoration: InputDecoration(
+              hintText: 'Search transactions...',
+              prefixIcon: Icon(
+                Icons.search,
+                color: theme.colorScheme.onSurface.withOpacity(0.5),
+              ),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      onPressed: () {
+                        _searchController.clear();
+                        _onSearchChanged('');
+                      },
+                      icon: const Icon(Icons.clear),
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              filled: true,
+              fillColor: theme.scaffoldBackgroundColor,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
   }
 
   void _refreshTransactions() {
@@ -105,6 +231,13 @@ class _TransactionsScreenState extends State<TransactionsScreen>
         _refreshTransactions();
       }
     });
+  }
+
+  void _onStatusFilterChanged(TransactionStatus? status) {
+    setState(() {
+      _selectedStatus = status;
+    });
+    _refreshTransactions();
   }
 
   @override
@@ -152,134 +285,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         body: SafeArea(
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Transactions',
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            IconButton(
-                              onPressed: () {
-                                // Navigate to QR scanner
-                                context.push('/qr-scanner');
-                              },
-                              icon: const Icon(Icons.qr_code_scanner),
-                              style: IconButton.styleFrom(
-                                backgroundColor: theme.colorScheme.surface,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              onPressed: () {
-                                _showFilterDialog();
-                              },
-                              icon: const Icon(Icons.filter_list),
-                              style: IconButton.styleFrom(
-                                backgroundColor: theme.colorScheme.surface,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    
-                    if (_stats != null) ...[
-                      const SizedBox(height: 20),
-                      _buildStatsCards(),
-                    ],
-                    
-                    const SizedBox(height: 20),
-                    
-                    TextField(
-                      controller: _searchController,
-                      onChanged: _onSearchChanged,
-                      decoration: InputDecoration(
-                        hintText: 'Search transactions...',
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                onPressed: () {
-                                  _searchController.clear();
-                                  _onSearchChanged('');
-                                },
-                                icon: const Icon(Icons.clear),
-                              )
-                            : null,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: theme.colorScheme.outline.withOpacity(0.3),
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: theme.colorScheme.outline.withOpacity(0.3),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                        filled: true,
-                        fillColor: theme.colorScheme.surface,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 20),
-                    
-                    TabBar(
-                      controller: _tabController,
-                      labelColor: theme.colorScheme.primary,
-                      unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
-                      indicatorColor: theme.colorScheme.primary,
-                      labelStyle: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      unselectedLabelStyle: theme.textTheme.labelMedium,
-                      tabs: const [
-                        Tab(text: 'All'),
-                        Tab(text: 'Pending'),
-                        Tab(text: 'Verified'),
-                        Tab(text: 'Completed'),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildTransactionsList(),
-                    _buildTransactionsList(),
-                    _buildTransactionsList(),
-                    _buildTransactionsList(),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          child: _buildSliverContent(theme),
         ),
         floatingActionButton: FloatingActionButton(
           heroTag: "transactions_fab",
@@ -294,15 +300,15 @@ class _TransactionsScreenState extends State<TransactionsScreen>
     );
   }
 
-  Widget _buildStatsCards() {
-    final theme = Theme.of(context);
-    
+
+
+  Widget _buildStatsCards(ThemeData theme) {
     return Row(
       children: [
         Expanded(
           child: _buildStatCard(
-            'Total Lending',
-            'NPR ${(_stats!['totalLending'] as double).toStringAsFixed(2)}',
+            'Lending',
+            'NPR ${(_stats!['totalLending'] as double).toStringAsFixed(0)}',
             Colors.green,
             Icons.trending_up,
             theme,
@@ -311,10 +317,20 @@ class _TransactionsScreenState extends State<TransactionsScreen>
         const SizedBox(width: 12),
         Expanded(
           child: _buildStatCard(
-            'Total Borrowing',
-            'NPR ${(_stats!['totalBorrowing'] as double).toStringAsFixed(2)}',
+            'Borrowing',
+            'NPR ${(_stats!['totalBorrowing'] as double).toStringAsFixed(0)}',
             Colors.orange,
             Icons.trending_down,
+            theme,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard(
+            'Net',
+            'NPR ${(_stats!['netAmount'] as double).toStringAsFixed(0)}',
+            (_stats!['netAmount'] as double) >= 0 ? Colors.green : Colors.red,
+            (_stats!['netAmount'] as double) >= 0 ? Icons.add_circle : Icons.remove_circle,
             theme,
           ),
         ),
@@ -332,65 +348,174 @@ class _TransactionsScreenState extends State<TransactionsScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.1),
+          color: color.withOpacity(0.2),
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                icon,
-                size: 20,
-                color: color,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                  ),
-                ),
-              ),
-            ],
+          Icon(
+            icon,
+            size: 24,
+            color: color,
           ),
           const SizedBox(height: 8),
           Text(
             value,
-            style: theme.textTheme.bodyLarge?.copyWith(
+            style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
               color: color,
             ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTransactionsList() {
+  Widget _buildStatusChips(ThemeData theme) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          _buildStatusChip(
+            null,
+            'All',
+            _getStatusCount(null),
+            theme,
+          ),
+          const SizedBox(width: 12),
+          _buildStatusChip(
+            TransactionStatus.pending,
+            'Pending',
+            _getStatusCount(TransactionStatus.pending),
+            theme,
+          ),
+          const SizedBox(width: 12),
+          _buildStatusChip(
+            TransactionStatus.verified,
+            'Verified',
+            _getStatusCount(TransactionStatus.verified),
+            theme,
+          ),
+          const SizedBox(width: 12),
+          _buildStatusChip(
+            TransactionStatus.completed,
+            'Completed',
+            _getStatusCount(TransactionStatus.completed),
+            theme,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(
+    TransactionStatus? status,
+    String label,
+    int count,
+    ThemeData theme,
+  ) {
+    final isSelected = _selectedStatus == status;
+    
+    return FilterChip(
+      selected: isSelected,
+      onSelected: (selected) => _onStatusFilterChanged(selected ? status : null),
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          if (count > 0) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isSelected 
+                    ? theme.colorScheme.onPrimary.withOpacity(0.8)
+                    : theme.colorScheme.primary.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                count.toString(),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: isSelected 
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      selectedColor: theme.colorScheme.primary,
+      backgroundColor: theme.colorScheme.surface,
+      checkmarkColor: theme.colorScheme.onPrimary,
+      labelStyle: TextStyle(
+        color: isSelected 
+            ? theme.colorScheme.onPrimary
+            : theme.colorScheme.onSurface,
+        fontWeight: FontWeight.w500,
+      ),
+      side: BorderSide(
+        color: isSelected 
+            ? theme.colorScheme.primary
+            : theme.colorScheme.outline.withOpacity(0.3),
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+    );
+  }
+
+  int _getStatusCount(TransactionStatus? status) {
+    if (_stats == null) return 0;
+    
+    switch (status) {
+      case null:
+        return _stats!['totalTransactions'] as int? ?? 0;
+      case TransactionStatus.pending:
+        return _stats!['pendingTransactions'] as int? ?? 0;
+      case TransactionStatus.verified:
+        return _stats!['verifiedTransactions'] as int? ?? 0;
+      case TransactionStatus.completed:
+        return _stats!['completedTransactions'] as int? ?? 0;
+      case TransactionStatus.cancelled:
+        return 0;
+    }
+  }
+
+  Widget _buildSliverTransactionsList() {
     return BlocBuilder<TransactionCubit, TransactionState>(
       builder: (context, state) {
         if (state is TransactionLoading && state is! TransactionsLoaded) {
-          return const Center(child: CircularProgressIndicator());
+          return const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          );
         }
 
         if (state is TransactionsLoaded) {
           if (state.transactions.isEmpty) {
-            return _buildEmptyState();
+            return SliverFillRemaining(
+              child: _buildEmptyStateContent(),
+            );
           }
 
-          return RefreshIndicator(
-            onRefresh: () async => _refreshTransactions(),
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(20),
-              itemCount: state.transactions.length + (state.hasMore ? 1 : 0),
-              itemBuilder: (context, index) {
+          return SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
                 if (index >= state.transactions.length) {
                   return const Center(
                     child: Padding(
@@ -401,62 +526,109 @@ class _TransactionsScreenState extends State<TransactionsScreen>
                 }
 
                 final transaction = state.transactions[index];
-                return TransactionCard(
-                  transaction: transaction,
-                  onTap: () {
-                    context.push('/transaction-detail/${transaction.id}');
-                  },
-                  onVerify: transaction.canBeVerified
-                      ? () => _verifyTransaction(transaction)
-                      : null,
-                  onComplete: transaction.canBeCompleted
-                      ? () => _completeTransaction(transaction)
-                      : null,
-                  onDelete: transaction.isPending
-                      ? () => _deleteTransaction(transaction)
-                      : null,
+                return Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    index == 0 ? 20 : 0,
+                    20,
+                    index == state.transactions.length - 1 ? 100 : 12,
+                  ),
+                  child: TransactionCard(
+                    transaction: transaction,
+                    onTap: () {
+                      context.push('/transaction-detail/${transaction.id}');
+                    },
+                    onVerify: transaction.canBeVerified
+                        ? () => _verifyTransaction(transaction)
+                        : null,
+                    onComplete: transaction.canBeCompleted
+                        ? () => _completeTransaction(transaction)
+                        : null,
+                    onDelete: transaction.isPending
+                        ? () => _deleteTransaction(transaction)
+                        : null,
+                  ),
                 );
               },
+              childCount: state.transactions.length + (state.hasMore ? 1 : 0),
             ),
           );
         }
 
-        return _buildEmptyState();
+        return SliverFillRemaining(
+          child: _buildEmptyStateContent(),
+        );
       },
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyStateContent() {
     final theme = Theme.of(context);
     
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 64,
-            color: theme.colorScheme.onSurface.withOpacity(0.3),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _searchQuery.isNotEmpty
-                ? 'No transactions found'
-                : 'No transactions yet',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
-            ),
-          ),
-          if (_searchQuery.isEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Create your first transaction to get started',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.4),
+    return SingleChildScrollView(
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.6,
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                _searchQuery.isNotEmpty || _selectedStatus != null
+                    ? Icons.search_off
+                    : Icons.receipt_long_outlined,
+                size: 48,
+                color: theme.colorScheme.primary,
               ),
             ),
+            const SizedBox(height: 24),
+            Text(
+              _searchQuery.isNotEmpty || _selectedStatus != null
+                  ? 'No matching transactions'
+                  : 'No transactions yet',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _searchQuery.isNotEmpty || _selectedStatus != null
+                  ? 'Try adjusting your search or filters'
+                  : 'Create your first transaction to get started',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (_searchQuery.isEmpty && _selectedStatus == null) ...[
+              const SizedBox(height: 32),
+              FilledButton.icon(
+                onPressed: () {
+                  context.push('/transaction-form');
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Create Transaction'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -471,9 +643,13 @@ class _TransactionsScreenState extends State<TransactionsScreen>
           children: [
             DropdownButtonFormField<TransactionType?>(
               value: _selectedType,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Transaction Type',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
               ),
               items: [
                 const DropdownMenuItem(value: null, child: Text('All Types')),
@@ -516,7 +692,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
   void _verifyTransaction(Transaction transaction) {
     context.read<TransactionCubit>().verifyTransaction(
       transaction.id,
-      'current-user-id', // TODO: Replace with actual current user ID
+      'current-user-id',
     );
   }
 
