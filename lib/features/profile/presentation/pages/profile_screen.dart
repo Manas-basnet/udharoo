@@ -91,7 +91,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     width: 80,
                                     height: 80,
                                     decoration: BoxDecoration(
-                                      color: theme.colorScheme.primary.withOpacity(0.1),
+                                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: state.user.photoURL != null
@@ -127,7 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         Text(
                                           state.user.email!,
                                           style: theme.textTheme.bodyMedium?.copyWith(
-                                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                           ),
                                         ),
                                         const SizedBox(width: 8),
@@ -154,7 +154,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         Text(
                                           state.user.phoneNumber!,
                                           style: theme.textTheme.bodyMedium?.copyWith(
-                                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                           ),
                                         ),
                                         const SizedBox(width: 8),
@@ -181,7 +181,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         vertical: 6,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.orange.withOpacity(0.1),
+                                        color: Colors.orange.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Row(
@@ -239,7 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             vertical: 4,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.orange.withOpacity(0.1),
+                                            color: Colors.orange.withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(12),
                                           ),
                                           child: Text(
@@ -282,7 +282,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             vertical: 4,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.blue.withOpacity(0.1),
+                                            color: Colors.blue.withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(12),
                                           ),
                                           child: Text(
@@ -454,7 +454,7 @@ class _ProfileSection extends StatelessWidget {
           title,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
-            color: theme.colorScheme.onSurface.withOpacity(0.8),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
           ),
         ),
         const SizedBox(height: 12),
@@ -463,7 +463,7 @@ class _ProfileSection extends StatelessWidget {
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: theme.colorScheme.outline.withOpacity(0.1),
+              color: theme.colorScheme.outline.withValues(alpha: 0.1),
             ),
           ),
           child: Column(
@@ -479,7 +479,7 @@ class _ProfileSection extends StatelessWidget {
                     Divider(
                       height: 1,
                       thickness: 0.5,
-                      color: theme.colorScheme.outline.withOpacity(0.1),
+                      color: theme.colorScheme.outline.withValues(alpha: 0.1),
                       indent: 56,
                     ),
                 ],
@@ -519,7 +519,7 @@ class _ProfileItem extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withOpacity(0.1),
+          color: theme.colorScheme.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
@@ -537,12 +537,12 @@ class _ProfileItem extends StatelessWidget {
       subtitle: Text(
         subtitle,
         style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurface.withOpacity(0.6),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
         ),
       ),
       trailing: trailing ?? Icon(
         Icons.chevron_right,
-        color: theme.colorScheme.onSurface.withOpacity(0.4),
+        color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );

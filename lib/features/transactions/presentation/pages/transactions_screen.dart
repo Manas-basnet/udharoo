@@ -64,16 +64,22 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       onRefresh: () async => _refreshTransactions(),
       child: CustomScrollView(
         controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverAppBar(
             expandedHeight: _stats != null ? 280.0 : 200.0,
             floating: true,
             pinned: true,
-            snap: false,
+            snap: true,
+            stretch: true,
             backgroundColor: theme.colorScheme.surface,
             surfaceTintColor: theme.colorScheme.surface,
             elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
+              stretchModes: const [
+                StretchMode.zoomBackground,
+                StretchMode.blurBackground,
+              ],
               background: Container(
                 color: theme.colorScheme.surface,
                 child: _buildExpandedHeader(theme),

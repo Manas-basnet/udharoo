@@ -18,7 +18,7 @@ class LogoutDialog {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
@@ -39,7 +39,7 @@ class LogoutDialog {
         content: Text(
           'Are you sure you want to sign out of your account?',
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.7),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
         actions: [
@@ -48,7 +48,7 @@ class LogoutDialog {
             child: Text(
               'Cancel',
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ),

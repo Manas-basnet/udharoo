@@ -54,7 +54,7 @@ class TransactionVerificationDialog extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
@@ -78,7 +78,7 @@ class TransactionVerificationDialog extends StatelessWidget {
                     icon: const Icon(Icons.close),
                     style: IconButton.styleFrom(
                       backgroundColor: theme.colorScheme.surface,
-                      foregroundColor: theme.colorScheme.onSurface.withOpacity(0.6),
+                      foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
               ],
@@ -89,7 +89,7 @@ class TransactionVerificationDialog extends StatelessWidget {
             Text(
               'Please confirm the transaction details before verifying:',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
             
@@ -98,10 +98,10 @@ class TransactionVerificationDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.05),
+                color: theme.colorScheme.primary.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 ),
               ),
               child: Column(
@@ -147,10 +147,10 @@ class TransactionVerificationDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.05),
+                color: Colors.blue.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                 ),
               ),
               child: Row(
@@ -181,9 +181,9 @@ class TransactionVerificationDialog extends StatelessWidget {
                   child: OutlinedButton(
                     onPressed: isLoading ? null : onCancel,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: theme.colorScheme.onSurface.withOpacity(0.6),
+                      foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       side: BorderSide(
-                        color: theme.colorScheme.outline.withOpacity(0.3),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -237,7 +237,7 @@ class TransactionVerificationDialog extends StatelessWidget {
           child: Text(
             label,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               fontWeight: FontWeight.w500,
             ),
           ),

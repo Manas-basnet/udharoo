@@ -54,11 +54,11 @@ class TransactionSummaryWidget extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: netAmount >= 0 
-                    ? Colors.green.withOpacity(0.1) 
-                    : Colors.red.withOpacity(0.1),
+                    ? Colors.green.withValues(alpha: 0.1) 
+                    : Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: (netAmount >= 0 ? Colors.green : Colors.red).withOpacity(0.3),
+                  color: (netAmount >= 0 ? Colors.green : Colors.red).withValues(alpha: 0.3),
                 ),
               ),
               child: Column(
@@ -66,7 +66,7 @@ class TransactionSummaryWidget extends StatelessWidget {
                   Text(
                     'Net Amount',
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -109,7 +109,7 @@ class TransactionSummaryWidget extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.1),
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -127,7 +127,7 @@ class TransactionSummaryWidget extends StatelessWidget {
                 child: Text(
                   title,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ),
@@ -209,7 +209,7 @@ class TransactionQuickStats extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(

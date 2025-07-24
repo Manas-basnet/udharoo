@@ -22,7 +22,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
           color: colorScheme.surface,
           border: Border(
             top: BorderSide(
-              color: colorScheme.outline.withOpacity(0.2),
+              color: colorScheme.outline.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -130,7 +130,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                 height: 32,
                 decoration: isSelected
                     ? BoxDecoration(
-                        color: colorScheme.primary.withOpacity(0.12),
+                        color: colorScheme.primary.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       )
                     : null,
@@ -138,7 +138,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                   isSelected ? selectedIcon : icon,
                   color: isSelected
                       ? colorScheme.primary
-                      : colorScheme.onSurface.withOpacity(0.6),
+                      : colorScheme.onSurface.withValues(alpha: 0.6),
                   size: 20,
                 ),
               ),
@@ -149,7 +149,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                   fontSize: 10,
                   color: isSelected
                       ? colorScheme.primary
-                      : colorScheme.onSurface.withOpacity(0.6),
+                      : colorScheme.onSurface.withValues(alpha: 0.6),
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 ),
                 maxLines: 1,
@@ -192,7 +192,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurface.withOpacity(0.3),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -273,7 +273,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.1),
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(

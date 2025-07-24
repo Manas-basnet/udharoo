@@ -38,7 +38,7 @@ class QRGeneratorWidget extends StatelessWidget {
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: theme.colorScheme.outline.withOpacity(0.1),
+              color: theme.colorScheme.outline.withValues(alpha: 0.1),
             ),
           ),
           child: Column(
@@ -49,7 +49,7 @@ class QRGeneratorWidget extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: theme.colorScheme.outline.withOpacity(0.2),
+                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
                   ),
                 ),
                 child: QrImageView(
@@ -76,7 +76,7 @@ class QRGeneratorWidget extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -99,14 +99,14 @@ class QRGeneratorWidget extends StatelessWidget {
                         Text(
                           qrData.userPhone,
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                         if (qrData.userEmail != null)
                           Text(
                             qrData.userEmail!,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                       ],
@@ -121,10 +121,10 @@ class QRGeneratorWidget extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: Colors.orange.withOpacity(0.3),
+                      color: Colors.orange.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -155,10 +155,10 @@ class QRGeneratorWidget extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: theme.colorScheme.primary.withOpacity(0.3),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -234,7 +234,7 @@ class QRGeneratorWidget extends StatelessWidget {
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: theme.colorScheme.outline.withOpacity(0.1),
+              color: theme.colorScheme.outline.withValues(alpha: 0.1),
             ),
           ),
           child: Row(
@@ -242,14 +242,14 @@ class QRGeneratorWidget extends StatelessWidget {
               Icon(
                 Icons.info_outline,
                 size: 16,
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Others can scan this QR code to quickly add your contact information when creating transactions.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ),

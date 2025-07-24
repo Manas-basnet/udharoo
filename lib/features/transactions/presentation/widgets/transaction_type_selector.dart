@@ -21,7 +21,7 @@ class TransactionTypeSelector extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.3),
+          color: theme.colorScheme.outline.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -71,7 +71,7 @@ class TransactionTypeSelector extends StatelessWidget {
           Container(
             width: 1,
             height: 48,
-            color: theme.colorScheme.outline.withOpacity(0.3),
+            color: theme.colorScheme.outline.withValues(alpha: 0.3),
           ),
           Expanded(
             child: InkWell(

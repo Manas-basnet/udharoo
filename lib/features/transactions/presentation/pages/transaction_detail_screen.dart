@@ -162,7 +162,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.1),
+                color: theme.colorScheme.outline.withValues(alpha: 0.1),
               ),
             ),
             child: Column(
@@ -170,7 +170,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: _getTypeColor(transaction.type).withOpacity(0.1),
+                    color: _getTypeColor(transaction.type).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -185,7 +185,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                 Text(
                   transaction.type.displayName,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
                 
@@ -207,7 +207,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(transaction.status).withOpacity(0.1),
+                    color: _getStatusColor(transaction.status).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -293,7 +293,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.1),
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -310,7 +310,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           ),
           Divider(
             height: 1,
-            color: theme.colorScheme.outline.withOpacity(0.1),
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
           ),
           ...children,
         ],
@@ -338,7 +338,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                 Text(
                   label,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -416,13 +416,13 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           Icon(
             Icons.error_outline,
             size: 64,
-            color: theme.colorScheme.onSurface.withOpacity(0.3),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
             'Transaction not found',
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 16),

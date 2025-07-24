@@ -134,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Text(
                           'Your Digital Ledger',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                         
@@ -147,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: theme.colorScheme.surface,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: theme.colorScheme.outline.withOpacity(0.1),
+                              color: theme.colorScheme.outline.withValues(alpha: 0.1),
                             ),
                           ),
                           child: Form(
@@ -166,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 Text(
                                   'Sign in to continue',
                                   style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -178,7 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   width: double.infinity,
                                   decoration: BoxDecoration(
                                     border: Border.all(
-                                      color: theme.colorScheme.outline.withOpacity(0.3),
+                                      color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                     ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -231,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   children: [
                                     Expanded(
                                       child: Divider(
-                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     Padding(
@@ -239,13 +239,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                       child: Text(
                                         'or',
                                         style: theme.textTheme.bodySmall?.copyWith(
-                                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                         ),
                                       ),
                                     ),
                                     Expanded(
                                       child: Divider(
-                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                       ),
                                     ),
                                   ],
@@ -262,13 +262,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
                                       borderSide: BorderSide(
-                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
                                       borderSide: BorderSide(
-                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     focusedBorder: OutlineInputBorder(
@@ -332,13 +332,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
                                       borderSide: BorderSide(
-                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
                                       borderSide: BorderSide(
-                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     focusedBorder: OutlineInputBorder(
@@ -434,7 +434,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     child: RichText(
                                       text: TextSpan(
                                         style: theme.textTheme.bodySmall?.copyWith(
-                                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                         ),
                                         children: [
                                           const TextSpan(text: 'Don\'t have an account? '),
@@ -490,7 +490,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Text(
               'Enter your email address and we\'ll send you a link to reset your password.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
             const SizedBox(height: 16),
@@ -516,7 +516,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Text(
               'Cancel',
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ),

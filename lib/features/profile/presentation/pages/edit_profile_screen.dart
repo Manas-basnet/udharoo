@@ -209,7 +209,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     'Save',
                     style: TextStyle(
                       color: isLoading 
-                          ? theme.colorScheme.onSurface.withOpacity(0.4)
+                          ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
                           : theme.colorScheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
@@ -238,7 +238,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   width: 100,
                                   height: 100,
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary.withOpacity(0.1),
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(50),
                                   ),
                                   child: state.user.photoURL != null
@@ -299,13 +299,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
-                                  color: theme.colorScheme.outline.withOpacity(0.3),
+                                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
-                                  color: theme.colorScheme.outline.withOpacity(0.3),
+                                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                 ),
                               ),
                               focusedBorder: OutlineInputBorder(
@@ -341,17 +341,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
-                                  color: theme.colorScheme.outline.withOpacity(0.3),
+                                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
-                                  color: theme.colorScheme.outline.withOpacity(0.3),
+                                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                 ),
                               ),
                               filled: true,
-                              fillColor: theme.colorScheme.surface.withOpacity(0.5),
+                              fillColor: theme.colorScheme.surface.withValues(alpha: 0.5),
                             ),
                             enabled: false,
                           ),
@@ -367,17 +367,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
-                                  color: theme.colorScheme.outline.withOpacity(0.3),
+                                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
-                                  color: theme.colorScheme.outline.withOpacity(0.3),
+                                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                 ),
                               ),
                               filled: true,
-                              fillColor: theme.colorScheme.surface.withOpacity(0.5),
+                              fillColor: theme.colorScheme.surface.withValues(alpha: 0.5),
                             ),
                             enabled: false,
                           ),
@@ -393,17 +393,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
-                                  color: theme.colorScheme.outline.withOpacity(0.3),
+                                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
-                                  color: theme.colorScheme.outline.withOpacity(0.3),
+                                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                 ),
                               ),
                               filled: true,
-                              fillColor: theme.colorScheme.surface.withOpacity(0.5),
+                              fillColor: theme.colorScheme.surface.withValues(alpha: 0.5),
                             ),
                             enabled: false,
                           ),
@@ -429,7 +429,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   color: theme.colorScheme.surface,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: theme.colorScheme.outline.withOpacity(0.1),
+                                    color: theme.colorScheme.outline.withValues(alpha: 0.1),
                                   ),
                                 ),
                                 child: Column(
@@ -439,7 +439,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: Colors.red.withOpacity(0.1),
+                                            color: Colors.red.withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Container(
@@ -477,7 +477,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                                     ? 'Linked to ${state.user.email}'
                                                     : 'Not linked',
                                                 style: theme.textTheme.bodySmall?.copyWith(
-                                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                                 ),
                                               ),
                                             ],
@@ -490,7 +490,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                               vertical: 4,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.green.withOpacity(0.1),
+                                              color: Colors.green.withValues(alpha: 0.1),
                                               borderRadius: BorderRadius.circular(12),
                                             ),
                                             child: Text(
@@ -546,7 +546,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     Divider(
                                       height: 24,
                                       thickness: 0.5,
-                                      color: theme.colorScheme.outline.withOpacity(0.2),
+                                      color: theme.colorScheme.outline.withValues(alpha: 0.2),
                                     ),
                                     
                                     Row(
@@ -554,7 +554,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: theme.colorScheme.primary.withOpacity(0.1),
+                                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Icon(
@@ -579,7 +579,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                                     ? 'Sign in with email or phone + password'
                                                     : 'Not linked',
                                                 style: theme.textTheme.bodySmall?.copyWith(
-                                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                                 ),
                                               ),
                                             ],
@@ -594,7 +594,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                                   vertical: 4,
                                                 ),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.green.withOpacity(0.1),
+                                                  color: Colors.green.withValues(alpha: 0.1),
                                                   borderRadius: BorderRadius.circular(12),
                                                 ),
                                                 child: Text(
@@ -670,7 +670,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     Divider(
                                       height: 24,
                                       thickness: 0.5,
-                                      color: theme.colorScheme.outline.withOpacity(0.2),
+                                      color: theme.colorScheme.outline.withValues(alpha: 0.2),
                                     ),
                                     
                                     Row(
@@ -678,7 +678,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: theme.colorScheme.primary.withOpacity(0.1),
+                                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Icon(
@@ -701,7 +701,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                               Text(
                                                 state.user.phoneNumber ?? 'Not linked',
                                                 style: theme.textTheme.bodySmall?.copyWith(
-                                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                                 ),
                                               ),
                                             ],
@@ -716,7 +716,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                                   vertical: 4,
                                                 ),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.green.withOpacity(0.1),
+                                                  color: Colors.green.withValues(alpha: 0.1),
                                                   borderRadius: BorderRadius.circular(12),
                                                 ),
                                                 child: Text(

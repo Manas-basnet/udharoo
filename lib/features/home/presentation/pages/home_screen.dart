@@ -44,7 +44,7 @@ class HomeScreen extends StatelessWidget {
                             Text(
                               'Welcome back to Udharoo',
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                               ),
                             ),
                           ],
@@ -77,12 +77,12 @@ class HomeScreen extends StatelessWidget {
                               Text(
                                 'Net Balance',
                                 style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                                  color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
                                 ),
                               ),
                               Icon(
                                 Icons.visibility_outlined,
-                                color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                                color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
                                 size: 20,
                               ),
                             ],
@@ -108,7 +108,7 @@ class HomeScreen extends StatelessWidget {
                                     Text(
                                       'You Lent',
                                       style: theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                                        color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
                                       ),
                                     ),
                                     Text(
@@ -128,7 +128,7 @@ class HomeScreen extends StatelessWidget {
                                     Text(
                                       'You Borrowed',
                                       style: theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                                        color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
                                       ),
                                     ),
                                     Text(
@@ -289,7 +289,7 @@ class _QuickActionCard extends StatelessWidget {
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: theme.colorScheme.outline.withOpacity(0.1),
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
           ),
         ),
         child: Column(
@@ -298,7 +298,7 @@ class _QuickActionCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -318,7 +318,7 @@ class _QuickActionCard extends StatelessWidget {
             Text(
               subtitle,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -387,7 +387,7 @@ class _RecentTransactionItem extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.1),
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
         ),
       ),
       child: Row(
@@ -395,7 +395,7 @@ class _RecentTransactionItem extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: getColor().withOpacity(0.1),
+              color: getColor().withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Icon(
@@ -418,7 +418,7 @@ class _RecentTransactionItem extends StatelessWidget {
                 Text(
                   date,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],

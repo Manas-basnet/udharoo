@@ -153,7 +153,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     Text(
                       'Fill in your details to get started',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                     
@@ -166,7 +166,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: theme.colorScheme.outline.withOpacity(0.1),
+                          color: theme.colorScheme.outline.withValues(alpha: 0.1),
                         ),
                       ),
                       child: Form(
@@ -186,13 +186,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(8),
                                         borderSide: BorderSide(
-                                          color: theme.colorScheme.outline.withOpacity(0.3),
+                                          color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                         ),
                                       ),
                                       enabledBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(8),
                                         borderSide: BorderSide(
-                                          color: theme.colorScheme.outline.withOpacity(0.3),
+                                          color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                         ),
                                       ),
                                       focusedBorder: OutlineInputBorder(
@@ -238,13 +238,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(8),
                                         borderSide: BorderSide(
-                                          color: theme.colorScheme.outline.withOpacity(0.3),
+                                          color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                         ),
                                       ),
                                       enabledBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(8),
                                         borderSide: BorderSide(
-                                          color: theme.colorScheme.outline.withOpacity(0.3),
+                                          color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                         ),
                                       ),
                                       focusedBorder: OutlineInputBorder(
@@ -291,13 +291,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                   borderSide: BorderSide(
-                                    color: theme.colorScheme.outline.withOpacity(0.3),
+                                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                   borderSide: BorderSide(
-                                    color: theme.colorScheme.outline.withOpacity(0.3),
+                                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
@@ -345,7 +345,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 border: Border.all(
-                                  color: theme.colorScheme.outline.withOpacity(0.3),
+                                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                 ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -410,7 +410,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                       ),
                                       decoration: BoxDecoration(
                                         border: Border.all(
-                                          color: theme.colorScheme.outline.withOpacity(0.3),
+                                          color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                         ),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
@@ -427,7 +427,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                             style: theme.textTheme.bodyMedium?.copyWith(
                                               color: _selectedDate != null
                                                   ? theme.colorScheme.onSurface
-                                                  : theme.colorScheme.onSurface.withOpacity(0.6),
+                                                  : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                             ),
                                           ),
                                         ],
@@ -461,13 +461,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                   borderSide: BorderSide(
-                                    color: theme.colorScheme.outline.withOpacity(0.3),
+                                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                   borderSide: BorderSide(
-                                    color: theme.colorScheme.outline.withOpacity(0.3),
+                                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
@@ -523,13 +523,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                   borderSide: BorderSide(
-                                    color: theme.colorScheme.outline.withOpacity(0.3),
+                                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                   borderSide: BorderSide(
-                                    color: theme.colorScheme.outline.withOpacity(0.3),
+                                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
@@ -610,7 +610,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 child: RichText(
                                   text: TextSpan(
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                     ),
                                     children: [
                                       const TextSpan(text: 'Already have an account? '),

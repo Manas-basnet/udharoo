@@ -29,7 +29,7 @@ class TransactionCard extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.1),
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
         ),
       ),
       child: Material(
@@ -47,7 +47,7 @@ class TransactionCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: _getTypeColor(transaction.type).withOpacity(0.1),
+                        color: _getTypeColor(transaction.type).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
@@ -71,7 +71,7 @@ class TransactionCard extends StatelessWidget {
                           Text(
                             transaction.contactPhone,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         ],
@@ -94,7 +94,7 @@ class TransactionCard extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: _getStatusColor(transaction.status).withOpacity(0.1),
+                            color: _getStatusColor(transaction.status).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -115,7 +115,7 @@ class TransactionCard extends StatelessWidget {
                   Text(
                     transaction.description!,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -129,13 +129,13 @@ class TransactionCard extends StatelessWidget {
                     Icon(
                       Icons.access_time,
                       size: 14,
-                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       _formatDate(transaction.createdAt),
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                     
@@ -146,7 +146,7 @@ class TransactionCard extends StatelessWidget {
                         size: 14,
                         color: _isDueDatePassed(transaction.dueDate!) 
                             ? Colors.red 
-                            : theme.colorScheme.onSurface.withOpacity(0.5),
+                            : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -154,7 +154,7 @@ class TransactionCard extends StatelessWidget {
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: _isDueDatePassed(transaction.dueDate!) 
                               ? Colors.red 
-                              : theme.colorScheme.onSurface.withOpacity(0.5),
+                              : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                       ),
                     ],

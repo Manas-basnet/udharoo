@@ -36,12 +36,12 @@ class DatePickerField extends StatelessWidget {
           border: Border.all(
             color: errorText != null 
                 ? Colors.red 
-                : theme.colorScheme.outline.withOpacity(0.3),
+                : theme.colorScheme.outline.withValues(alpha: 0.3),
           ),
           borderRadius: BorderRadius.circular(12),
           color: enabled 
               ? theme.colorScheme.surface 
-              : theme.colorScheme.surface.withOpacity(0.5),
+              : theme.colorScheme.surface.withValues(alpha: 0.5),
         ),
         child: Row(
           children: [
@@ -50,7 +50,7 @@ class DatePickerField extends StatelessWidget {
                 prefixIcon,
                 color: enabled 
                     ? theme.colorScheme.primary 
-                    : theme.colorScheme.onSurface.withOpacity(0.5),
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
               const SizedBox(width: 12),
             ],
@@ -61,7 +61,7 @@ class DatePickerField extends StatelessWidget {
                   Text(
                     label,
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -72,7 +72,7 @@ class DatePickerField extends StatelessWidget {
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: selectedDate != null 
                           ? theme.colorScheme.onSurface
-                          : theme.colorScheme.onSurface.withOpacity(0.5),
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                   if (errorText != null) ...[
@@ -102,7 +102,7 @@ class DatePickerField extends StatelessWidget {
               Icon(
                 Icons.calendar_today,
                 size: 20,
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
           ],
         ),

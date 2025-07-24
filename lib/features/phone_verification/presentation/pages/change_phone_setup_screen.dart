@@ -135,7 +135,7 @@ class _ChangePhoneSetupScreenState extends State<ChangePhoneSetupScreen> {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withOpacity(0.1),
+                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Icon(
@@ -163,7 +163,7 @@ class _ChangePhoneSetupScreenState extends State<ChangePhoneSetupScreen> {
                           child: Text(
                             'We need to verify your new phone number before the change takes effect.',
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -178,7 +178,7 @@ class _ChangePhoneSetupScreenState extends State<ChangePhoneSetupScreen> {
                             color: theme.colorScheme.surface,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: theme.colorScheme.outline.withOpacity(0.1),
+                              color: theme.colorScheme.outline.withValues(alpha: 0.1),
                             ),
                           ),
                           child: Column(
@@ -188,13 +188,13 @@ class _ChangePhoneSetupScreenState extends State<ChangePhoneSetupScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: theme.colorScheme.outline.withOpacity(0.1),
+                                      color: theme.colorScheme.outline.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Icon(
                                       Icons.phone,
                                       size: 16,
-                                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -205,7 +205,7 @@ class _ChangePhoneSetupScreenState extends State<ChangePhoneSetupScreen> {
                                         Text(
                                           'Current Number',
                                           style: theme.textTheme.labelSmall?.copyWith(
-                                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                           ),
                                         ),
                                         const SizedBox(height: 2),
@@ -227,7 +227,7 @@ class _ChangePhoneSetupScreenState extends State<ChangePhoneSetupScreen> {
                                   children: [
                                     Expanded(
                                       child: Divider(
-                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     Padding(
@@ -240,7 +240,7 @@ class _ChangePhoneSetupScreenState extends State<ChangePhoneSetupScreen> {
                                     ),
                                     Expanded(
                                       child: Divider(
-                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                       ),
                                     ),
                                   ],
@@ -252,7 +252,7 @@ class _ChangePhoneSetupScreenState extends State<ChangePhoneSetupScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: theme.colorScheme.primary.withOpacity(0.1),
+                                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Icon(
@@ -294,10 +294,10 @@ class _ChangePhoneSetupScreenState extends State<ChangePhoneSetupScreen> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withOpacity(0.05),
+                            color: theme.colorScheme.primary.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: theme.colorScheme.primary.withOpacity(0.1),
+                              color: theme.colorScheme.primary.withValues(alpha: 0.1),
                             ),
                           ),
                           child: Row(
@@ -367,7 +367,7 @@ class _ChangePhoneSetupScreenState extends State<ChangePhoneSetupScreen> {
                           child: Text(
                             'Cancel Change',
                             style: TextStyle(
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                               fontSize: 16,
                             ),
                           ),

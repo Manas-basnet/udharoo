@@ -142,20 +142,20 @@ class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen>
           Icon(
             Icons.check_circle_outline,
             size: 64,
-            color: theme.colorScheme.onSurface.withOpacity(0.3),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
             'No completed transactions',
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Completed transactions will appear here',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.4),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
           ),
         ],

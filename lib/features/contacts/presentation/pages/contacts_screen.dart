@@ -108,13 +108,13 @@ class _ContactsScreenState extends State<ContactsScreen> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: theme.colorScheme.outline.withOpacity(0.3),
+                          color: theme.colorScheme.outline.withValues(alpha: 0.3),
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: theme.colorScheme.outline.withOpacity(0.3),
+                          color: theme.colorScheme.outline.withValues(alpha: 0.3),
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
@@ -139,7 +139,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                           Icon(
                             Icons.people_outline,
                             size: 64,
-                            color: theme.colorScheme.onSurface.withOpacity(0.3),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -147,7 +147,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                                 ? 'No contacts found'
                                 : 'No contacts yet',
                             style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                           if (searchQuery.isEmpty) ...[
@@ -155,7 +155,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                             Text(
                               'Add your first contact to get started',
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(0.4),
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                               ),
                             ),
                           ]
@@ -209,7 +209,7 @@ class _ContactItem extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.1),
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
         ),
       ),
       child: Row(
@@ -218,7 +218,7 @@ class _ContactItem extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -261,7 +261,7 @@ class _ContactItem extends StatelessWidget {
                     Text(
                       contact['phone'],
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                     Text(

@@ -163,13 +163,13 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: theme.colorScheme.outline.withOpacity(0.3),
+                color: theme.colorScheme.outline.withValues(alpha: 0.3),
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: theme.colorScheme.outline.withOpacity(0.3),
+                color: theme.colorScheme.outline.withValues(alpha: 0.3),
               ),
             ),
             focusedBorder: OutlineInputBorder(
@@ -198,7 +198,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.3),
+                color: theme.colorScheme.outline.withValues(alpha: 0.3),
               ),
             ),
             child: ListView.builder(
@@ -208,7 +208,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
                 final contact = _filteredContacts[index];
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                     child: Text(
                       contact.name[0].toUpperCase(),
                       style: TextStyle(
@@ -226,7 +226,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
                   subtitle: Text(
                     contact.phone,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   trailing: Text(
@@ -253,13 +253,13 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: theme.colorScheme.outline.withOpacity(0.3),
+                color: theme.colorScheme.outline.withValues(alpha: 0.3),
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: theme.colorScheme.outline.withOpacity(0.3),
+                color: theme.colorScheme.outline.withValues(alpha: 0.3),
               ),
             ),
             focusedBorder: OutlineInputBorder(
@@ -291,13 +291,13 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: theme.colorScheme.outline.withOpacity(0.3),
+                color: theme.colorScheme.outline.withValues(alpha: 0.3),
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: theme.colorScheme.outline.withOpacity(0.3),
+                color: theme.colorScheme.outline.withValues(alpha: 0.3),
               ),
             ),
             focusedBorder: OutlineInputBorder(

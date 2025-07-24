@@ -228,7 +228,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     isEditing ? 'Update' : 'Create',
                     style: TextStyle(
                       color: isLoading 
-                          ? theme.colorScheme.onSurface.withOpacity(0.4)
+                          ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
                           : theme.colorScheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
@@ -258,7 +258,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: theme.colorScheme.outline.withOpacity(0.3),
+                      color: theme.colorScheme.outline.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -312,7 +312,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       Container(
                         width: 1,
                         height: 48,
-                        color: theme.colorScheme.outline.withOpacity(0.3),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                       ),
                       Expanded(
                         child: InkWell(
@@ -411,13 +411,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: theme.colorScheme.outline.withOpacity(0.3),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: theme.colorScheme.outline.withOpacity(0.3),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
@@ -442,7 +442,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: theme.colorScheme.outline.withOpacity(0.3),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                       ),
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -460,7 +460,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                               Text(
                                 'Due Date (Optional)',
                                 style: theme.textTheme.labelMedium?.copyWith(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -471,7 +471,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: _dueDate != null 
                                       ? theme.colorScheme.onSurface
-                                      : theme.colorScheme.onSurface.withOpacity(0.5),
+                                      : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                                 ),
                               ),
                             ],
@@ -500,7 +500,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: theme.colorScheme.outline.withOpacity(0.1),
+                      color: theme.colorScheme.outline.withValues(alpha: 0.1),
                     ),
                   ),
                   child: Row(
@@ -509,7 +509,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         Icons.verified_user,
                         color: _verificationRequired 
                             ? theme.colorScheme.primary 
-                            : theme.colorScheme.onSurface.withOpacity(0.5),
+                            : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -525,7 +525,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                             Text(
                               'Require the other party to verify this transaction',
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                               ),
                             ),
                           ],

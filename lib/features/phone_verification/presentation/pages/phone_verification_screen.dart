@@ -186,7 +186,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withOpacity(0.1),
+                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Icon(
@@ -215,7 +215,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                             textAlign: TextAlign.center,
                             text: TextSpan(
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                               ),
                               children: [
                                 const TextSpan(text: 'We sent a 6-digit code to\n'),
@@ -264,11 +264,11 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                                 fieldWidth: 40,
                                 activeFillColor: theme.colorScheme.surface,
                                 inactiveFillColor: theme.colorScheme.surface,
-                                selectedFillColor: theme.colorScheme.primary.withOpacity(0.1),
+                                selectedFillColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                                 activeColor: theme.colorScheme.primary,
-                                inactiveColor: theme.colorScheme.outline.withOpacity(0.3),
+                                inactiveColor: theme.colorScheme.outline.withValues(alpha: 0.3),
                                 selectedColor: theme.colorScheme.primary,
-                                disabledColor: theme.colorScheme.outline.withOpacity(0.2),
+                                disabledColor: theme.colorScheme.outline.withValues(alpha: 0.2),
                               ),
                               cursorColor: theme.colorScheme.primary,
                               animationDuration: const Duration(milliseconds: 300),
@@ -347,7 +347,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                               child: Text(
                                 'Didn\'t receive the code? ',
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -370,7 +370,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                                     style: TextStyle(
                                       color: (_canResend && !isLoading)
                                           ? theme.colorScheme.primary
-                                          : theme.colorScheme.onSurface.withOpacity(0.4),
+                                          : theme.colorScheme.onSurface.withValues(alpha: 0.4),
                                       fontWeight: FontWeight.w600,
                                       fontSize: 14,
                                     ),
@@ -388,7 +388,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                           child: Text(
                             'Back',
                             style: TextStyle(
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                               fontSize: 16,
                             ),
                           ),

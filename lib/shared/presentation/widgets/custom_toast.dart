@@ -115,7 +115,7 @@ class _AnimatedSnackbarState extends State<AnimatedSnackbar>
             borderRadius: BorderRadius.circular(8),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 8,
                 offset: Offset(0, 2),
               ),
@@ -156,7 +156,7 @@ class _AnimatedSnackbarState extends State<AnimatedSnackbar>
                     padding: EdgeInsets.all(4),
                     child: Icon(
                       Icons.close,
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       size: 16,
                     ),
                   ),

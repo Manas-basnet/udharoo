@@ -72,7 +72,7 @@ class _AmountInputWidgetState extends State<AmountInputWidget> {
             border: Border.all(
               color: widget.errorText != null 
                   ? Colors.red 
-                  : theme.colorScheme.outline.withOpacity(0.3),
+                  : theme.colorScheme.outline.withValues(alpha: 0.3),
             ),
           ),
           child: TextFormField(
@@ -96,14 +96,14 @@ class _AmountInputWidgetState extends State<AmountInputWidget> {
                   'NPR',
                   style: theme.textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ),
               hintText: '0.00',
               hintStyle: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w300,
-                color: theme.colorScheme.onSurface.withOpacity(0.3),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
               ),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
@@ -178,7 +178,7 @@ class _QuickAmountButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             border: Border.all(
-              color: theme.colorScheme.outline.withOpacity(0.3),
+              color: theme.colorScheme.outline.withValues(alpha: 0.3),
             ),
             borderRadius: BorderRadius.circular(8),
           ),

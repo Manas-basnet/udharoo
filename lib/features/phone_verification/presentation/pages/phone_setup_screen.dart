@@ -169,7 +169,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withOpacity(0.1),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Icon(
@@ -199,7 +199,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                               ? 'We need to verify this device to secure your account.'
                               : 'We need to verify your phone number to secure your account.',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -214,7 +214,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                           color: theme.colorScheme.surface,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: theme.colorScheme.outline.withOpacity(0.1),
+                            color: theme.colorScheme.outline.withValues(alpha: 0.1),
                           ),
                         ),
                         child: Form(
@@ -226,10 +226,10 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary.withOpacity(0.05),
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.05),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: theme.colorScheme.primary.withOpacity(0.1),
+                                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
                                     ),
                                   ),
                                   child: Row(
@@ -280,7 +280,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                                     Container(
                                       decoration: BoxDecoration(
                                         border: Border.all(
-                                          color: theme.colorScheme.outline.withOpacity(0.3),
+                                          color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                         ),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
@@ -331,13 +331,13 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                                           border: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(8),
                                             borderSide: BorderSide(
-                                              color: theme.colorScheme.outline.withOpacity(0.3),
+                                              color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                             ),
                                           ),
                                           enabledBorder: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(8),
                                             borderSide: BorderSide(
-                                              color: theme.colorScheme.outline.withOpacity(0.3),
+                                              color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                             ),
                                           ),
                                           focusedBorder: OutlineInputBorder(
@@ -375,10 +375,10 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                               Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withOpacity(0.05),
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.05),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: theme.colorScheme.primary.withOpacity(0.1),
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                                   ),
                                 ),
                                 child: Row(
@@ -453,7 +453,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
                         child: Text(
                           'Use a different account',
                           style: TextStyle(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             fontSize: 16,
                           ),
                         ),

@@ -143,7 +143,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
         color: theme.colorScheme.surface,
         border: Border(
           bottom: BorderSide(
-            color: theme.colorScheme.outline.withOpacity(0.1),
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
           ),
         ),
       ),
@@ -153,7 +153,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Center(
@@ -181,7 +181,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
                 Text(
                   widget.contact.phone,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
                 if (widget.contact.email != null) ...[
@@ -189,7 +189,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
                   Text(
                     widget.contact.email!,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -209,7 +209,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
               Text(
                 widget.contact.transactionCount == 1 ? 'Transaction' : 'Transactions',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -254,10 +254,10 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: _netAmount >= 0 ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+              color: _netAmount >= 0 ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: (_netAmount >= 0 ? Colors.green : Colors.red).withOpacity(0.3),
+                color: (_netAmount >= 0 ? Colors.green : Colors.red).withValues(alpha: 0.3),
               ),
             ),
             child: Column(
@@ -265,7 +265,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
                 Text(
                   'Net Amount',
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -307,7 +307,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.1),
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -325,7 +325,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
                 child: Text(
                   title,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ),
@@ -361,20 +361,20 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
                 Icon(
                   Icons.receipt_long_outlined,
                   size: 64,
-                  color: theme.colorScheme.onSurface.withOpacity(0.3),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'No transactions found',
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Create your first transaction with ${widget.contact.name}',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                   textAlign: TextAlign.center,
                 ),

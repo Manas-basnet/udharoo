@@ -227,7 +227,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Icon(
@@ -253,7 +253,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   Text(
                     'We need a few more details to set up your account securely.',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -267,7 +267,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: theme.colorScheme.outline.withOpacity(0.1),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.1),
                       ),
                     ),
                     child: Form(
@@ -287,13 +287,13 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
                                       borderSide: BorderSide(
-                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
                                       borderSide: BorderSide(
-                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     focusedBorder: OutlineInputBorder(
@@ -332,13 +332,13 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
                                       borderSide: BorderSide(
-                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
                                       borderSide: BorderSide(
-                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     focusedBorder: OutlineInputBorder(
@@ -382,7 +382,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               border: Border.all(
-                                color: theme.colorScheme.outline.withOpacity(0.3),
+                                color: theme.colorScheme.outline.withValues(alpha: 0.3),
                               ),
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -474,13 +474,13 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
                                       borderSide: BorderSide(
-                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
                                       borderSide: BorderSide(
-                                        color: theme.colorScheme.outline.withOpacity(0.3),
+                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     focusedBorder: OutlineInputBorder(
@@ -534,10 +534,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withOpacity(0.05),
+                              color: theme.colorScheme.primary.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: theme.colorScheme.primary.withOpacity(0.1),
+                                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                               ),
                             ),
                             child: Row(

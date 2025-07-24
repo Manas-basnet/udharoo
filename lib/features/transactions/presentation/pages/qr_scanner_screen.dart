@@ -29,12 +29,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   }
 
   @override
-  void dispose() {
-    controller?.dispose();
-    super.dispose();
-  }
-
-  @override
   void reassemble() {
     super.reassemble();
     if (Platform.isAndroid) {
@@ -197,7 +191,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.7),
+              color: Colors.black.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -219,7 +213,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
+                  color: Colors.black.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -241,7 +235,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                     Text(
                       'Make sure the QR code is well lit and clearly visible',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -257,7 +251,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
+                      color: Colors.black.withValues(alpha: 0.7),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: IconButton(
@@ -276,7 +270,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         
         if (_isProcessing)
           Container(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withValues(alpha: 0.5),
             child: Center(
               child: Container(
                 padding: const EdgeInsets.all(24),
@@ -318,7 +312,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             Icon(
               Icons.camera_alt_outlined,
               size: 64,
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 24),
             Text(
@@ -333,7 +327,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             Text(
               'To scan QR codes, this app needs access to your camera. Please grant camera permission to continue.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
               ),
               textAlign: TextAlign.center,
             ),
@@ -369,7 +363,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               child: Text(
                 'Cancel',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                 ),
               ),
             ),

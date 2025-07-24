@@ -18,7 +18,7 @@ class QRGeneratorScreen extends StatefulWidget {
 class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
   final _messageController = TextEditingController();
   bool _verificationRequired = false;
-  bool _globalVerificationSetting = false;
+  final bool _globalVerificationSetting = false;
 
   @override
   void initState() {
@@ -103,13 +103,13 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                     Icon(
                       Icons.login,
                       size: 64,
-                      color: theme.colorScheme.onSurface.withOpacity(0.3),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       'Please sign in to generate QR codes',
                       style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -130,7 +130,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                       color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: theme.colorScheme.outline.withOpacity(0.1),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.1),
                       ),
                     ),
                     child: Column(
@@ -141,7 +141,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.primary.withOpacity(0.1),
+                                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
@@ -166,7 +166,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                         Text(
                           'Generate a QR code that others can scan to quickly add your contact information when creating transactions.',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -190,7 +190,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                       color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: theme.colorScheme.outline.withOpacity(0.1),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.1),
                       ),
                     ),
                     child: Column(
@@ -209,7 +209,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                                   Text(
                                     'Name',
                                     style: theme.textTheme.labelSmall?.copyWith(
-                                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                     ),
                                   ),
                                   Text(
@@ -225,7 +225,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                         ),
                         
                         const SizedBox(height: 12),
-                        Divider(color: theme.colorScheme.outline.withOpacity(0.2)),
+                        Divider(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
                         const SizedBox(height: 12),
                         
                         Row(
@@ -242,7 +242,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                                   Text(
                                     'Phone Number',
                                     style: theme.textTheme.labelSmall?.copyWith(
-                                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                     ),
                                   ),
                                   Text(
@@ -262,7 +262,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                         
                         if (user.email != null) ...[
                           const SizedBox(height: 12),
-                          Divider(color: theme.colorScheme.outline.withOpacity(0.2)),
+                          Divider(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
                           const SizedBox(height: 12),
                           
                           Row(
@@ -279,7 +279,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                                     Text(
                                       'Email',
                                       style: theme.textTheme.labelSmall?.copyWith(
-                                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                       ),
                                     ),
                                     Text(
@@ -303,10 +303,10 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
+                        color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: Colors.red.withOpacity(0.3),
+                          color: Colors.red.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Row(
@@ -346,7 +346,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                         color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: theme.colorScheme.outline.withOpacity(0.1),
+                          color: theme.colorScheme.outline.withValues(alpha: 0.1),
                         ),
                       ),
                       child: Column(
@@ -357,7 +357,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                                 Icons.verified_user,
                                 color: _verificationRequired 
                                     ? theme.colorScheme.primary 
-                                    : theme.colorScheme.onSurface.withOpacity(0.5),
+                                    : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -373,7 +373,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                                     Text(
                                       'Transactions created from this QR will require verification',
                                       style: theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                       ),
                                     ),
                                   ],
@@ -405,13 +405,13 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
-                            color: theme.colorScheme.outline.withOpacity(0.3),
+                            color: theme.colorScheme.outline.withValues(alpha: 0.3),
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
-                            color: theme.colorScheme.outline.withOpacity(0.3),
+                            color: theme.colorScheme.outline.withValues(alpha: 0.3),
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
