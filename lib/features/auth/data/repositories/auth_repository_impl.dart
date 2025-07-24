@@ -45,6 +45,103 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<ApiResult<AuthUser>> createUserWithCompleteInfo({
+    required String firstName,
+    required String lastName,
+    required String fullName,
+    required String email,
+    required String password,
+    required DateTime birthDate,
+  }) async {
+    return ExceptionHandler.handleExceptions(() async {
+      final user = await _remoteDatasource.createUserWithEmailAndPassword(email, password);
+      
+      await user.updateDisplayName(fullName);
+      await user.reload();
+      final refreshedUser = _remoteDatasource.getCurrentUser();
+      
+      if (refreshedUser == null) {
+        throw FirebaseAuthException(
+          code: 'user-creation-failed',
+          message: 'Failed to create user account.',
+        );
+      }
+      
+      final authUser = _mapFirebaseUserToAuthUser(refreshedUser).copyWith(
+        displayName: fullName,
+        fullName: fullName,
+        birthDate: birthDate,
+        isProfileComplete: true,
+      );
+      
+      await _saveUserDataLocally(authUser);
+      
+      final userModel = UserModel(
+        uid: authUser.uid,
+        email: authUser.email,
+        displayName: fullName,
+        fullName: fullName,
+        birthDate: birthDate,
+        photoURL: authUser.photoURL,
+        emailVerified: authUser.emailVerified,
+        phoneVerified: false,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        providers: authUser.providers,
+        isProfileComplete: true,
+      );
+
+      await _remoteDatasource.saveUserToFirestore(userModel);
+      
+      return ApiResult.success(authUser.copyWith(
+        displayName: fullName,
+        fullName: fullName,
+        birthDate: birthDate,
+        phoneVerified: false,
+        isPhoneRequired: true,
+        isProfileComplete: true,
+      ));
+    });
+  }
+
+  @override
+  Future<ApiResult<AuthUser>> completeProfile({
+    required String fullName,
+    required DateTime birthDate,
+  }) async {
+    return ExceptionHandler.handleExceptions(() async {
+      final currentUser = _remoteDatasource.getCurrentUser();
+      if (currentUser == null) {
+        return ApiResult.failure(
+          'No authenticated user found',
+          FailureType.auth,
+        );
+      }
+
+      await currentUser.updateDisplayName(fullName);
+      await currentUser.reload();
+      
+      final refreshedUser = _remoteDatasource.getCurrentUser();
+      if (refreshedUser == null) {
+        throw FirebaseAuthException(
+          code: 'user-update-failed',
+          message: 'Failed to update user profile',
+        );
+      }
+
+      await _remoteDatasource.updateUserInFirestore(refreshedUser.uid, {
+        'displayName': fullName,
+        'fullName': fullName,
+        'birthDate': birthDate.toIso8601String(),
+        'isProfileComplete': true,
+      });
+
+      final authUser = await _processAuthenticatedUser(refreshedUser);
+      return ApiResult.success(authUser);
+    });
+  }
+
+  @override
   Future<ApiResult<AuthUser>> signInWithGoogle() async {
     return ExceptionHandler.handleExceptions(() async {
       try {
@@ -501,12 +598,16 @@ class AuthRepositoryImpl implements AuthRepository {
         uid: user.uid,
         email: user.email,
         displayName: user.displayName,
+        fullName: user.fullName,
+        birthDate: user.birthDate,
         phoneNumber: user.phoneNumber,
         photoURL: user.photoURL,
         emailVerified: user.emailVerified,
         phoneVerified: user.phoneVerified,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        providers: user.providers,
+        isProfileComplete: user.isProfileComplete,
       );
 
       await _remoteDatasource.saveUserToFirestore(userModel);
@@ -526,10 +627,14 @@ class AuthRepositoryImpl implements AuthRepository {
         uid: userModel.uid,
         email: userModel.email,
         displayName: userModel.displayName,
+        fullName: userModel.fullName,
+        birthDate: userModel.birthDate,
         phoneNumber: userModel.phoneNumber,
         photoURL: userModel.photoURL,
         emailVerified: userModel.emailVerified,
         phoneVerified: userModel.phoneVerified,
+        providers: userModel.providers,
+        isProfileComplete: userModel.isProfileComplete,
       );
 
       return ApiResult.success(authUser);
@@ -572,6 +677,8 @@ class AuthRepositoryImpl implements AuthRepository {
         phoneVerified: false,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        providers: authUser.providers,
+        isProfileComplete: false,
       );
 
       await _remoteDatasource.saveUserToFirestore(userModel);
@@ -580,6 +687,7 @@ class AuthRepositoryImpl implements AuthRepository {
         displayName: fullName,
         phoneVerified: false,
         isPhoneRequired: true,
+        isProfileComplete: false,
       ));
     });
   }
@@ -609,6 +717,8 @@ class AuthRepositoryImpl implements AuthRepository {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         verifiedDevices: [currentDevice],
+        providers: user.providerData.map((info) => info.providerId).toList(),
+        isProfileComplete: false,
       );
       
       await _remoteDatasource.saveUserToFirestore(newUserModel);
@@ -639,6 +749,8 @@ class AuthRepositoryImpl implements AuthRepository {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         verifiedDevices: [currentDevice],
+        providers: user.providerData.map((info) => info.providerId).toList(),
+        isProfileComplete: false,
       );
       
       await _remoteDatasource.saveUserToFirestore(newUserModel);
@@ -663,19 +775,27 @@ class AuthRepositoryImpl implements AuthRepository {
         phoneVerified: authUser.phoneNumber != null,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        providers: authUser.providers,
+        isProfileComplete: false,
       );
 
       await _remoteDatasource.saveUserToFirestore(userModel);
       
-      return authUser.copyWith(phoneVerified: authUser.phoneNumber != null);
+      return authUser.copyWith(
+        phoneVerified: authUser.phoneNumber != null,
+        isProfileComplete: false,
+      );
     }
     
     final currentDevice = await _deviceInfoService.getCurrentDevice();
     final isDeviceVerified = existingUserModel.isDeviceVerified(currentDevice.deviceId);
     
     return authUser.copyWith(
+      fullName: existingUserModel.fullName,
+      birthDate: existingUserModel.birthDate,
       phoneVerified: existingUserModel.phoneVerified && isDeviceVerified,
       isPhoneRequired: !(existingUserModel.phoneVerified && isDeviceVerified),
+      isProfileComplete: existingUserModel.isProfileComplete,
     );
   }
 
@@ -701,8 +821,11 @@ class AuthRepositoryImpl implements AuthRepository {
       }
       
       return authUser.copyWith(
+        fullName: userModel.fullName,
+        birthDate: userModel.birthDate,
         phoneVerified: effectivePhoneVerified,
         isPhoneRequired: !effectivePhoneVerified,
+        isProfileComplete: userModel.isProfileComplete,
       );
     } else {
       final newUserModel = UserModel(
@@ -715,6 +838,8 @@ class AuthRepositoryImpl implements AuthRepository {
         phoneVerified: authUser.phoneNumber != null,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        providers: authUser.providers,
+        isProfileComplete: false,
       );
 
       await _remoteDatasource.saveUserToFirestore(newUserModel);
@@ -722,6 +847,7 @@ class AuthRepositoryImpl implements AuthRepository {
       return authUser.copyWith(
         phoneVerified: authUser.phoneNumber != null,
         isPhoneRequired: authUser.phoneNumber == null,
+        isProfileComplete: false,
       );
     }
   }
@@ -743,17 +869,22 @@ class AuthRepositoryImpl implements AuthRepository {
           
       await _remoteDatasource.saveUserToFirestore(finalUserModel);
     } else {
+      final currentUser = _remoteDatasource.getCurrentUser();
+      final providers = currentUser?.providerData.map((info) => info.providerId).toList() ?? [];
+      
       final newUserModel = UserModel(
         uid: uid,
-        email: null,
-        displayName: null,
+        email: currentUser?.email,
+        displayName: currentUser?.displayName,
         phoneNumber: phoneNumber,
-        photoURL: null,
-        emailVerified: false,
+        photoURL: currentUser?.photoURL,
+        emailVerified: currentUser?.emailVerified ?? false,
         phoneVerified: verified,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         verifiedDevices: verified ? [currentDevice] : [],
+        providers: providers,
+        isProfileComplete: false,
       );
       
       await _remoteDatasource.saveUserToFirestore(newUserModel);
@@ -783,6 +914,7 @@ class AuthRepositoryImpl implements AuthRepository {
       emailVerified: user.emailVerified,
       phoneVerified: user.phoneNumber != null,
       providers: providers,
+      isProfileComplete: false,
     );
   }
 }

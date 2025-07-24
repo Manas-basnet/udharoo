@@ -7,6 +7,7 @@ class Routes {
   static const String contacts = '/contacts';
   static const String profile = '/profile';
   static const String editProfile = '/edit-profile';
+  static const String profileCompletion = '/profile-completion';
   static const String phoneSetup = '/phone-setup';
   static const String phoneVerification = '/phone-verification';
   static const String changePhoneSetup = '/change-phone-setup';

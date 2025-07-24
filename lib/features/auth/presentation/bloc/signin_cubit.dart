@@ -1,4 +1,3 @@
-
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/core/network/api_result.dart';
@@ -8,10 +7,11 @@ import 'package:udharoo/features/auth/domain/usecases/sign_in_with_google_usecas
 import 'package:udharoo/features/auth/domain/usecases/sign_in_with_phone_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_up_with_email_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_up_with_full_info_usecase.dart';
+import 'package:udharoo/features/auth/domain/usecases/sign_up_with_complete_info_usecase.dart';
+import 'package:udharoo/features/auth/domain/usecases/complete_profile_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/send_password_reset_email_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/link_google_account_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/link_password_usecase.dart';
-
 
 part 'signin_state.dart';
 
@@ -21,6 +21,8 @@ class SignInCubit extends Cubit<SignInState> {
   final SignInWithPhoneUseCase signInWithPhoneUseCase;
   final SignUpWithEmailUseCase signUpWithEmailUseCase;
   final SignUpWithFullInfoUseCase signUpWithFullInfoUseCase;
+  final SignUpWithCompleteInfoUseCase signUpWithCompleteInfoUseCase;
+  final CompleteProfileUseCase completeProfileUseCase;
   final SendPasswordResetEmailUseCase sendPasswordResetEmailUseCase;
   final LinkGoogleAccountUseCase linkGoogleAccountUseCase;
   final LinkPasswordUseCase linkPasswordUseCase;
@@ -31,6 +33,8 @@ class SignInCubit extends Cubit<SignInState> {
     required this.signInWithPhoneUseCase,
     required this.signUpWithEmailUseCase,
     required this.signUpWithFullInfoUseCase,
+    required this.signUpWithCompleteInfoUseCase,
+    required this.completeProfileUseCase,
     required this.sendPasswordResetEmailUseCase,
     required this.linkGoogleAccountUseCase,
     required this.linkPasswordUseCase,
@@ -104,6 +108,52 @@ class SignInCubit extends Cubit<SignInState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (user) => emit(SignUpSuccess(user)),
+        onFailure: (message, type) => emit(SignInError(message, type)),
+      );
+    }
+  }
+
+  Future<void> signUpWithCompleteInfo({
+    required String firstName,
+    required String lastName,
+    required String fullName,
+    required String email,
+    required String password,
+    required DateTime birthDate,
+  }) async {
+    emit(const SignInLoading());
+
+    final result = await signUpWithCompleteInfoUseCase(
+      firstName: firstName,
+      lastName: lastName,
+      fullName: fullName,
+      email: email,
+      password: password,
+      birthDate: birthDate,
+    );
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (user) => emit(SignUpSuccess(user)),
+        onFailure: (message, type) => emit(SignInError(message, type)),
+      );
+    }
+  }
+
+  Future<void> completeProfile({
+    required String fullName,
+    required DateTime birthDate,
+  }) async {
+    emit(const SignInLoading());
+
+    final result = await completeProfileUseCase(
+      fullName: fullName,
+      birthDate: birthDate,
+    );
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (user) => emit(ProfileCompleted(user)),
         onFailure: (message, type) => emit(SignInError(message, type)),
       );
     }

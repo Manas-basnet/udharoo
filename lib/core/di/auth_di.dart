@@ -19,6 +19,8 @@ import 'package:udharoo/features/auth/domain/usecases/sign_in_with_phone_usecase
 import 'package:udharoo/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_up_with_email_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/sign_up_with_full_info_usecase.dart';
+import 'package:udharoo/features/auth/domain/usecases/sign_up_with_complete_info_usecase.dart';
+import 'package:udharoo/features/auth/domain/usecases/complete_profile_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/send_phone_verification_code_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/update_display_name_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/verify_phone_code_usecase.dart';
@@ -38,6 +40,8 @@ Future<void> initAuth(GetIt sl) async {
   sl.registerLazySingleton(() => SignInWithEmailUseCase(sl()));
   sl.registerLazySingleton(() => SignUpWithEmailUseCase(sl()));
   sl.registerLazySingleton(() => SignUpWithFullInfoUseCase(sl()));
+  sl.registerLazySingleton(() => SignUpWithCompleteInfoUseCase(sl()));
+  sl.registerLazySingleton(() => CompleteProfileUseCase(sl()));
   sl.registerLazySingleton(() => SignInWithGoogleUseCase(sl()));
   sl.registerLazySingleton(() => LinkGoogleAccountUseCase(sl()));
   sl.registerLazySingleton(() => LinkPasswordUseCase(sl()));
@@ -100,6 +104,8 @@ Future<void> initAuth(GetIt sl) async {
       signInWithPhoneUseCase: sl(),
       signUpWithEmailUseCase: sl(),
       signUpWithFullInfoUseCase: sl(),
+      signUpWithCompleteInfoUseCase: sl(),
+      completeProfileUseCase: sl(),
       sendPasswordResetEmailUseCase: sl(),
       linkGoogleAccountUseCase: sl(),
       linkPasswordUseCase: sl(),

@@ -14,7 +14,8 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  final _fullNameController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -22,17 +23,57 @@ class _SignUpScreenState extends State<SignUpScreen> {
   
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isBSCalendar = true;
+  DateTime? _selectedDate;
+
+  void _handleDateSelection() async {
+    final now = DateTime.now();
+    final initialDate = _selectedDate ?? DateTime(now.year - 25, now.month, now.day);
+    
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(1950),
+      lastDate: DateTime(now.year - 13, now.month, now.day),
+      helpText: _isBSCalendar ? 'Select Birth Date (BS)' : 'Select Birth Date (AD)',
+    );
+    
+    if (selectedDate != null) {
+      setState(() {
+        _selectedDate = selectedDate;
+      });
+    }
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Select Date';
+    return '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
+  }
 
   void _handleSignUp(SignInCubit signInCubit) {
     if (_formKey.currentState?.validate() ?? false) {
-      final fullName = _fullNameController.text.trim();
+      if (_selectedDate == null) {
+        CustomToast.show(
+          context,
+          message: 'Please select your birth date',
+          isSuccess: false,
+        );
+        return;
+      }
+
+      final firstName = _firstNameController.text.trim();
+      final lastName = _lastNameController.text.trim();
+      final fullName = '$firstName $lastName'.trim();
       final email = _emailController.text.trim();
       final password = _passwordController.text;
 
-      signInCubit.signUpWithFullInfo(
+      signInCubit.signUpWithCompleteInfo(
+        firstName: firstName,
+        lastName: lastName,
         fullName: fullName,
         email: email,
         password: password,
+        birthDate: _selectedDate!,
       );
     }
   }
@@ -133,52 +174,110 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            TextFormField(
-                              controller: _fullNameController,
-                              decoration: InputDecoration(
-                                labelText: 'Full Name',
-                                hintText: 'Enter your full name',
-                                prefixIcon: const Icon(Icons.person_outline),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                    color: theme.colorScheme.outline.withOpacity(0.3),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _firstNameController,
+                                    decoration: InputDecoration(
+                                      labelText: 'First Name',
+                                      hintText: 'Enter first name',
+                                      prefixIcon: const Icon(Icons.person_outline),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide(
+                                          color: theme.colorScheme.outline.withOpacity(0.3),
+                                        ),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide(
+                                          color: theme.colorScheme.outline.withOpacity(0.3),
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide(
+                                          color: theme.colorScheme.primary,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      errorBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(color: Colors.red),
+                                      ),
+                                      filled: true,
+                                      fillColor: theme.colorScheme.surface,
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 16,
+                                      ),
+                                    ),
+                                    textCapitalization: TextCapitalization.words,
+                                    validator: (value) {
+                                      if (value?.trim().isEmpty ?? true) {
+                                        return 'First name is required';
+                                      }
+                                      if (value!.trim().length < 2) {
+                                        return 'At least 2 characters';
+                                      }
+                                      return null;
+                                    },
                                   ),
                                 ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                    color: theme.colorScheme.outline.withOpacity(0.3),
+                                
+                                const SizedBox(width: 12),
+                                
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _lastNameController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Last Name',
+                                      hintText: 'Enter last name',
+                                      prefixIcon: const Icon(Icons.person_outline),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide(
+                                          color: theme.colorScheme.outline.withOpacity(0.3),
+                                        ),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide(
+                                          color: theme.colorScheme.outline.withOpacity(0.3),
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide(
+                                          color: theme.colorScheme.primary,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      errorBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(color: Colors.red),
+                                      ),
+                                      filled: true,
+                                      fillColor: theme.colorScheme.surface,
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 16,
+                                      ),
+                                    ),
+                                    textCapitalization: TextCapitalization.words,
+                                    validator: (value) {
+                                      if (value?.trim().isEmpty ?? true) {
+                                        return 'Last name is required';
+                                      }
+                                      if (value!.trim().length < 2) {
+                                        return 'At least 2 characters';
+                                      }
+                                      return null;
+                                    },
                                   ),
                                 ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                    color: theme.colorScheme.primary,
-                                    width: 2,
-                                  ),
-                                ),
-                                errorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: Colors.red),
-                                ),
-                                filled: true,
-                                fillColor: theme.colorScheme.surface,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 16,
-                                ),
-                              ),
-                              textCapitalization: TextCapitalization.words,
-                              validator: (value) {
-                                if (value?.trim().isEmpty ?? true) {
-                                  return 'Full name is required';
-                                }
-                                if (value!.trim().length < 2) {
-                                  return 'Full name must be at least 2 characters';
-                                }
-                                return null;
-                              },
+                              ],
                             ),
                             
                             const SizedBox(height: 16),
@@ -229,6 +328,114 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 }
                                 return null;
                               },
+                            ),
+                            
+                            const SizedBox(height: 16),
+                            
+                            Text(
+                              'Birth Date',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 8),
+                            
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: theme.colorScheme.outline.withOpacity(0.3),
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            Radio<bool>(
+                                              value: true,
+                                              groupValue: _isBSCalendar,
+                                              onChanged: (value) {
+                                                setState(() {
+                                                  _isBSCalendar = value!;
+                                                  _selectedDate = null;
+                                                });
+                                              },
+                                              activeColor: theme.colorScheme.primary,
+                                            ),
+                                            Text(
+                                              'BS',
+                                              style: theme.textTheme.bodySmall,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            Radio<bool>(
+                                              value: false,
+                                              groupValue: _isBSCalendar,
+                                              onChanged: (value) {
+                                                setState(() {
+                                                  _isBSCalendar = value!;
+                                                  _selectedDate = null;
+                                                });
+                                              },
+                                              activeColor: theme.colorScheme.primary,
+                                            ),
+                                            Text(
+                                              'AD',
+                                              style: theme.textTheme.bodySmall,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  
+                                  const SizedBox(height: 8),
+                                  
+                                  InkWell(
+                                    onTap: _handleDateSelection,
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: theme.colorScheme.outline.withOpacity(0.3),
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.calendar_today,
+                                            size: 20,
+                                            color: theme.colorScheme.primary,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            _formatDate(_selectedDate),
+                                            style: theme.textTheme.bodyMedium?.copyWith(
+                                              color: _selectedDate != null
+                                                  ? theme.colorScheme.onSurface
+                                                  : theme.colorScheme.onSurface.withOpacity(0.6),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                             
                             const SizedBox(height: 16),
@@ -435,7 +642,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   void dispose() {
-    _fullNameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();

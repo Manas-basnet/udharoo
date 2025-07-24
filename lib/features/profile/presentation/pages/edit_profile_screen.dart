@@ -52,6 +52,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return 'U';
   }
 
+  String _formatBirthDate(DateTime? birthDate) {
+    if (birthDate == null) return 'Not set';
+    return '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}';
+  }
+
   bool _hasGoogleProvider(AuthUser user) {
     return user.hasGoogleProvider;
   }
@@ -323,6 +328,58 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               }
                               return null;
                             },
+                          ),
+                          
+                          const SizedBox(height: 16),
+                          
+                          TextFormField(
+                            initialValue: state.user.fullName ?? 'Not set',
+                            decoration: InputDecoration(
+                              labelText: 'Full Name',
+                              prefixIcon: const Icon(Icons.badge_outlined),
+                              suffixIcon: const Icon(Icons.lock_outline),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: theme.colorScheme.outline.withOpacity(0.3),
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: theme.colorScheme.outline.withOpacity(0.3),
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: theme.colorScheme.surface.withOpacity(0.5),
+                            ),
+                            enabled: false,
+                          ),
+                          
+                          const SizedBox(height: 16),
+                          
+                          TextFormField(
+                            initialValue: _formatBirthDate(state.user.birthDate),
+                            decoration: InputDecoration(
+                              labelText: 'Birth Date',
+                              prefixIcon: const Icon(Icons.calendar_today_outlined),
+                              suffixIcon: const Icon(Icons.lock_outline),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: theme.colorScheme.outline.withOpacity(0.3),
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: theme.colorScheme.outline.withOpacity(0.3),
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: theme.colorScheme.surface.withOpacity(0.5),
+                            ),
+                            enabled: false,
                           ),
                           
                           const SizedBox(height: 16),

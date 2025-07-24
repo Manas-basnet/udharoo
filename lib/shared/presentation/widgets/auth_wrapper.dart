@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/auth/presentation/pages/login_screen.dart';
+import 'package:udharoo/features/auth/presentation/pages/profile_completion_screen.dart';
 import 'package:udharoo/features/phone_verification/presentation/pages/phone_setup_screen.dart';
 import 'package:udharoo/shared/presentation/pages/splash_screen.dart';
 
@@ -17,6 +18,8 @@ class AuthWrapper extends StatelessWidget {
         return switch (state) {
           AuthSessionLoading() => const SplashScreen(),
           AuthSessionUnauthenticated() => const LoginScreen(),
+          AuthSessionAuthenticated() when !state.user.isProfileComplete => 
+            const ProfileCompletionScreen(),
           AuthSessionAuthenticated() when !state.user.canAccessApp => 
             const PhoneVerificationFlow(),
           AuthSessionAuthenticated() => child,

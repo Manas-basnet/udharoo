@@ -46,7 +46,9 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
   void _checkExistingPhoneNumber() {
     final authState = context.read<AuthSessionCubit>().state;
     
-    if (authState is AuthSessionAuthenticated && authState.user.phoneNumber != null) {
+    if (authState is AuthSessionAuthenticated && 
+        authState.user.phoneNumber != null && 
+        authState.user.phoneNumber!.isNotEmpty) {
       setState(() {
         _hasExistingPhone = true;
         _existingPhoneNumber = authState.user.phoneNumber;

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/core/di/di.dart' as di;
+import 'package:udharoo/features/auth/presentation/pages/profile_completion_screen.dart';
 import 'package:udharoo/features/phone_verification/presentation/pages/phone_setup_screen.dart';
 import 'package:udharoo/features/phone_verification/presentation/pages/phone_verification_screen.dart';
 import 'package:udharoo/features/phone_verification/presentation/pages/change_phone_setup_screen.dart';
@@ -99,6 +100,12 @@ class AppRouter {
             ],
           ),
         ],
+      ),
+
+      GoRoute(
+        path: Routes.profileCompletion,
+        name: 'profileCompletion',
+        builder: (context, state) => const ProfileCompletionScreen(),
       ),
 
       GoRoute(

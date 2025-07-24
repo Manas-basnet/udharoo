@@ -9,6 +9,18 @@ abstract class AuthRepository {
     required String email,
     required String password,
   });
+  Future<ApiResult<AuthUser>> createUserWithCompleteInfo({
+    required String firstName,
+    required String lastName,
+    required String fullName,
+    required String email,
+    required String password,
+    required DateTime birthDate,
+  });
+  Future<ApiResult<AuthUser>> completeProfile({
+    required String fullName,
+    required DateTime birthDate,
+  });
   Future<ApiResult<AuthUser>> signInWithGoogle();
   Future<ApiResult<AuthUser>> linkGoogleAccount();
   Future<ApiResult<AuthUser>> linkPassword(String password);

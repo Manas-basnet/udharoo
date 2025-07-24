@@ -273,93 +273,95 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Paste the QR code link you received from someone.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: textController,
-              decoration: InputDecoration(
-                labelText: 'QR Link',
-                hintText: 'udharoo://user/...',
-                prefixIcon: const Icon(Icons.link),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                suffixIcon: IconButton(
-                  onPressed: () async {
-                    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-                    if (clipboardData?.text != null) {
-                      textController.text = clipboardData!.text!;
-                    }
-                  },
-                  icon: const Icon(Icons.paste),
-                  tooltip: 'Paste from clipboard',
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Paste the QR code link you received from someone.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
-              maxLines: 3,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (value) {
-                if (value.trim().isNotEmpty) {
-                  Navigator.pop(context);
-                  _processScanResult(value.trim());
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 16,
-                    color: theme.colorScheme.primary,
+              const SizedBox(height: 16),
+              TextField(
+                controller: textController,
+                decoration: InputDecoration(
+                  labelText: 'QR Link',
+                  hintText: 'udharoo://user/...',
+                  prefixIcon: const Icon(Icons.link),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(width: 8),
+                  suffixIcon: IconButton(
+                    onPressed: () async {
+                      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+                      if (clipboardData?.text != null) {
+                        textController.text = clipboardData!.text!;
+                      }
+                    },
+                    icon: const Icon(Icons.paste),
+                    tooltip: 'Paste from clipboard',
+                  ),
+                ),
+                maxLines: 3,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (value) {
+                  if (value.trim().isNotEmpty) {
+                    Navigator.pop(context);
+                    _processScanResult(value.trim());
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Valid links start with "udharoo://" or contain Udharoo QR data',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
                   Expanded(
-                    child: Text(
-                      'Valid links start with "udharoo://" or contain Udharoo QR data',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.primary,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _pickImageFromGallery();
+                      },
+                      icon: const Icon(Icons.photo_library, size: 18),
+                      label: const Text('From Gallery'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _pickImageFromGallery();
-                    },
-                    icon: const Icon(Icons.photo_library, size: 18),
-                    label: const Text('From Gallery'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(

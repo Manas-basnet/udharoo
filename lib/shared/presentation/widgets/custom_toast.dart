@@ -7,10 +7,6 @@ class CustomToast {
     required bool isSuccess,
     Duration duration = const Duration(seconds: 3),
   }) {
-    final Color kPrimary = Color(0xFFFF6B9D);
-    final Color kSecondary = Color(0xFFFF8E9B);
-    final Color kTertiary = Color(0xFFFFA8A8);
-
     OverlayEntry? overlayEntry;
     
     overlayEntry = OverlayEntry(
@@ -22,11 +18,8 @@ class CustomToast {
           child: AnimatedSnackbar(
             message: message,
             isSuccess: isSuccess,
-            kPrimary: kPrimary,
-            kSecondary: kSecondary,
-            kTertiary: kTertiary,
             onDismiss: () {
-              // overlayEntry?.remove();
+              overlayEntry?.remove();
             },
           ),
         ),
@@ -38,27 +31,21 @@ class CustomToast {
       overlayState.insert(overlayEntry);
     }
 
-    
     Future.delayed(duration, () {
       overlayEntry?.remove();
     });
   }
 }
+
 class AnimatedSnackbar extends StatefulWidget {
   final String message;
   final bool isSuccess;
-  final Color kPrimary;
-  final Color kSecondary;
-  final Color kTertiary;
   final VoidCallback onDismiss;
 
   const AnimatedSnackbar({
     super.key,
     required this.message,
     required this.isSuccess,
-    required this.kPrimary,
-    required this.kSecondary,
-    required this.kTertiary,
     required this.onDismiss,
   });
 
@@ -76,7 +63,7 @@ class _AnimatedSnackbarState extends State<AnimatedSnackbar>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: Duration(milliseconds: 300),
+      duration: Duration(milliseconds: 250),
       vsync: this,
     );
 
@@ -85,16 +72,13 @@ class _AnimatedSnackbarState extends State<AnimatedSnackbar>
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _controller,
-      curve: Curves.easeOutBack,
+      curve: Curves.easeOut,
     ));
 
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    ));
+    ).animate(_controller);
 
     _controller.forward();
   }
@@ -112,6 +96,14 @@ class _AnimatedSnackbarState extends State<AnimatedSnackbar>
 
   @override
   Widget build(BuildContext context) {
+    final backgroundColor = widget.isSuccess 
+        ? Color(0xFF4CAF50)  // Green for success
+        : Color(0xFFE53E3E); // Red for failure
+    
+    final iconBackgroundColor = widget.isSuccess
+        ? Color(0xFF388E3C)  // Darker green
+        : Color(0xFFD32F2F);  // Darker red
+
     return SlideTransition(
       position: _slideAnimation,
       child: FadeTransition(
@@ -119,19 +111,13 @@ class _AnimatedSnackbarState extends State<AnimatedSnackbar>
         child: Container(
           constraints: BoxConstraints(maxWidth: 300),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: widget.isSuccess
-                  ? [widget.kTertiary, widget.kSecondary]
-                  : [widget.kPrimary, Color(0xFFFF5252)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(12),
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(8),
             boxShadow: [
               BoxShadow(
-                color: widget.kPrimary.withAlpha((0.3 * 255).toInt()),
-                blurRadius: 15,
-                offset: Offset(0, 5),
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: Offset(0, 2),
               ),
             ],
           ),
@@ -141,16 +127,15 @@ class _AnimatedSnackbarState extends State<AnimatedSnackbar>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: EdgeInsets.all(8),
+                  padding: EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                   
-                    color: Colors.white.withAlpha((0.2 * 255).toInt()),
-                    borderRadius: BorderRadius.circular(50),
+                    color: iconBackgroundColor,
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Icon(
-                    widget.isSuccess ? Icons.check_circle : Icons.error,
+                    widget.isSuccess ? Icons.check : Icons.close,
                     color: Colors.white,
-                    size: 20,
+                    size: 16,
                   ),
                 ),
                 SizedBox(width: 12),
@@ -171,8 +156,8 @@ class _AnimatedSnackbarState extends State<AnimatedSnackbar>
                     padding: EdgeInsets.all(4),
                     child: Icon(
                       Icons.close,
-                      color: Colors.white.withAlpha((0.8 * 255).toInt()),
-                      size: 18,
+                      color: Colors.white.withOpacity(0.8),
+                      size: 16,
                     ),
                   ),
                 ),

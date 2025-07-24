@@ -5,6 +5,8 @@ class UserModel extends Equatable {
   final String uid;
   final String? email;
   final String? displayName;
+  final String? fullName;
+  final DateTime? birthDate;
   final String? phoneNumber;
   final String? photoURL;
   final bool emailVerified;
@@ -14,11 +16,14 @@ class UserModel extends Equatable {
   final List<UserDevice> verifiedDevices;
   final Map<String, dynamic>? additionalData;
   final List<String> providers;
+  final bool isProfileComplete;
 
   const UserModel({
     required this.uid,
     this.email,
     this.displayName,
+    this.fullName,
+    this.birthDate,
     this.phoneNumber,
     this.photoURL,
     this.emailVerified = false,
@@ -28,12 +33,15 @@ class UserModel extends Equatable {
     this.verifiedDevices = const [],
     this.additionalData,
     this.providers = const [],
+    this.isProfileComplete = false,
   });
 
   UserModel copyWith({
     String? uid,
     String? email,
     String? displayName,
+    String? fullName,
+    DateTime? birthDate,
     String? phoneNumber,
     String? photoURL,
     bool? emailVerified,
@@ -43,11 +51,14 @@ class UserModel extends Equatable {
     List<UserDevice>? verifiedDevices,
     Map<String, dynamic>? additionalData,
     List<String>? providers,
+    bool? isProfileComplete,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
+      fullName: fullName ?? this.fullName,
+      birthDate: birthDate ?? this.birthDate,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       photoURL: photoURL ?? this.photoURL,
       emailVerified: emailVerified ?? this.emailVerified,
@@ -56,7 +67,8 @@ class UserModel extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       verifiedDevices: verifiedDevices ?? this.verifiedDevices,
       additionalData: additionalData ?? this.additionalData,
-      providers: providers ?? this.providers, // Add this line
+      providers: providers ?? this.providers,
+      isProfileComplete: isProfileComplete ?? this.isProfileComplete,
     );
   }
 
@@ -102,6 +114,8 @@ class UserModel extends Equatable {
       'uid': uid,
       'email': email,
       'displayName': displayName,
+      'fullName': fullName,
+      'birthDate': birthDate?.toIso8601String(),
       'phoneNumber': phoneNumber,
       'photoURL': photoURL,
       'emailVerified': emailVerified,
@@ -110,7 +124,8 @@ class UserModel extends Equatable {
       'updatedAt': updatedAt.toIso8601String(),
       'verifiedDevices': verifiedDevices.map((device) => device.toJson()).toList(),
       'additionalData': additionalData,
-      'providers': providers, // Add this line
+      'providers': providers,
+      'isProfileComplete': isProfileComplete,
     };
   }
 
@@ -119,6 +134,10 @@ class UserModel extends Equatable {
       uid: json['uid'] as String,
       email: json['email'] as String?,
       displayName: json['displayName'] as String?,
+      fullName: json['fullName'] as String?,
+      birthDate: json['birthDate'] != null 
+          ? DateTime.parse(json['birthDate'] as String) 
+          : null,
       phoneNumber: json['phoneNumber'] as String?,
       photoURL: json['photoURL'] as String?,
       emailVerified: json['emailVerified'] as bool? ?? false,
@@ -131,6 +150,7 @@ class UserModel extends Equatable {
           [],
       additionalData: json['additionalData'] as Map<String, dynamic>?,
       providers: (json['providers'] as List<dynamic>?)?.cast<String>() ?? [],
+      isProfileComplete: json['isProfileComplete'] as bool? ?? false,
     );
   }
 
@@ -139,6 +159,8 @@ class UserModel extends Equatable {
         uid,
         email,
         displayName,
+        fullName,
+        birthDate,
         phoneNumber,
         photoURL,
         emailVerified,
@@ -147,6 +169,7 @@ class UserModel extends Equatable {
         updatedAt,
         verifiedDevices,
         additionalData,
-        providers, // Add this line
+        providers,
+        isProfileComplete,
       ];
 }

@@ -33,6 +33,15 @@ final class SignUpSuccess extends SignInState {
   List<Object?> get props => [user];
 }
 
+final class ProfileCompleted extends SignInState {
+  final AuthUser user;
+
+  const ProfileCompleted(this.user);
+
+  @override
+  List<Object?> get props => [user];
+}
+
 final class SignInError extends SignInState {
   final String message;
   final FailureType type;
@@ -64,4 +73,3 @@ final class PasswordLinked extends SignInState {
   @override
   List<Object?> get props => [user];
 }
-
