@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
-import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/widgets/transaction_status_chip.dart';
+import 'package:udharoo/features/transactions/presentation/widgets/verification_dialog.dart';
+import 'package:udharoo/features/transactions/presentation/utils/transaction_utils.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class TransactionDetailScreen extends StatefulWidget {
@@ -20,6 +23,8 @@ class TransactionDetailScreen extends StatefulWidget {
 }
 
 class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
+  bool _isVerifying = false;
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +43,9 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
       listener: (context, state) {
         switch (state) {
           case TransactionVerified():
+            setState(() {
+              _isVerifying = false;
+            });
             CustomToast.show(
               context,
               message: 'Transaction verified successfully',
@@ -66,6 +74,9 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             );
             context.pop();
           case TransactionError():
+            setState(() {
+              _isVerifying = false;
+            });
             CustomToast.show(
               context,
               message: state.message,
@@ -170,22 +181,24 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: _getTypeColor(transaction.type).withValues(alpha: 0.1),
+                    color: TransactionUtils.getTypeColor(transaction.type).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
-                    _getTypeIcon(transaction.type),
+                    TransactionUtils.getTypeIcon(transaction.type),
                     size: 48,
-                    color: _getTypeColor(transaction.type),
+                    color: TransactionUtils.getTypeColor(transaction.type),
                   ),
                 ),
                 
                 const SizedBox(height: 16),
                 
-                Text(
-                  transaction.type.displayName,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                TransactionTypeChip(
+                  type: transaction.type,
+                  showIcon: false,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
                   ),
                 ),
                 
@@ -195,38 +208,18 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                   transaction.formattedAmount,
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: _getTypeColor(transaction.type),
+                    color: TransactionUtils.getTypeColor(transaction.type),
                   ),
                 ),
                 
                 const SizedBox(height: 16),
                 
-                Container(
+                TransactionStatusChip(
+                  status: transaction.status,
+                  showIcon: true,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(transaction.status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _getStatusIcon(transaction.status),
-                        size: 16,
-                        color: _getStatusColor(transaction.status),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        transaction.status.displayName,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: _getStatusColor(transaction.status),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ],
@@ -245,15 +238,15 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           const SizedBox(height: 16),
           
           _buildInfoSection('Transaction Details', [
-            _buildInfoRow(Icons.access_time, 'Created', _formatDateTime(transaction.createdAt)),
+            _buildInfoRow(Icons.access_time, 'Created', TransactionUtils.formatDateTime(transaction.createdAt)),
             if (transaction.updatedAt != transaction.createdAt)
-              _buildInfoRow(Icons.update, 'Updated', _formatDateTime(transaction.updatedAt)),
+              _buildInfoRow(Icons.update, 'Updated', TransactionUtils.formatDateTime(transaction.updatedAt)),
             if (transaction.dueDate != null)
               _buildInfoRow(
                 Icons.event,
                 'Due Date',
-                _formatDate(transaction.dueDate!),
-                textColor: _isDueDatePassed(transaction.dueDate!) ? Colors.red : null,
+                TransactionUtils.formatSimpleDate(transaction.dueDate!),
+                textColor: TransactionUtils.isDueDatePassed(transaction.dueDate!) ? Colors.red : null,
               ),
             if (transaction.description != null)
               _buildInfoRow(Icons.note, 'Description', transaction.description!),
@@ -369,7 +362,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             width: double.infinity,
             height: 52,
             child: FilledButton.icon(
-              onPressed: () => _verifyTransaction(transaction),
+              onPressed: () => _showVerificationDialog(transaction),
               icon: const Icon(Icons.verified_user),
               label: const Text('Verify Transaction'),
               style: FilledButton.styleFrom(
@@ -438,7 +431,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   void _handleMenuAction(String action, Transaction transaction) {
     switch (action) {
       case 'edit':
-        context.push('/transaction-form', extra: transaction);
+        context.push(Routes.transactionForm, extra: transaction);
         break;
       case 'delete':
         _showDeleteDialog(transaction);
@@ -473,11 +466,31 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     );
   }
 
+  void _showVerificationDialog(Transaction transaction) {
+    setState(() {
+      _isVerifying = true;
+    });
+
+    TransactionVerificationDialog.show(
+      context,
+      transaction: transaction,
+      onVerify: () => _verifyTransaction(transaction),
+      onCancel: () {
+        setState(() {
+          _isVerifying = false;
+        });
+        Navigator.of(context).pop();
+      },
+      isLoading: _isVerifying,
+    );
+  }
+
   void _verifyTransaction(Transaction transaction) {
     context.read<TransactionCubit>().verifyTransaction(
       transaction.id,
-      'current-user-id', // TODO: Replace with actual current user ID
+      'current-user-id', //TODO : replace with actual user ID
     );
+    Navigator.of(context).pop();
   }
 
   void _completeTransaction(Transaction transaction) {
@@ -485,67 +498,10 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   void _shareTransaction(Transaction transaction) {
-    // Implement share functionality
     CustomToast.show(
       context,
       message: 'Share functionality coming soon',
       isSuccess: false,
     );
-  }
-
-  Color _getTypeColor(TransactionType type) {
-    switch (type) {
-      case TransactionType.lending:
-        return Colors.green;
-      case TransactionType.borrowing:
-        return Colors.orange;
-    }
-  }
-
-  IconData _getTypeIcon(TransactionType type) {
-    switch (type) {
-      case TransactionType.lending:
-        return Icons.trending_up;
-      case TransactionType.borrowing:
-        return Icons.trending_down;
-    }
-  }
-
-  Color _getStatusColor(TransactionStatus status) {
-    switch (status) {
-      case TransactionStatus.pending:
-        return Colors.orange;
-      case TransactionStatus.verified:
-        return Colors.blue;
-      case TransactionStatus.completed:
-        return Colors.green;
-      case TransactionStatus.cancelled:
-        return Colors.red;
-    }
-  }
-
-  IconData _getStatusIcon(TransactionStatus status) {
-    switch (status) {
-      case TransactionStatus.pending:
-        return Icons.pending;
-      case TransactionStatus.verified:
-        return Icons.verified;
-      case TransactionStatus.completed:
-        return Icons.check_circle;
-      case TransactionStatus.cancelled:
-        return Icons.cancel;
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
-
-  String _formatDateTime(DateTime date) {
-    return '${_formatDate(date)} at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
-
-  bool _isDueDatePassed(DateTime dueDate) {
-    return DateTime.now().isAfter(dueDate);
   }
 }

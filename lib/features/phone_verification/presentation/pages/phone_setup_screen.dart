@@ -95,7 +95,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
     while (context.canPop()) {
       context.pop();
     }
-    context.go('/home');
+    context.go(Routes.home);
   }
 
   @override

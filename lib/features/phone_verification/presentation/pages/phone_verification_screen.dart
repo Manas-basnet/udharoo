@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/phone_verification/presentation/bloc/phone_verification_cubit.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
@@ -90,7 +91,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
     while (context.canPop()) {
       context.pop();
     }
-    context.go('/home');
+    context.go(Routes.home);
   }
 
   @override

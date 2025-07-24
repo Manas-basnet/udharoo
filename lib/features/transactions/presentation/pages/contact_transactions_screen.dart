@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction_contact.dart';
-import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_card.dart';
+import 'package:udharoo/features/transactions/presentation/widgets/transaction_summary_widget.dart';
+import 'package:udharoo/features/transactions/presentation/utils/transaction_utils.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class ContactTransactionsScreen extends StatefulWidget {
@@ -22,9 +24,7 @@ class ContactTransactionsScreen extends StatefulWidget {
 
 class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   List<Transaction> _transactions = [];
-  double _totalLending = 0.0;
-  double _totalBorrowing = 0.0;
-  double _netAmount = 0.0;
+  Map<String, dynamic> _stats = {};
 
   @override
   void initState() {
@@ -37,23 +37,14 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   }
 
   void _calculateTotals(List<Transaction> transactions) {
-    double lending = 0.0;
-    double borrowing = 0.0;
-
-    for (final transaction in transactions) {
-      if (transaction.status.isCompleted) {
-        if (transaction.type == TransactionType.lending) {
-          lending += transaction.amount;
-        } else {
-          borrowing += transaction.amount;
-        }
-      }
-    }
-
+    final summary = TransactionUtils.calculateTransactionSummary(transactions);
+    
     setState(() {
-      _totalLending = lending;
-      _totalBorrowing = borrowing;
-      _netAmount = lending - borrowing;
+      _stats = {
+        'totalLending': summary['totalLending'],
+        'totalBorrowing': summary['totalBorrowing'],
+        'netAmount': summary['netAmount'],
+      };
     });
   }
 
@@ -111,7 +102,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
           actions: [
             IconButton(
               onPressed: () {
-                context.push('/transaction-form', extra: {
+                context.push(Routes.transactionForm, extra: {
                   'scannedContactPhone': widget.contact.phone,
                   'scannedContactName': widget.contact.name,
                   'scannedContactEmail': widget.contact.email,
@@ -124,7 +115,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
         body: Column(
           children: [
             _buildContactHeader(),
-            _buildSummaryCards(),
+            if (_stats.isNotEmpty) _buildSummarySection(),
             Expanded(
               child: _buildTransactionsList(),
             ),
@@ -219,45 +210,26 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
     );
   }
 
-  Widget _buildSummaryCards() {
+  Widget _buildSummarySection() {
     final theme = Theme.of(context);
+    final netAmount = _stats['netAmount'] as double? ?? 0.0;
     
     return Container(
-      padding: const EdgeInsets.all(20),
+      color: theme.colorScheme.surface,
       child: Column(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: _buildSummaryCard(
-                  'Total Lending',
-                  'NPR ${_totalLending.toStringAsFixed(2)}',
-                  Colors.green,
-                  Icons.trending_up,
-                  theme,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildSummaryCard(
-                  'Total Borrowing',
-                  'NPR ${_totalBorrowing.toStringAsFixed(2)}',
-                  Colors.orange,
-                  Icons.trending_down,
-                  theme,
-                ),
-              ),
-            ],
+          TransactionSummaryWidget(
+            stats: _stats,
+            showNetAmount: false,
           ),
-          const SizedBox(height: 12),
           Container(
-            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: _netAmount >= 0 ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+              color: netAmount >= 0 ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: (_netAmount >= 0 ? Colors.green : Colors.red).withValues(alpha: 0.3),
+                color: (netAmount >= 0 ? Colors.green : Colors.red).withValues(alpha: 0.3),
               ),
             ),
             child: Column(
@@ -270,73 +242,23 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'NPR ${_netAmount.abs().toStringAsFixed(2)}',
+                  'NPR ${netAmount.abs().toStringAsFixed(2)}',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: _netAmount >= 0 ? Colors.green : Colors.red,
+                    color: netAmount >= 0 ? Colors.green : Colors.red,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _netAmount >= 0 
+                  netAmount >= 0 
                       ? '${widget.contact.name} owes you'
                       : 'You owe ${widget.contact.name}',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: _netAmount >= 0 ? Colors.green : Colors.red,
+                    color: netAmount >= 0 ? Colors.green : Colors.red,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard(
-    String title,
-    String value,
-    Color color,
-    IconData icon,
-    ThemeData theme,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                icon,
-                size: 20,
-                color: color,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: color,
             ),
           ),
         ],
@@ -381,7 +303,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
                 const SizedBox(height: 24),
                 FilledButton.icon(
                   onPressed: () {
-                    context.push('/transaction-form', extra: {
+                    context.push(Routes.transactionForm, extra: {
                       'scannedContactPhone': widget.contact.phone,
                       'scannedContactName': widget.contact.name,
                       'scannedContactEmail': widget.contact.email,
@@ -412,7 +334,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
               return TransactionCard(
                 transaction: transaction,
                 onTap: () {
-                  context.push('/transaction-detail/${transaction.id}');
+                  context.push(Routes.transactionDetailGen(transaction.id));
                 },
                 onVerify: transaction.canBeVerified
                     ? () => _verifyTransaction(transaction)
@@ -434,7 +356,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   void _verifyTransaction(Transaction transaction) {
     context.read<TransactionCubit>().verifyTransaction(
       transaction.id,
-      'current-user-id', //TODO: Replace with actual current user ID
+      'current-user-id', //TODO : replace with actual user ID
     );
   }
 

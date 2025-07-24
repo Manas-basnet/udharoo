@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_card.dart';
+import 'package:udharoo/features/transactions/presentation/widgets/transaction_summary_widget.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class TransactionsScreen extends StatefulWidget {
@@ -67,7 +69,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverAppBar(
-            expandedHeight: _stats != null ? 280.0 : 200.0,
+            expandedHeight: _stats != null ? 510.0 : 200.0,
             floating: true,
             pinned: true,
             snap: true,
@@ -123,7 +125,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 children: [
                   IconButton(
                     onPressed: () {
-                      context.push('/qr-scanner');
+                      context.push(Routes.qrScanner);
                     },
                     icon: const Icon(Icons.qr_code_scanner),
                     style: IconButton.styleFrom(
@@ -176,7 +178,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           
           if (_stats != null) ...[
             const SizedBox(height: 20),
-            _buildStatsCards(theme),
+            TransactionSummaryWidget(
+              stats: _stats!,
+              showNetAmount: true,
+              padding: EdgeInsets.zero,
+            ),
+            const SizedBox(height: 16),
+            TransactionQuickStats(
+              totalTransactions: _stats!['totalTransactions'] as int? ?? 0,
+              pendingTransactions: _stats!['pendingTransactions'] as int? ?? 0,
+              completedTransactions: _stats!['completedTransactions'] as int? ?? 0,
+              padding: EdgeInsets.zero,
+            ),
           ],
           
           const SizedBox(height: 20),
@@ -296,96 +309,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         floatingActionButton: FloatingActionButton(
           heroTag: "transactions_fab",
           onPressed: () {
-            context.push('/transaction-form');
+            context.push(Routes.transactionForm);
           },
           backgroundColor: theme.colorScheme.primary,
           foregroundColor: theme.colorScheme.onPrimary,
           child: const Icon(Icons.add),
         ),
-      ),
-    );
-  }
-
-
-
-  Widget _buildStatsCards(ThemeData theme) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            'Lending',
-            'NPR ${(_stats!['totalLending'] as double).toStringAsFixed(0)}',
-            Colors.green,
-            Icons.trending_up,
-            theme,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            'Borrowing',
-            'NPR ${(_stats!['totalBorrowing'] as double).toStringAsFixed(0)}',
-            Colors.orange,
-            Icons.trending_down,
-            theme,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            'Net',
-            'NPR ${(_stats!['netAmount'] as double).toStringAsFixed(0)}',
-            (_stats!['netAmount'] as double) >= 0 ? Colors.green : Colors.red,
-            (_stats!['netAmount'] as double) >= 0 ? Icons.add_circle : Icons.remove_circle,
-            theme,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(
-    String title,
-    String value,
-    Color color,
-    IconData icon,
-    ThemeData theme,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            size: 24,
-            color: color,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
       ),
     );
   }
@@ -542,7 +471,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   child: TransactionCard(
                     transaction: transaction,
                     onTap: () {
-                      context.push('/transaction-detail/${transaction.id}');
+                      context.push(Routes.transactionDetailGen(transaction.id));
                     },
                     onVerify: transaction.canBeVerified
                         ? () => _verifyTransaction(transaction)
@@ -616,7 +545,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               const SizedBox(height: 32),
               FilledButton.icon(
                 onPressed: () {
-                  context.push('/transaction-form');
+                  context.push(Routes.transactionForm);
                 },
                 icon: const Icon(Icons.add),
                 label: const Text('Create Transaction'),

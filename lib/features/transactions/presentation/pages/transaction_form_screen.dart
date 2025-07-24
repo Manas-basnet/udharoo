@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction_contact.dart';
@@ -9,6 +10,8 @@ import 'package:udharoo/features/transactions/domain/enums/transaction_status.da
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/amount_input_widget.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/contact_selector_widget.dart';
+import 'package:udharoo/features/transactions/presentation/widgets/transaction_type_selector.dart';
+import 'package:udharoo/features/transactions/presentation/widgets/date_picker_field.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class TransactionFormScreen extends StatefulWidget {
@@ -254,114 +257,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 
                 const SizedBox(height: 12),
                 
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            setState(() {
-                              _selectedType = TransactionType.lending;
-                            });
-                          },
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            bottomLeft: Radius.circular(12),
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            decoration: BoxDecoration(
-                              color: _selectedType == TransactionType.lending
-                                  ? theme.colorScheme.primary
-                                  : Colors.transparent,
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(12),
-                                bottomLeft: Radius.circular(12),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.trending_up,
-                                  color: _selectedType == TransactionType.lending
-                                      ? theme.colorScheme.onPrimary
-                                      : Colors.green,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Lending',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: _selectedType == TransactionType.lending
-                                        ? theme.colorScheme.onPrimary
-                                        : theme.colorScheme.onSurface,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Container(
-                        width: 1,
-                        height: 48,
-                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                      ),
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            setState(() {
-                              _selectedType = TransactionType.borrowing;
-                            });
-                          },
-                          borderRadius: const BorderRadius.only(
-                            topRight: Radius.circular(12),
-                            bottomRight: Radius.circular(12),
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            decoration: BoxDecoration(
-                              color: _selectedType == TransactionType.borrowing
-                                  ? theme.colorScheme.primary
-                                  : Colors.transparent,
-                              borderRadius: const BorderRadius.only(
-                                topRight: Radius.circular(12),
-                                bottomRight: Radius.circular(12),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.trending_down,
-                                  color: _selectedType == TransactionType.borrowing
-                                      ? theme.colorScheme.onPrimary
-                                      : Colors.orange,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Borrowing',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: _selectedType == TransactionType.borrowing
-                                        ? theme.colorScheme.onPrimary
-                                        : theme.colorScheme.onSurface,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                TransactionTypeSelector(
+                  selectedType: _selectedType,
+                  onTypeChanged: (type) {
+                    setState(() {
+                      _selectedType = type;
+                    });
+                  },
                 ),
                 
                 const SizedBox(height: 24),
@@ -394,7 +296,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     });
                   },
                   onQRScanTap: () {
-                    context.push('/qr-scanner');
+                    context.push(Routes.qrScanner);
                   },
                   phoneError: _phoneError,
                   nameError: _nameError,
@@ -436,60 +338,18 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 
                 const SizedBox(height: 24),
                 
-                InkWell(
-                  onTap: _selectDueDate,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.event,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Due Date (Optional)',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _dueDate != null 
-                                    ? _formatDate(_dueDate!)
-                                    : 'Tap to select due date',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: _dueDate != null 
-                                      ? theme.colorScheme.onSurface
-                                      : theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (_dueDate != null)
-                          IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _dueDate = null;
-                              });
-                            },
-                            icon: const Icon(Icons.clear),
-                            iconSize: 20,
-                          ),
-                      ],
-                    ),
-                  ),
+                DatePickerField(
+                  label: 'Due Date (Optional)',
+                  hintText: 'Tap to select due date',
+                  selectedDate: _dueDate,
+                  onDateSelected: (date) {
+                    setState(() {
+                      _dueDate = date;
+                    });
+                  },
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+                  prefixIcon: Icons.event,
                 ),
                 
                 const SizedBox(height: 24),
@@ -549,24 +409,5 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         ),
       ),
     );
-  }
-
-  void _selectDueDate() async {
-    final selectedDate = await showDatePicker(
-      context: context,
-      initialDate: _dueDate ?? DateTime.now().add(const Duration(days: 1)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-    );
-
-    if (selectedDate != null) {
-      setState(() {
-        _dueDate = selectedDate;
-      });
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
   }
 }

@@ -18,6 +18,10 @@ class Routes {
   static const String qrGenerator = '/qr-generator';
   static const String finishedTransactions = '/finished-transactions';
   static const String contactTransactions = '/contact-transactions';
+
+  static String transactionDetailGen(String transactionId) {
+    return '/transaction-detail/$transactionId';
+  }
   
   Routes._();
 }

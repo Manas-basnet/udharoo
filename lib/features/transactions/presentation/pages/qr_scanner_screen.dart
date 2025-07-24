@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
@@ -122,7 +123,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         switch (state) {
           case QRCodeParsed():
             context.pop();
-            context.push('/transaction-form', extra: {
+            context.push(Routes.transactionForm, extra: {
               'scannedContactPhone': state.qrData.userPhone,
               'scannedContactName': state.qrData.userName,
               'scannedContactEmail': state.qrData.userEmail,
