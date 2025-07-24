@@ -14,6 +14,12 @@ abstract class TransactionRepository {
     int? limit,
     String? lastDocumentId,
   });
+  Future<ApiResult<List<Transaction>>> refreshTransactions({
+    TransactionStatus? status,
+    TransactionType? type,
+    String? searchQuery,
+    int? limit,
+  });
   Future<ApiResult<Transaction>> getTransactionById(String id);
   Future<ApiResult<Transaction>> updateTransaction(Transaction transaction);
   Future<ApiResult<void>> deleteTransaction(String id);

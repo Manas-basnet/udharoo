@@ -33,6 +33,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
   }
 
   void _loadUserSettings() {
+    //TODO:
     // Load global verification setting
     // This would typically come from user preferences
   }

@@ -7,6 +7,7 @@ import 'package:udharoo/features/transactions/domain/datasources/remote/transact
 import 'package:udharoo/features/transactions/domain/repositories/transaction_repository.dart';
 import 'package:udharoo/features/transactions/domain/usecases/create_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_transactions_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/refresh_transactions_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_transaction_by_id_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/update_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/delete_transaction_usecase.dart';
@@ -22,6 +23,7 @@ import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubi
 Future<void> initTransaction(GetIt sl) async {
   sl.registerLazySingleton(() => CreateTransactionUseCase(sl()));
   sl.registerLazySingleton(() => GetTransactionsUseCase(sl()));
+  sl.registerLazySingleton(() => RefreshTransactionsUseCase(sl()));
   sl.registerLazySingleton(() => GetTransactionByIdUseCase(sl()));
   sl.registerLazySingleton(() => UpdateTransactionUseCase(sl()));
   sl.registerLazySingleton(() => DeleteTransactionUseCase(sl()));
@@ -56,6 +58,7 @@ Future<void> initTransaction(GetIt sl) async {
     () => TransactionCubit(
       createTransactionUseCase: sl(),
       getTransactionsUseCase: sl(),
+      refreshTransactionsUseCase: sl(),
       getTransactionByIdUseCase: sl(),
       updateTransactionUseCase: sl(),
       deleteTransactionUseCase: sl(),

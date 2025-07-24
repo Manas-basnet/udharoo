@@ -97,12 +97,12 @@ class _AnimatedSnackbarState extends State<AnimatedSnackbar>
   @override
   Widget build(BuildContext context) {
     final backgroundColor = widget.isSuccess 
-        ? Color(0xFF4CAF50)  // Green for success
-        : Color(0xFFE53E3E); // Red for failure
+        ? Color(0xFF4CAF50)
+        : Color(0xFFE53E3E);
     
     final iconBackgroundColor = widget.isSuccess
-        ? Color(0xFF388E3C)  // Darker green
-        : Color(0xFFD32F2F);  // Darker red
+        ? Color(0xFF388E3C)
+        : Color(0xFFD32F2F);
 
     return SlideTransition(
       position: _slideAnimation,

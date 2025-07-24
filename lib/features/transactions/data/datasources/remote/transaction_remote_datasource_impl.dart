@@ -37,14 +37,20 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
     String? searchQuery,
     int? limit,
     String? lastDocumentId,
+    DateTime? lastSyncTime,
   }) async {
     if (userId == null) return [];
 
     Query query = _firestore
         .collection('users')
         .doc(userId)
-        .collection('transactions')
-        .orderBy('createdAt', descending: true);
+        .collection('transactions');
+
+    if (lastSyncTime != null) {
+      query = query.where('updatedAt', isGreaterThan: Timestamp.fromDate(lastSyncTime));
+    }
+
+    query = query.orderBy('updatedAt', descending: true);
 
     if (status != null) {
       query = query.where('status', isEqualTo: status.name);
@@ -58,7 +64,7 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
       query = query.limit(limit);
     }
 
-    if (lastDocumentId != null) {
+    if (lastDocumentId != null && lastSyncTime == null) {
       final lastDoc = await _firestore
           .collection('users')
           .doc(userId)
@@ -86,6 +92,10 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
                transaction.contactPhone.contains(searchQuery) ||
                (transaction.description?.toLowerCase().contains(searchLower) ?? false);
       }).toList();
+    }
+
+    if (lastSyncTime == null) {
+      transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
 
     return transactions;

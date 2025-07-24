@@ -66,34 +66,49 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         return ApiResult.failure('User not authenticated', FailureType.auth);
       }
 
-      return handleCacheCallFirst<List<Transaction>>(
-        localCall: () async {
-          final cached = await _localDatasource.getCachedTransactions();
-          List<TransactionModel> filtered = cached;
+      final cached = await _localDatasource.getCachedTransactions();
+      List<TransactionModel> filtered = cached;
 
-          if (status != null) {
-            filtered = filtered.where((t) => t.status == status).toList();
-          }
+      if (status != null) {
+        filtered = filtered.where((t) => t.status == status).toList();
+      }
 
-          if (type != null) {
-            filtered = filtered.where((t) => t.type == type).toList();
-          }
+      if (type != null) {
+        filtered = filtered.where((t) => t.type == type).toList();
+      }
 
-          if (searchQuery != null && searchQuery.isNotEmpty) {
-            final searchLower = searchQuery.toLowerCase();
-            filtered = filtered.where((transaction) {
-              return transaction.contactName.toLowerCase().contains(searchLower) ||
-                     transaction.contactPhone.contains(searchQuery) ||
-                     (transaction.description?.toLowerCase().contains(searchLower) ?? false);
-            }).toList();
-          }
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        final searchLower = searchQuery.toLowerCase();
+        filtered = filtered.where((transaction) {
+          return transaction.contactName.toLowerCase().contains(searchLower) ||
+                 transaction.contactPhone.contains(searchQuery) ||
+                 (transaction.description?.toLowerCase().contains(searchLower) ?? false);
+        }).toList();
+      }
 
-          if (limit != null && filtered.length > limit) {
-            filtered = filtered.take(limit).toList();
-          }
+      if (limit != null && filtered.length > limit) {
+        filtered = filtered.take(limit).toList();
+      }
 
-          return ApiResult.success(filtered.cast<Transaction>());
-        },
+      return ApiResult.success(filtered.cast<Transaction>());
+    });
+  }
+
+  @override
+  Future<ApiResult<List<Transaction>>> refreshTransactions({
+    TransactionStatus? status,
+    TransactionType? type,
+    String? searchQuery,
+    int? limit,
+  }) async {
+    return ExceptionHandler.handleExceptions(() async {
+      if (_currentUserId == null) {
+        return ApiResult.failure('User not authenticated', FailureType.auth);
+      }
+
+      final lastSyncTime = await _localDatasource.getLastSyncTimestamp();
+      
+      return handleRemoteCallFirst<List<Transaction>>(
         remoteCall: () async {
           final result = await _remoteDatasource.getTransactions(
             userId: _currentUserId,
@@ -101,15 +116,23 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
             type: type,
             searchQuery: searchQuery,
             limit: limit,
-            lastDocumentId: lastDocumentId,
+            lastSyncTime: lastSyncTime,
           );
           return ApiResult.success(result.cast<Transaction>());
         },
         saveLocalData: (data) async {
           if (data != null && data.isNotEmpty) {
-            await _localDatasource.cacheTransactions(
-              data.map((t) => TransactionModel.fromEntity(t)).toList(),
-            );
+            final transactionModels = data.map((t) => TransactionModel.fromEntity(t)).toList();
+            
+            if (lastSyncTime != null) {
+              await _localDatasource.mergeTransactions(transactionModels);
+            } else {
+              await _localDatasource.cacheTransactions(transactionModels);
+            }
+            
+            await _localDatasource.setLastSyncTimestamp(DateTime.now());
+          } else if (lastSyncTime == null) {
+            await _localDatasource.setLastSyncTimestamp(DateTime.now());
           }
         },
       );

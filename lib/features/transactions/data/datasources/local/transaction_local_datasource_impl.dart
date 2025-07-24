@@ -6,6 +6,7 @@ import 'package:udharoo/features/transactions/domain/datasources/local/transacti
 class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
   static const String _transactionsKey = 'cached_transactions';
   static const String _transactionPrefix = 'cached_transaction_';
+  static const String _lastSyncTimestampKey = 'last_sync_timestamp';
 
   @override
   Future<void> cacheTransactions(List<TransactionModel> transactions) async {
@@ -70,5 +71,42 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
         await prefs.remove(key);
       }
     }
+  }
+
+  @override
+  Future<void> setLastSyncTimestamp(DateTime timestamp) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastSyncTimestampKey, timestamp.toIso8601String());
+  }
+
+  @override
+  Future<DateTime?> getLastSyncTimestamp() async {
+    final prefs = await SharedPreferences.getInstance();
+    final timestampString = prefs.getString(_lastSyncTimestampKey);
+    
+    if (timestampString == null) {
+      return null;
+    }
+    
+    return DateTime.parse(timestampString);
+  }
+
+  @override
+  Future<void> mergeTransactions(List<TransactionModel> newTransactions) async {
+    final existingTransactions = await getCachedTransactions();
+    final transactionMap = <String, TransactionModel>{};
+    
+    for (final transaction in existingTransactions) {
+      transactionMap[transaction.id] = transaction;
+    }
+    
+    for (final transaction in newTransactions) {
+      transactionMap[transaction.id] = transaction;
+    }
+    
+    final mergedTransactions = transactionMap.values.toList();
+    mergedTransactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    
+    await cacheTransactions(mergedTransactions);
   }
 }

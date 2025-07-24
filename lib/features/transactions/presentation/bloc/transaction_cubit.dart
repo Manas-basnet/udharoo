@@ -8,6 +8,7 @@ import 'package:udharoo/features/transactions/domain/enums/transaction_status.da
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
 import 'package:udharoo/features/transactions/domain/usecases/create_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_transactions_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/refresh_transactions_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_transaction_by_id_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/update_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/delete_transaction_usecase.dart';
@@ -24,6 +25,7 @@ part 'transaction_state.dart';
 class TransactionCubit extends Cubit<TransactionState> {
   final CreateTransactionUseCase createTransactionUseCase;
   final GetTransactionsUseCase getTransactionsUseCase;
+  final RefreshTransactionsUseCase refreshTransactionsUseCase;
   final GetTransactionByIdUseCase getTransactionByIdUseCase;
   final UpdateTransactionUseCase updateTransactionUseCase;
   final DeleteTransactionUseCase deleteTransactionUseCase;
@@ -38,6 +40,7 @@ class TransactionCubit extends Cubit<TransactionState> {
   TransactionCubit({
     required this.createTransactionUseCase,
     required this.getTransactionsUseCase,
+    required this.refreshTransactionsUseCase,
     required this.getTransactionByIdUseCase,
     required this.updateTransactionUseCase,
     required this.deleteTransactionUseCase,
@@ -70,17 +73,18 @@ class TransactionCubit extends Cubit<TransactionState> {
     int? limit,
     bool refresh = false,
   }) async {
-    if (refresh || state is! TransactionsLoaded) {
-      emit(const TransactionLoading());
+    if (refresh) {
+      await refreshTransactions(
+        status: status,
+        type: type,
+        searchQuery: searchQuery,
+        limit: limit,
+      );
+      return;
     }
 
-    String? lastDocumentId;
-    List<Transaction> existingTransactions = [];
-
-    if (!refresh && state is TransactionsLoaded) {
-      final currentState = state as TransactionsLoaded;
-      lastDocumentId = currentState.lastDocumentId;
-      existingTransactions = currentState.transactions;
+    if (state is! TransactionsLoaded) {
+      emit(const TransactionLoading());
     }
 
     final result = await getTransactionsUseCase(
@@ -88,20 +92,69 @@ class TransactionCubit extends Cubit<TransactionState> {
       type: type,
       searchQuery: searchQuery,
       limit: limit,
-      lastDocumentId: lastDocumentId,
     );
 
     if (!isClosed) {
       result.fold(
-        onSuccess: (newTransactions) {
-          final allTransactions = refresh 
-              ? newTransactions
-              : [...existingTransactions, ...newTransactions];
-          
+        onSuccess: (transactions) {
           emit(TransactionsLoaded(
-            transactions: allTransactions,
-            hasMore: newTransactions.length == (limit ?? 20),
-            lastDocumentId: newTransactions.isNotEmpty ? newTransactions.last.id : null,
+            transactions: transactions,
+            hasMore: false,
+            lastDocumentId: null,
+          ));
+        },
+        onFailure: (message, type) => emit(TransactionError(message, type)),
+      );
+    }
+  }
+
+  Future<void> refreshTransactions({
+    TransactionStatus? status,
+    TransactionType? type,
+    String? searchQuery,
+    int? limit,
+  }) async {
+    if (state is! TransactionsLoaded) {
+      emit(const TransactionLoading());
+    }
+
+    final result = await refreshTransactionsUseCase(
+      status: status,
+      type: type,
+      searchQuery: searchQuery,
+      limit: limit,
+    );
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (transactions) {
+          _loadLocalTransactions(status: status, type: type, searchQuery: searchQuery, limit: limit);
+        },
+        onFailure: (message, type) => emit(TransactionError(message, type)),
+      );
+    }
+  }
+
+  Future<void> _loadLocalTransactions({
+    TransactionStatus? status,
+    TransactionType? type,
+    String? searchQuery,
+    int? limit,
+  }) async {
+    final result = await getTransactionsUseCase(
+      status: status,
+      type: type,
+      searchQuery: searchQuery,
+      limit: limit,
+    );
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (transactions) {
+          emit(TransactionsLoaded(
+            transactions: transactions,
+            hasMore: false,
+            lastDocumentId: null,
           ));
         },
         onFailure: (message, type) => emit(TransactionError(message, type)),

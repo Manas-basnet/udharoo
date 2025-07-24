@@ -29,13 +29,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
     _loadInitialData();
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -43,22 +41,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   void _loadInitialData() {
     final cubit = context.read<TransactionCubit>();
-    cubit.getTransactions(refresh: true);
+    // Load local data first, then refresh in background
+    cubit.getTransactions();
     cubit.getTransactionStats();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >= 
-        _scrollController.position.maxScrollExtent - 200) {
-      final state = context.read<TransactionCubit>().state;
-      if (state is TransactionsLoaded && state.hasMore) {
-        context.read<TransactionCubit>().getTransactions(
-          status: _selectedStatus,
-          type: _selectedType,
-          searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
-        );
-      }
-    }
+    // Refresh to get latest data from server
+    _refreshTransactions();
   }
 
   Widget _buildSliverContent(ThemeData theme) {
@@ -232,11 +219,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   void _refreshTransactions() {
-    context.read<TransactionCubit>().getTransactions(
+    context.read<TransactionCubit>().refreshTransactions(
       status: _selectedStatus,
       type: _selectedType,
       searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
-      refresh: true,
     );
   }
 
@@ -247,7 +233,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     
     Future.delayed(const Duration(milliseconds: 500), () {
       if (_searchQuery == query) {
-        _refreshTransactions();
+        context.read<TransactionCubit>().getTransactions(
+          status: _selectedStatus,
+          type: _selectedType,
+          searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
+        );
       }
     });
   }
@@ -256,7 +246,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     setState(() {
       _selectedStatus = status;
     });
-    _refreshTransactions();
+    context.read<TransactionCubit>().getTransactions(
+      status: _selectedStatus,
+      type: _selectedType,
+      searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
+    );
   }
 
   @override
@@ -451,15 +445,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           return SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
-                if (index >= state.transactions.length) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                }
-
                 final transaction = state.transactions[index];
                 return Padding(
                   padding: EdgeInsets.fromLTRB(
@@ -485,7 +470,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                 );
               },
-              childCount: state.transactions.length + (state.hasMore ? 1 : 0),
+              childCount: state.transactions.length,
             ),
           );
         }
@@ -608,14 +593,22 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 _selectedType = null;
               });
               Navigator.of(context).pop();
-              _refreshTransactions();
+              context.read<TransactionCubit>().getTransactions(
+                status: _selectedStatus,
+                type: _selectedType,
+                searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
+              );
             },
             child: const Text('Clear'),
           ),
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
-              _refreshTransactions();
+              context.read<TransactionCubit>().getTransactions(
+                status: _selectedStatus,
+                type: _selectedType,
+                searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
+              );
             },
             child: const Text('Apply'),
           ),

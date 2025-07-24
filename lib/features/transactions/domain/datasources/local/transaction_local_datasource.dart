@@ -7,4 +7,8 @@ abstract class TransactionLocalDatasource {
   Future<TransactionModel?> getCachedTransaction(String id);
   Future<void> removeCachedTransaction(String id);
   Future<void> clearCache();
+  
+  Future<void> setLastSyncTimestamp(DateTime timestamp);
+  Future<DateTime?> getLastSyncTimestamp();
+  Future<void> mergeTransactions(List<TransactionModel> transactions);
 }

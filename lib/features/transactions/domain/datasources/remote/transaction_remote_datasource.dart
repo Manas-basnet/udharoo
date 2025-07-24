@@ -12,6 +12,7 @@ abstract class TransactionRemoteDatasource {
     String? searchQuery,
     int? limit,
     String? lastDocumentId,
+    DateTime? lastSyncTime,
   });
   Future<TransactionModel> getTransactionById(String id, String userId);
   Future<TransactionModel> updateTransaction(TransactionModel transaction);
