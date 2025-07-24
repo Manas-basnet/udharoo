@@ -1,34 +1,24 @@
 import 'package:udharoo/features/transactions/data/models/transaction_model.dart';
-import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/data/models/transaction_contact_model.dart';
+import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
+import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
 
 abstract class TransactionRemoteDatasource {
+  Future<TransactionModel> createTransaction(TransactionModel transaction);
   Future<List<TransactionModel>> getTransactions({
     String? userId,
-    TransactionType? type,
     TransactionStatus? status,
-  });
-  
-  Future<TransactionModel> getTransactionById(String transactionId);
-  
-  Future<TransactionModel> createTransaction(TransactionModel transaction);
-  
-  Future<TransactionModel> updateTransactionStatus(
-    String transactionId, 
-    TransactionStatus status,
-  );
-  
-  Future<void> deleteTransaction(String transactionId);
-  
-  Stream<List<TransactionModel>> watchTransactions(String userId);
-  
-  Future<List<TransactionModel>> searchTransactions({
-    required String userId,
-    String? query,
     TransactionType? type,
-    TransactionStatus? status,
-    DateTime? startDate,
-    DateTime? endDate,
+    String? searchQuery,
+    int? limit,
+    String? lastDocumentId,
   });
-  
-  Future<Map<String, double>> getTransactionSummary(String userId);
+  Future<TransactionModel> getTransactionById(String id, String userId);
+  Future<TransactionModel> updateTransaction(TransactionModel transaction);
+  Future<void> deleteTransaction(String id, String userId);
+  Future<List<TransactionContactModel>> getTransactionContacts(String userId);
+  Future<List<TransactionModel>> getContactTransactions(String userId, String contactPhone);
+  Future<bool> getGlobalVerificationSetting(String userId);
+  Future<void> setGlobalVerificationSetting(String userId, bool enabled);
+  Future<Map<String, dynamic>> getTransactionStats(String userId);
 }

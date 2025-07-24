@@ -1,222 +1,91 @@
 import 'dart:convert';
-import 'package:udharoo/features/transactions/domain/entities/qr_transaction_data.dart';
-import 'package:udharoo/core/network/api_result.dart';
+import 'dart:typed_data';
+import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:ui' as ui;
 import 'package:udharoo/features/transactions/presentation/services/qr_service.dart';
 
 class QrServiceImpl implements QrService {
-  static const String _qrPrefix = 'udharoo://user/';
-  static const String _qrPrefixAlt = 'udharoo://transaction/';
-
   @override
-  String generateUserQrData({
-    required String userId,
-    required String userName,
-    String? userPhone,
-    bool requiresVerification = true,
-  }) {
+  Future<Uint8List> generateQRCode(String data) async {
     try {
-      final data = QrTransactionData(
-        userId: userId,
-        userName: userName,
-        userPhone: userPhone,
-        requiresVerification: requiresVerification,
-        qrType: 'user',
+      final qrValidationResult = QrValidator.validate(
+        data: data,
+        version: QrVersions.auto,
+        errorCorrectionLevel: QrErrorCorrectLevel.L,
       );
 
-      final jsonString = jsonEncode(data.toJson());
-      final encodedData = base64Url.encode(utf8.encode(jsonString));
-      return '$_qrPrefix$encodedData';
-    } catch (e) {
-      throw Exception('Failed to generate QR data: ${e.toString()}');
-    }
-  }
-
-  @override
-  Future<ApiResult<QrTransactionData>> parseQrData(String qrData) async {
-    try {
-      String cleanedData = qrData.trim();
-      
-      if (cleanedData.isEmpty) {
-        return ApiResult.failure(
-          'QR data is empty',
-          FailureType.validation,
+      if (qrValidationResult.status == QrValidationStatus.valid) {
+        final qrCode = qrValidationResult.qrCode!;
+        
+        final painter = QrPainter(
+          data: data,
+          version: qrCode.version,
+          errorCorrectionLevel: qrCode.errorCorrectionLevel,
+          color: Colors.black,
+          emptyColor: Colors.white,
         );
-      }
 
-      String? encodedData;
-      
-      if (cleanedData.startsWith(_qrPrefix)) {
-        encodedData = cleanedData.substring(_qrPrefix.length);
-      } else if (cleanedData.startsWith(_qrPrefixAlt)) {
-        encodedData = cleanedData.substring(_qrPrefixAlt.length);
+        final picData = await painter.toImageData(300);
+        return picData!.buffer.asUint8List();
       } else {
-        return _tryParseAsLegacyFormat(cleanedData);
-      }
-
-      if (encodedData.isEmpty) {
-        return ApiResult.failure(
-          'Invalid QR format: missing encoded data',
-          FailureType.validation,
-        );
-      }
-
-      try {
-        final decodedBytes = base64Url.decode(encodedData);
-        final jsonString = utf8.decode(decodedBytes);
-        
-        if (jsonString.isEmpty) {
-          return ApiResult.failure(
-            'Decoded QR data is empty',
-            FailureType.validation,
-          );
-        }
-
-        final json = jsonDecode(jsonString);
-        
-        if (json is! Map<String, dynamic>) {
-          return ApiResult.failure(
-            'Invalid QR data format: not a JSON object',
-            FailureType.validation,
-          );
-        }
-
-        final qrTransactionData = QrTransactionData.fromJson(json);
-        
-        if (qrTransactionData.userId.isEmpty) {
-          return ApiResult.failure(
-            'Invalid QR data: missing user ID',
-            FailureType.validation,
-          );
-        }
-
-        if (qrTransactionData.userName.isEmpty) {
-          return ApiResult.failure(
-            'Invalid QR data: missing user name',
-            FailureType.validation,
-          );
-        }
-
-        if (qrTransactionData.userPhone?.isEmpty ?? true) {
-          return ApiResult.failure(
-            'Invalid QR data: missing phone number',
-            FailureType.validation,
-          );
-        }
-
-        return ApiResult.success(qrTransactionData);
-        
-      } on FormatException catch (e) {
-        return ApiResult.failure(
-          'Invalid QR data format: ${e.message}',
-          FailureType.validation,
-        );
-      } on ArgumentError catch (e) {
-        return ApiResult.failure(
-          'Invalid base64 encoding: ${e.message}',
-          FailureType.validation,
-        );
+        throw Exception('Invalid QR data');
       }
     } catch (e) {
-      return ApiResult.failure(
-        'Failed to parse QR data: ${e.toString()}',
-        FailureType.unknown,
-      );
-    }
-  }
-
-  ApiResult<QrTransactionData> _tryParseAsLegacyFormat(String qrData) {
-    try {
-      final json = jsonDecode(qrData);
-      if (json is Map<String, dynamic>) {
-        final qrTransactionData = QrTransactionData.fromJson(json);
-        return ApiResult.success(qrTransactionData);
-      }
-    } catch (e) {
-      // Continue to other format attempts
-    }
-
-    try {
-      final uri = Uri.parse(qrData);
-      if (uri.scheme == 'udharoo' || uri.scheme == 'https') {
-        final params = uri.queryParameters;
-        if (params.containsKey('userId') && params.containsKey('userName')) {
-          final qrTransactionData = QrTransactionData(
-            userId: params['userId']!,
-            userName: params['userName']!,
-            userPhone: params['userPhone'],
-            requiresVerification: params['requiresVerification'] == 'true',
-            qrType: 'user',
-          );
-          return ApiResult.success(qrTransactionData);
-        }
-      }
-    } catch (e) {
-      // Continue to other format attempts
-    }
-
-    return ApiResult.failure(
-      'Unrecognized QR code format. Please scan a valid Udharoo QR code.',
-      FailureType.validation,
-    );
-  }
-
-  @override
-  String generateTransactionQrData({
-    required String userId,
-    required String userName,
-    String? userPhone,
-    double? amount,
-    String? description,
-    DateTime? dueDate,
-    bool requiresVerification = true,
-  }) {
-    try {
-      final data = QrTransactionData(
-        userId: userId,
-        userName: userName,
-        userPhone: userPhone,
-        amount: amount,
-        description: description,
-        dueDate: dueDate,
-        requiresVerification: requiresVerification,
-        qrType: 'transaction',
-      );
-
-      final jsonString = jsonEncode(data.toJson());
-      final encodedData = base64Url.encode(utf8.encode(jsonString));
-      return '$_qrPrefixAlt$encodedData';
-    } catch (e) {
-      throw Exception('Failed to generate transaction QR data: ${e.toString()}');
+      throw Exception('Failed to generate QR code: $e');
     }
   }
 
   @override
-  bool isValidUdharooQr(String qrData) {
-    return qrData.startsWith(_qrPrefix) || 
-           qrData.startsWith(_qrPrefixAlt) ||
-           _isLegacyFormat(qrData);
+  Future<String?> scanQRCode() async {
+    try {
+      final permission = await Permission.camera.request();
+      if (permission != PermissionStatus.granted) {
+        throw Exception('Camera permission denied');
+      }
+      
+      return null;
+    } catch (e) {
+      throw Exception('Failed to scan QR code: $e');
+    }
   }
 
-  bool _isLegacyFormat(String qrData) {
+  @override
+  Future<bool> saveQRCodeToGallery(Uint8List qrImageData, String fileName) async {
     try {
-      final json = jsonDecode(qrData);
-      if (json is Map<String, dynamic>) {
-        return json.containsKey('userId') && json.containsKey('userName');
+      final permission = await Permission.storage.request();
+      if (permission != PermissionStatus.granted) {
+        throw Exception('Storage permission denied');
       }
-    } catch (e) {
-      // Not JSON format
-    }
 
+      final result = await ImageGallerySaver.saveImage(
+        qrImageData,
+        name: fileName,
+        quality: 100,
+      );
+
+      return result['isSuccess'] == true;
+    } catch (e) {
+      throw Exception('Failed to save QR code: $e');
+    }
+  }
+
+  @override
+  Future<void> shareQRCode(Uint8List qrImageData, String fileName) async {
     try {
-      final uri = Uri.parse(qrData);
-      if (uri.scheme == 'udharoo' || uri.scheme == 'https') {
-        final params = uri.queryParameters;
-        return params.containsKey('userId') && params.containsKey('userName');
-      }
+      await Share.shareXFiles([
+        XFile.fromData(
+          qrImageData,
+          name: '$fileName.png',
+          mimeType: 'image/png',
+        )
+      ], text: 'My QR Code for Udharoo');
     } catch (e) {
-      // Not URI format
+      throw Exception('Failed to share QR code: $e');
     }
-
-    return false;
   }
 }

@@ -1,110 +1,109 @@
 import 'package:equatable/equatable.dart';
-
-enum TransactionType { lend, borrow }
-enum TransactionStatus { pending, verified, rejected, completed }
+import 'package:udharoo/features/transactions/domain/entities/qr_data.dart';
+import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
+import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 
 class Transaction extends Equatable {
   final String id;
-  final String fromUserId;
-  final String toUserId;
-  final double amount;
   final TransactionType type;
-  final TransactionStatus status;
+  final double amount;
+  final String contactPhone;
+  final String contactName;
+  final String? contactEmail;
   final String? description;
   final DateTime? dueDate;
+  final bool isVerified;
+  final bool verificationRequired;
+  final TransactionStatus status;
   final DateTime createdAt;
-  final DateTime? updatedAt;
-  final DateTime? completedAt;
-  final String? fromUserName;
-  final String? toUserName;
-  final String? fromUserPhone;
-  final String? toUserPhone;
+  final DateTime updatedAt;
+  final String createdBy;
+  final String? verifiedBy;
+  final QRData? qrGeneratedData;
 
   const Transaction({
     required this.id,
-    required this.fromUserId,
-    required this.toUserId,
-    required this.amount,
     required this.type,
-    required this.status,
+    required this.amount,
+    required this.contactPhone,
+    required this.contactName,
+    this.contactEmail,
     this.description,
     this.dueDate,
+    this.isVerified = false,
+    this.verificationRequired = false,
+    required this.status,
     required this.createdAt,
-    this.updatedAt,
-    this.completedAt,
-    this.fromUserName,
-    this.toUserName,
-    this.fromUserPhone,
-    this.toUserPhone,
+    required this.updatedAt,
+    required this.createdBy,
+    this.verifiedBy,
+    this.qrGeneratedData,
   });
 
   Transaction copyWith({
     String? id,
-    String? fromUserId,
-    String? toUserId,
-    double? amount,
     TransactionType? type,
-    TransactionStatus? status,
+    double? amount,
+    String? contactPhone,
+    String? contactName,
+    String? contactEmail,
     String? description,
     DateTime? dueDate,
+    bool? isVerified,
+    bool? verificationRequired,
+    TransactionStatus? status,
     DateTime? createdAt,
     DateTime? updatedAt,
-    DateTime? completedAt,
-    String? fromUserName,
-    String? toUserName,
-    String? fromUserPhone,
-    String? toUserPhone,
+    String? createdBy,
+    String? verifiedBy,
+    QRData? qrGeneratedData,
   }) {
     return Transaction(
       id: id ?? this.id,
-      fromUserId: fromUserId ?? this.fromUserId,
-      toUserId: toUserId ?? this.toUserId,
-      amount: amount ?? this.amount,
       type: type ?? this.type,
-      status: status ?? this.status,
+      amount: amount ?? this.amount,
+      contactPhone: contactPhone ?? this.contactPhone,
+      contactName: contactName ?? this.contactName,
+      contactEmail: contactEmail ?? this.contactEmail,
       description: description ?? this.description,
       dueDate: dueDate ?? this.dueDate,
+      isVerified: isVerified ?? this.isVerified,
+      verificationRequired: verificationRequired ?? this.verificationRequired,
+      status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      completedAt: completedAt ?? this.completedAt,
-      fromUserName: fromUserName ?? this.fromUserName,
-      toUserName: toUserName ?? this.toUserName,
-      fromUserPhone: fromUserPhone ?? this.fromUserPhone,
-      toUserPhone: toUserPhone ?? this.toUserPhone,
+      createdBy: createdBy ?? this.createdBy,
+      verifiedBy: verifiedBy ?? this.verifiedBy,
+      qrGeneratedData: qrGeneratedData ?? this.qrGeneratedData,
     );
   }
 
   bool get isPending => status == TransactionStatus.pending;
-  bool get isVerified => status == TransactionStatus.verified;
-  bool get isRejected => status == TransactionStatus.rejected;
   bool get isCompleted => status == TransactionStatus.completed;
-  bool get isLending => type == TransactionType.lend;
-  bool get isBorrowing => type == TransactionType.borrow;
-  
-  bool get isActive => status == TransactionStatus.verified;
-  bool get isFinished => status == TransactionStatus.completed;
-  
-  bool get isOverdue {
-    if (dueDate == null || isVerified || isCompleted) return false;
-    return DateTime.now().isAfter(dueDate!);
+  bool get canBeVerified => status == TransactionStatus.pending && verificationRequired;
+  bool get canBeCompleted => status == TransactionStatus.verified || (status == TransactionStatus.pending && !verificationRequired);
+
+  String get formattedAmount {
+    return 'NPR ${amount.toStringAsFixed(2)}';
   }
 
   @override
   List<Object?> get props => [
         id,
-        fromUserId,
-        toUserId,
-        amount,
         type,
-        status,
+        amount,
+        contactPhone,
+        contactName,
+        contactEmail,
         description,
         dueDate,
+        isVerified,
+        verificationRequired,
+        status,
         createdAt,
         updatedAt,
-        completedAt,
-        fromUserName,
-        toUserName,
-        fromUserPhone,
-        toUserPhone,
+        createdBy,
+        verifiedBy,
+        qrGeneratedData,
       ];
 }

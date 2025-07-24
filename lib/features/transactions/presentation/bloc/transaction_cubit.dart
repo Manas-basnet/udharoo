@@ -1,143 +1,257 @@
-import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/core/network/api_result.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/domain/entities/transaction_contact.dart';
+import 'package:udharoo/features/transactions/domain/entities/qr_data.dart';
+import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
+import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
 import 'package:udharoo/features/transactions/domain/usecases/create_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_transactions_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/get_transaction_by_id_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/update_transaction_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/delete_transaction_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/verify_transaction_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/complete_transaction_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/get_transaction_contacts_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/get_contact_transactions_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/generate_qr_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/parse_qr_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/get_transaction_stats_usecase.dart';
 
 part 'transaction_state.dart';
 
 class TransactionCubit extends Cubit<TransactionState> {
-  final CreateTransactionUseCase _createTransactionUseCase;
-  final GetTransactionsUseCase _getTransactionsUseCase;
-  final UpdateTransactionStatusUseCase _updateTransactionStatusUseCase;
-  final GetTransactionSummaryUseCase _getTransactionSummaryUseCase;
-  final SearchTransactionsUseCase _searchTransactionsUseCase;
+  final CreateTransactionUseCase createTransactionUseCase;
+  final GetTransactionsUseCase getTransactionsUseCase;
+  final GetTransactionByIdUseCase getTransactionByIdUseCase;
+  final UpdateTransactionUseCase updateTransactionUseCase;
+  final DeleteTransactionUseCase deleteTransactionUseCase;
+  final VerifyTransactionUseCase verifyTransactionUseCase;
+  final CompleteTransactionUseCase completeTransactionUseCase;
+  final GetTransactionContactsUseCase getTransactionContactsUseCase;
+  final GetContactTransactionsUseCase getContactTransactionsUseCase;
+  final GenerateQRUseCase generateQRUseCase;
+  final ParseQRUseCase parseQRUseCase;
+  final GetTransactionStatsUseCase getTransactionStatsUseCase;
 
   TransactionCubit({
-    required CreateTransactionUseCase createTransactionUseCase,
-    required GetTransactionsUseCase getTransactionsUseCase,
-    required UpdateTransactionStatusUseCase updateTransactionStatusUseCase,
-    required GetTransactionSummaryUseCase getTransactionSummaryUseCase,
-    required SearchTransactionsUseCase searchTransactionsUseCase,
-  }) : _createTransactionUseCase = createTransactionUseCase,
-       _getTransactionsUseCase = getTransactionsUseCase,
-       _updateTransactionStatusUseCase = updateTransactionStatusUseCase,
-       _getTransactionSummaryUseCase = getTransactionSummaryUseCase,
-       _searchTransactionsUseCase = searchTransactionsUseCase,
-       super(const TransactionInitial());
+    required this.createTransactionUseCase,
+    required this.getTransactionsUseCase,
+    required this.getTransactionByIdUseCase,
+    required this.updateTransactionUseCase,
+    required this.deleteTransactionUseCase,
+    required this.verifyTransactionUseCase,
+    required this.completeTransactionUseCase,
+    required this.getTransactionContactsUseCase,
+    required this.getContactTransactionsUseCase,
+    required this.generateQRUseCase,
+    required this.parseQRUseCase,
+    required this.getTransactionStatsUseCase,
+  }) : super(const TransactionInitial());
+
+  Future<void> createTransaction(Transaction transaction) async {
+    emit(const TransactionLoading());
+
+    final result = await createTransactionUseCase(transaction);
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (transaction) => emit(TransactionCreated(transaction)),
+        onFailure: (message, type) => emit(TransactionError(message, type)),
+      );
+    }
+  }
 
   Future<void> getTransactions({
-    String? userId,
-    TransactionType? type,
     TransactionStatus? status,
+    TransactionType? type,
+    String? searchQuery,
+    int? limit,
+    bool refresh = false,
+  }) async {
+    if (refresh || state is! TransactionsLoaded) {
+      emit(const TransactionLoading());
+    }
+
+    String? lastDocumentId;
+    List<Transaction> existingTransactions = [];
+
+    if (!refresh && state is TransactionsLoaded) {
+      final currentState = state as TransactionsLoaded;
+      lastDocumentId = currentState.lastDocumentId;
+      existingTransactions = currentState.transactions;
+    }
+
+    final result = await getTransactionsUseCase(
+      status: status,
+      type: type,
+      searchQuery: searchQuery,
+      limit: limit,
+      lastDocumentId: lastDocumentId,
+    );
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (newTransactions) {
+          final allTransactions = refresh 
+              ? newTransactions
+              : [...existingTransactions, ...newTransactions];
+          
+          emit(TransactionsLoaded(
+            transactions: allTransactions,
+            hasMore: newTransactions.length == (limit ?? 20),
+            lastDocumentId: newTransactions.isNotEmpty ? newTransactions.last.id : null,
+          ));
+        },
+        onFailure: (message, type) => emit(TransactionError(message, type)),
+      );
+    }
+  }
+
+  Future<void> getTransactionById(String id) async {
+    emit(const TransactionLoading());
+
+    final result = await getTransactionByIdUseCase(id);
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (transaction) => emit(TransactionDetailLoaded(transaction)),
+        onFailure: (message, type) => emit(TransactionError(message, type)),
+      );
+    }
+  }
+
+  Future<void> updateTransaction(Transaction transaction) async {
+    emit(const TransactionLoading());
+
+    final result = await updateTransactionUseCase(transaction);
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (transaction) => emit(TransactionUpdated(transaction)),
+        onFailure: (message, type) => emit(TransactionError(message, type)),
+      );
+    }
+  }
+
+  Future<void> deleteTransaction(String id) async {
+    emit(const TransactionLoading());
+
+    final result = await deleteTransactionUseCase(id);
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (_) => emit(TransactionDeleted(id)),
+        onFailure: (message, type) => emit(TransactionError(message, type)),
+      );
+    }
+  }
+
+  Future<void> verifyTransaction(String id, String verifiedBy) async {
+    emit(const TransactionLoading());
+
+    final result = await verifyTransactionUseCase(id, verifiedBy);
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (transaction) => emit(TransactionVerified(transaction)),
+        onFailure: (message, type) => emit(TransactionError(message, type)),
+      );
+    }
+  }
+
+  Future<void> completeTransaction(String id) async {
+    emit(const TransactionLoading());
+
+    final result = await completeTransactionUseCase(id);
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (transaction) => emit(TransactionCompleted(transaction)),
+        onFailure: (message, type) => emit(TransactionError(message, type)),
+      );
+    }
+  }
+
+  Future<void> getTransactionContacts() async {
+    emit(const TransactionLoading());
+
+    final result = await getTransactionContactsUseCase();
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (contacts) => emit(TransactionContactsLoaded(contacts)),
+        onFailure: (message, type) => emit(TransactionError(message, type)),
+      );
+    }
+  }
+
+  Future<void> getContactTransactions(String contactPhone) async {
+    emit(const TransactionLoading());
+
+    final result = await getContactTransactionsUseCase(contactPhone);
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (transactions) => emit(ContactTransactionsLoaded(
+          transactions: transactions,
+          contactPhone: contactPhone,
+        )),
+        onFailure: (message, type) => emit(TransactionError(message, type)),
+      );
+    }
+  }
+
+  Future<void> generateQRCode({
+    required String userPhone,
+    required String userName,
+    String? userEmail,
+    required bool verificationRequired,
+    String? customMessage,
   }) async {
     emit(const TransactionLoading());
 
-    final result = await _getTransactionsUseCase(
-      userId: userId,
-      type: type,
-      status: status,
+    final result = await generateQRUseCase(
+      userPhone: userPhone,
+      userName: userName,
+      userEmail: userEmail,
+      verificationRequired: verificationRequired,
+      customMessage: customMessage,
     );
 
-    result.fold(
-      onSuccess: (transactions) => emit(TransactionLoaded(transactions)),
-      onFailure: (message, errorType) => emit(TransactionError(message, errorType)),
-    );
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (qrData) => emit(QRCodeGenerated(qrData)),
+        onFailure: (message, type) => emit(TransactionError(message, type)),
+      );
+    }
   }
 
-  Future<void> createTransaction({
-    required String fromUserId,
-    required String toUserId,
-    required double amount,
-    required TransactionType type,
-    String? description,
-    DateTime? dueDate,
-    bool requiresVerification = true,
-    String? fromUserName,
-    String? toUserName,
-    String? fromUserPhone,
-    String? toUserPhone,
-  }) async {
-    emit(const TransactionCreating());
+  Future<void> parseQRCode(String qrCodeData) async {
+    final result = await parseQRUseCase(qrCodeData);
 
-    final result = await _createTransactionUseCase(
-      fromUserId: fromUserId,
-      toUserId: toUserId,
-      amount: amount,
-      type: type,
-      description: description,
-      dueDate: dueDate,
-      requiresVerification: requiresVerification,
-      fromUserName: fromUserName,
-      toUserName: toUserName,
-      fromUserPhone: fromUserPhone,
-      toUserPhone: toUserPhone,
-    );
-
-    result.fold(
-      onSuccess: (transaction) => emit(TransactionCreated(transaction)),
-      onFailure: (message, errorType) => emit(TransactionError(message, errorType)),
-    );
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (qrData) => emit(QRCodeParsed(qrData)),
+        onFailure: (message, type) => emit(TransactionError(message, type)),
+      );
+    }
   }
 
-  Future<void> updateTransactionStatus(
-    String transactionId, 
-    TransactionStatus status,
-  ) async {
-    emit(const TransactionUpdating());
+  Future<void> getTransactionStats() async {
+    final result = await getTransactionStatsUseCase();
 
-    final result = await _updateTransactionStatusUseCase(transactionId, status);
-
-    result.fold(
-      onSuccess: (transaction) => emit(TransactionUpdated(transaction)),
-      onFailure: (message, errorType) => emit(TransactionError(message, errorType)),
-    );
-  }
-
-  Future<void> getTransactionSummary(String userId) async {
-    emit(const TransactionSummaryLoading());
-
-    final result = await _getTransactionSummaryUseCase(userId);
-
-    result.fold(
-      onSuccess: (summary) => emit(TransactionSummaryLoaded(summary)),
-      onFailure: (message, errorType) => emit(TransactionError(message, errorType)),
-    );
-  }
-
-  Future<void> searchTransactions({
-    required String userId,
-    String? query,
-    TransactionType? type,
-    TransactionStatus? status,
-    DateTime? startDate,
-    DateTime? endDate,
-  }) async {
-    emit(const TransactionSearching());
-
-    final result = await _searchTransactionsUseCase(
-      userId: userId,
-      query: query,
-      type: type,
-      status: status,
-      startDate: startDate,
-      endDate: endDate,
-    );
-
-    result.fold(
-      onSuccess: (transactions) => emit(TransactionSearchResults(transactions)),
-      onFailure: (message, errorType) => emit(TransactionError(message, errorType)),
-    );
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (stats) => emit(TransactionStatsLoaded(stats)),
+        onFailure: (message, type) => emit(TransactionError(message, type)),
+      );
+    }
   }
 
   void resetState() {
-    emit(const TransactionInitial());
-  }
-
-  void resetError() {
-    if (state is TransactionError) {
+    if (!isClosed) {
       emit(const TransactionInitial());
     }
   }

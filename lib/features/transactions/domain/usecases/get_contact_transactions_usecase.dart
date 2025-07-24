@@ -2,12 +2,12 @@ import 'package:udharoo/core/network/api_result.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/repositories/transaction_repository.dart';
 
-class CreateTransactionUseCase {
+class GetContactTransactionsUseCase {
   final TransactionRepository repository;
 
-  CreateTransactionUseCase(this.repository);
+  GetContactTransactionsUseCase(this.repository);
 
-  Future<ApiResult<Transaction>> call(Transaction transaction) {
-    return repository.createTransaction(transaction);
+  Future<ApiResult<List<Transaction>>> call(String contactPhone) {
+    return repository.getContactTransactions(contactPhone);
   }
 }

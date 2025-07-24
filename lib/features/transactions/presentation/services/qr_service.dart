@@ -1,25 +1,8 @@
-import 'package:udharoo/core/network/api_result.dart';
-import 'package:udharoo/features/transactions/domain/entities/qr_transaction_data.dart';
+import 'dart:typed_data';
 
 abstract class QrService {
-  String generateUserQrData({
-    required String userId,
-    required String userName,
-    String? userPhone,
-    bool requiresVerification = true,
-  });
-  
-  String generateTransactionQrData({
-    required String userId,
-    required String userName,
-    String? userPhone,
-    double? amount,
-    String? description,
-    DateTime? dueDate,
-    bool requiresVerification = true,
-  });
-  
-  Future<ApiResult<QrTransactionData>> parseQrData(String qrData);
-  
-  bool isValidUdharooQr(String qrData);
+  Future<Uint8List> generateQRCode(String data);
+  Future<String?> scanQRCode();
+  Future<bool> saveQRCodeToGallery(Uint8List qrImageData, String fileName);
+  Future<void> shareQRCode(Uint8List qrImageData, String fileName);
 }
