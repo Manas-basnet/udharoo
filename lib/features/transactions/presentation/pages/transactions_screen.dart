@@ -127,7 +127,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     },
                     icon: const Icon(Icons.qr_code_scanner),
                     style: IconButton.styleFrom(
-                      backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                       foregroundColor: theme.colorScheme.primary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -159,7 +159,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     ),
                     style: IconButton.styleFrom(
                       backgroundColor: _selectedType != null 
-                          ? theme.colorScheme.primary.withOpacity(0.1)
+                          ? theme.colorScheme.primary.withValues(alpha: 0.1)
                           : theme.colorScheme.surface,
                       foregroundColor: _selectedType != null 
                           ? theme.colorScheme.primary
@@ -188,7 +188,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               hintText: 'Search transactions...',
               prefixIcon: Icon(
                 Icons.search,
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
@@ -354,10 +354,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: color.withOpacity(0.2),
+          color: color.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -449,8 +449,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: isSelected 
-                    ? theme.colorScheme.onPrimary.withOpacity(0.8)
-                    : theme.colorScheme.primary.withOpacity(0.8),
+                    ? theme.colorScheme.onPrimary.withValues(alpha: 0.8)
+                    : theme.colorScheme.primary.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -478,7 +478,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       side: BorderSide(
         color: isSelected 
             ? theme.colorScheme.primary
-            : theme.colorScheme.outline.withOpacity(0.3),
+            : theme.colorScheme.outline.withValues(alpha: 0.3),
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
@@ -581,7 +581,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.1),
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -608,7 +608,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ? 'Try adjusting your search or filters'
                   : 'Create your first transaction to get started',
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
