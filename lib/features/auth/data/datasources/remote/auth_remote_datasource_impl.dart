@@ -478,6 +478,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       final providers = user.providerData.map((info) => info.providerId).toList();
       await updateUserInFirestore(user.uid, {'providers': providers});
     } catch (e) {
+      // TODO: Handle error appropriately
     }
   }
 }

@@ -434,7 +434,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   void _verifyTransaction(Transaction transaction) {
     context.read<TransactionCubit>().verifyTransaction(
       transaction.id,
-      'current-user-id', // Replace with actual current user ID
+      'current-user-id', //TODO: Replace with actual current user ID
     );
   }
 

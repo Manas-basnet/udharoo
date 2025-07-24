@@ -57,7 +57,14 @@ class QRGeneratorWidget extends StatelessWidget {
                   version: QrVersions.auto,
                   size: 200.0,
                   backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
+                  eyeStyle: const QrEyeStyle(
+                    eyeShape: QrEyeShape.square,
+                    color: Colors.black,
+                  ),
+                  dataModuleStyle: const QrDataModuleStyle(
+                    dataModuleShape: QrDataModuleShape.square,
+                    color: Colors.black,
+                  ),
                   errorCorrectionLevel: QrErrorCorrectLevel.M,
                 ),
               ),
@@ -275,10 +282,16 @@ class QRGeneratorWidget extends StatelessWidget {
         
         final painter = QrPainter(
           data: qrDataJson,
-          version: qrCode.version,
-          errorCorrectionLevel: qrCode.errorCorrectionLevel,
-          color: Colors.black,
-          emptyColor: Colors.white,
+          version: qrCode.typeNumber,
+          errorCorrectionLevel: qrCode.errorCorrectLevel,
+          eyeStyle: const QrEyeStyle(
+            eyeShape: QrEyeShape.square,
+            color: Colors.black,
+          ),
+          dataModuleStyle: const QrDataModuleStyle(
+            dataModuleShape: QrDataModuleShape.square,
+            color: Colors.black,
+          ),
         );
 
         final picData = await painter.toImageData(300);

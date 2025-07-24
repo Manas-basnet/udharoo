@@ -1,12 +1,9 @@
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'dart:ui' as ui;
 import 'package:udharoo/features/transactions/presentation/services/qr_service.dart';
 
 class QrServiceImpl implements QrService {
@@ -24,10 +21,16 @@ class QrServiceImpl implements QrService {
         
         final painter = QrPainter(
           data: data,
-          version: qrCode.version,
-          errorCorrectionLevel: qrCode.errorCorrectionLevel,
-          color: Colors.black,
-          emptyColor: Colors.white,
+          version: qrCode.typeNumber,
+          errorCorrectionLevel: qrCode.errorCorrectLevel,
+          eyeStyle: const QrEyeStyle(
+            eyeShape: QrEyeShape.square,
+            color: Colors.black,
+          ),
+          dataModuleStyle: const QrDataModuleStyle(
+            dataModuleShape: QrDataModuleShape.square,
+            color: Colors.black,
+          ),
         );
 
         final picData = await painter.toImageData(300);
@@ -62,7 +65,7 @@ class QrServiceImpl implements QrService {
         throw Exception('Storage permission denied');
       }
 
-      final result = await ImageGallerySaver.saveImage(
+      final result = await ImageGallerySaverPlus.saveImage(
         qrImageData,
         name: fileName,
         quality: 100,

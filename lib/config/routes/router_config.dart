@@ -18,11 +18,51 @@ import 'package:udharoo/features/transactions/presentation/pages/finished_transa
 import 'package:udharoo/features/transactions/presentation/pages/contact_transactions_screen.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/domain/entities/transaction_contact.dart';
 import 'package:udharoo/features/contacts/presentation/pages/contacts_screen.dart';
 import 'package:udharoo/features/profile/presentation/pages/profile_screen.dart';
 import 'package:udharoo/features/profile/presentation/pages/edit_profile_screen.dart';
 import 'package:udharoo/shared/presentation/layouts/scaffold_with_bottom_nav_bar.dart';
 import 'package:udharoo/shared/presentation/widgets/auth_wrapper.dart';
+
+class TransactionFormScreenArguments {
+  final String? qrData;
+  final String? initialType;
+
+  const TransactionFormScreenArguments({this.qrData, this.initialType});
+}
+
+class ContactTransactionsScreenArguments {
+  final String contactName;
+  final String contactPhone;
+
+  const ContactTransactionsScreenArguments({
+    required this.contactName,
+    required this.contactPhone,
+  });
+}
+
+class PhoneVerificationExtra {
+  final String phoneNumber;
+  final String verificationId;
+
+  const PhoneVerificationExtra({
+    required this.phoneNumber,
+    required this.verificationId,
+  });
+}
+
+class ChangePhoneVerificationExtra {
+  final String currentPhoneNumber;
+  final String newPhoneNumber;
+  final String verificationId;
+
+  const ChangePhoneVerificationExtra({
+    required this.currentPhoneNumber,
+    required this.newPhoneNumber,
+    required this.verificationId,
+  });
+}
 
 class AppRouter {
   static final AppRouter _instance = AppRouter._internal();
@@ -115,7 +155,7 @@ class AppRouter {
           final extra = state.extra;
           String phoneNumber = '';
           String verificationId = '';
-          
+
           if (extra is PhoneVerificationExtra) {
             phoneNumber = extra.phoneNumber;
             verificationId = extra.verificationId;
@@ -123,7 +163,7 @@ class AppRouter {
             phoneNumber = extra['phoneNumber']?.toString() ?? '';
             verificationId = extra['verificationId']?.toString() ?? '';
           }
-          
+
           return PhoneVerificationScreen(
             phoneNumber: phoneNumber,
             verificationId: verificationId,
@@ -144,10 +184,8 @@ class AppRouter {
         name: 'changePhoneSetup',
         builder: (context, state) {
           final newPhoneNumber = state.extra as String;
-          
-          return ChangePhoneSetupScreen(
-            newPhoneNumber: newPhoneNumber,
-          );
+
+          return ChangePhoneSetupScreen(newPhoneNumber: newPhoneNumber);
         },
       ),
 
@@ -156,7 +194,7 @@ class AppRouter {
         name: 'changePhoneVerification',
         builder: (context, state) {
           final extra = state.extra as ChangePhoneVerificationExtra;
-          
+
           return ChangePhoneVerificationScreen(
             currentPhoneNumber: extra.currentPhoneNumber,
             newPhoneNumber: extra.newPhoneNumber,
@@ -170,39 +208,62 @@ class AppRouter {
         name: 'qrScanner',
         builder: (context, state) => BlocProvider.value(
           value: _transactionCubit,
-          child: const QrScannerScreen(),
+          child: const QRScannerScreen(),
         ),
       ),
 
       GoRoute(
         path: Routes.qrGenerator,
         name: 'qrGenerator',
-        builder: (context, state) => const QrGeneratorScreen(),
+        builder: (context, state) => BlocProvider.value(
+          value: _transactionCubit,
+          child: const QRGeneratorScreen(),
+        ),
       ),
 
       GoRoute(
         path: Routes.transactionForm,
         name: 'transactionForm',
         builder: (context, state) {
-          final extra = state.extra as TransactionFormScreenArguments?;
+          final extra = state.extra;
+
+          String? scannedContactPhone;
+          String? scannedContactName;
+          String? scannedContactEmail;
+          bool? scannedVerificationRequired;
+          Transaction? transaction;
+
+          if (extra is Map<String, dynamic>) {
+            scannedContactPhone = extra['scannedContactPhone']?.toString();
+            scannedContactName = extra['scannedContactName']?.toString();
+            scannedContactEmail = extra['scannedContactEmail']?.toString();
+            scannedVerificationRequired =
+                extra['scannedVerificationRequired'] as bool?;
+          } else if (extra is Transaction) {
+            transaction = extra;
+          }
+
           return BlocProvider.value(
             value: _transactionCubit,
             child: TransactionFormScreen(
-              qrData: extra?.qrData,
-              initialType: extra?.initialType,
+              transaction: transaction,
+              scannedContactPhone: scannedContactPhone,
+              scannedContactName: scannedContactName,
+              scannedContactEmail: scannedContactEmail,
+              scannedVerificationRequired: scannedVerificationRequired,
             ),
           );
         },
       ),
 
       GoRoute(
-        path: Routes.transactionDetail,
+        path: '${Routes.transactionDetail}/:id',
         name: 'transactionDetail',
         builder: (context, state) {
-          final transaction = state.extra as Transaction;
+          final transactionId = state.pathParameters['id']!;
           return BlocProvider.value(
             value: _transactionCubit,
-            child: TransactionDetailScreen(transaction: transaction),
+            child: TransactionDetailScreen(transactionId: transactionId),
           );
         },
       ),
@@ -221,12 +282,17 @@ class AppRouter {
         name: 'contactTransactions',
         builder: (context, state) {
           final args = state.extra as ContactTransactionsScreenArguments;
+
+          final contact = TransactionContact(
+            phone: args.contactPhone,
+            name: args.contactName,
+            transactionCount: 0,
+            lastTransactionDate: DateTime.now(),
+          );
+
           return BlocProvider.value(
             value: _transactionCubit,
-            child: ContactTransactionsScreen(
-              contactName: args.contactName,
-              contactPhone: args.contactPhone,
-            ),
+            child: ContactTransactionsScreen(contact: contact),
           );
         },
       ),
