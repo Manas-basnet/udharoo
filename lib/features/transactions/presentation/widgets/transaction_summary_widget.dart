@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:udharoo/features/transactions/domain/entities/transaction_stats.dart';
 
 class TransactionSummaryWidget extends StatelessWidget {
-  final Map<String, dynamic> stats;
+  final TransactionStats stats;
   final EdgeInsetsGeometry? padding;
 
   const TransactionSummaryWidget({
@@ -13,8 +14,6 @@ class TransactionSummaryWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final totalLending = (stats['totalLending'] as double?) ?? 0.0;
-    final totalBorrowing = (stats['totalBorrowing'] as double?) ?? 0.0;
     
     return Container(
       padding: padding ?? const EdgeInsets.all(16),
@@ -23,7 +22,7 @@ class TransactionSummaryWidget extends StatelessWidget {
           Expanded(
             child: _buildStatCard(
               'Total Lending',
-              'NPR ${totalLending.toStringAsFixed(2)}',
+              'NPR ${stats.totalLending.toStringAsFixed(2)}',
               Colors.green,
               Icons.trending_up,
               theme,
@@ -33,7 +32,7 @@ class TransactionSummaryWidget extends StatelessWidget {
           Expanded(
             child: _buildStatCard(
               'Total Borrowing',
-              'NPR ${totalBorrowing.toStringAsFixed(2)}',
+              'NPR ${stats.totalBorrowing.toStringAsFixed(2)}',
               Colors.orange,
               Icons.trending_down,
               theme,
@@ -96,16 +95,12 @@ class TransactionSummaryWidget extends StatelessWidget {
 }
 
 class TransactionQuickStats extends StatelessWidget {
-  final int totalTransactions;
-  final int pendingTransactions;
-  final int completedTransactions;
+  final TransactionStats stats;
   final EdgeInsetsGeometry? padding;
 
   const TransactionQuickStats({
     super.key,
-    required this.totalTransactions,
-    required this.pendingTransactions,
-    required this.completedTransactions,
+    required this.stats,
     this.padding,
   });
 
@@ -120,7 +115,7 @@ class TransactionQuickStats extends StatelessWidget {
           Expanded(
             child: _buildQuickStatItem(
               'Active',
-              totalTransactions.toString(),
+              stats.totalTransactions.toString(),
               theme.colorScheme.primary,
               theme,
             ),
@@ -129,7 +124,7 @@ class TransactionQuickStats extends StatelessWidget {
           Expanded(
             child: _buildQuickStatItem(
               'Pending',
-              pendingTransactions.toString(),
+              stats.pendingTransactions.toString(),
               Colors.orange,
               theme,
             ),
@@ -138,7 +133,7 @@ class TransactionQuickStats extends StatelessWidget {
           Expanded(
             child: _buildQuickStatItem(
               'Completed',
-              completedTransactions.toString(),
+              stats.completedTransactions.toString(),
               Colors.green,
               theme,
             ),

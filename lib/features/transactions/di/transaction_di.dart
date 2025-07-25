@@ -21,6 +21,8 @@ import 'package:udharoo/features/transactions/domain/usecases/parse_qr_usecase.d
 import 'package:udharoo/features/transactions/domain/usecases/get_transaction_stats_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/verify_phone_exists_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_received_transaction_requests_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/request_transaction_completion_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/get_completion_requests_usecase.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/qr_code/qr_code_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/received_transaction_requests/received_transaction_requests_cubit.dart';
@@ -28,6 +30,8 @@ import 'package:udharoo/features/transactions/presentation/bloc/transaction_deta
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_list/transaction_list_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_stats/transaction_stats_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/finished_transactions/finished_transactions_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/completion_requests/completion_requests_cubit.dart';
 
 Future<void> initTransaction(GetIt sl) async {
   sl.registerLazySingleton(() => CreateTransactionUseCase(sl()));
@@ -46,6 +50,8 @@ Future<void> initTransaction(GetIt sl) async {
   sl.registerLazySingleton(() => GetTransactionStatsUseCase(sl()));
   sl.registerLazySingleton(() => VerifyPhoneExistsUseCase(sl()));
   sl.registerLazySingleton(() => GetReceivedTransactionRequestsUseCase(sl()));
+  sl.registerLazySingleton(() => RequestTransactionCompletionUseCase(sl()));
+  sl.registerLazySingleton(() => GetCompletionRequestsUseCase(sl()));
 
   sl.registerLazySingleton<TransactionRepository>(
     () => TransactionRepositoryImpl(
@@ -122,6 +128,20 @@ Future<void> initTransaction(GetIt sl) async {
     () => ReceivedTransactionRequestsCubit(
       getReceivedTransactionRequestsUseCase: sl(),
       verifyTransactionUseCase: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => FinishedTransactionsCubit(
+      getFinishedTransactionsUseCase: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => CompletionRequestsCubit(
+      getCompletionRequestsUseCase: sl(),
+      requestTransactionCompletionUseCase: sl(),
+      completeTransactionUseCase: sl(),
     ),
   );
 }

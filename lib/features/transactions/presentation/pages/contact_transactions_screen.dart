@@ -5,6 +5,7 @@ import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction_contact.dart';
+import 'package:udharoo/features/transactions/domain/entities/transaction_stats.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_card.dart';
@@ -36,7 +37,7 @@ class ContactTransactionsScreen extends StatefulWidget {
 
 class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   List<Transaction> _transactions = [];
-  Map<String, dynamic> _stats = {};
+  TransactionStats _stats = TransactionStats.empty();
 
   @override
   void initState() {
@@ -53,11 +54,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
     final summary = TransactionUtils.calculateTransactionSummary(activeTransactions);
     
     setState(() {
-      _stats = {
-        'totalLending': summary['totalLending'],
-        'totalBorrowing': summary['totalBorrowing'],
-        'netAmount': summary['netAmount'],
-      };
+      _stats = summary;
     });
   }
 
@@ -131,7 +128,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
         body: Column(
           children: [
             _buildContactHeader(),
-            if (_stats.isNotEmpty) _buildSummarySection(),
+            _buildSummarySection(),
             Expanded(
               child: _buildTransactionsList(),
             ),
@@ -228,7 +225,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
 
   Widget _buildSummarySection() {
     final theme = Theme.of(context);
-    final netAmount = _stats['netAmount'] as double? ?? 0.0;
+    final netAmount = _stats.netAmount;
     
     return Container(
       color: theme.colorScheme.surface,

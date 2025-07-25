@@ -11,6 +11,7 @@ class TransactionCard extends StatelessWidget {
   final VoidCallback? onVerify;
   final VoidCallback? onComplete;
   final VoidCallback? onDelete;
+  final VoidCallback? onRequestCompletion;
 
   const TransactionCard({
     super.key,
@@ -19,6 +20,7 @@ class TransactionCard extends StatelessWidget {
     this.onVerify,
     this.onComplete,
     this.onDelete,
+    this.onRequestCompletion,
   });
 
   String? _getCurrentUserId(BuildContext context) {
@@ -243,6 +245,39 @@ class TransactionCard extends StatelessWidget {
                   ],
                 ),
                 
+                if (transaction.completionRequested) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.orange.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.pending_actions,
+                          size: 16,
+                          color: Colors.orange,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Completion requested - waiting for approval',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                
                 if (_shouldShowActions(currentUserId)) ...[
                   const SizedBox(height: 12),
                   _buildActionButtons(context, currentUserId, theme),
@@ -261,8 +296,9 @@ class TransactionCard extends StatelessWidget {
     final canVerify = TransactionUtils.canUserVerify(transaction, currentUserId) && onVerify != null;
     final canComplete = TransactionUtils.canUserComplete(transaction, currentUserId) && onComplete != null;
     final canDelete = transaction.isPending && transaction.createdBy == currentUserId && onDelete != null;
+    final canRequestCompletion = TransactionUtils.canUserRequestCompletion(transaction, currentUserId) && onRequestCompletion != null;
     
-    return canVerify || canComplete || canDelete;
+    return canVerify || canComplete || canDelete || canRequestCompletion;
   }
 
   Widget _buildActionButtons(BuildContext context, String? currentUserId, ThemeData theme) {
@@ -271,6 +307,7 @@ class TransactionCard extends StatelessWidget {
     final canVerify = TransactionUtils.canUserVerify(transaction, currentUserId) && onVerify != null;
     final canComplete = TransactionUtils.canUserComplete(transaction, currentUserId) && onComplete != null;
     final canDelete = transaction.isPending && transaction.createdBy == currentUserId && onDelete != null;
+    final canRequestCompletion = TransactionUtils.canUserRequestCompletion(transaction, currentUserId) && onRequestCompletion != null;
     
     return Row(
       children: [
@@ -286,6 +323,23 @@ class TransactionCard extends StatelessWidget {
                 ),
               ),
               child: const Text('Verify'),
+            ),
+          ),
+          if (canComplete || canDelete || canRequestCompletion) const SizedBox(width: 8),
+        ],
+        
+        if (canRequestCompletion) ...[
+          Expanded(
+            child: OutlinedButton(
+              onPressed: onRequestCompletion,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange,
+                side: const BorderSide(color: Colors.orange),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Request Completion'),
             ),
           ),
           if (canComplete || canDelete) const SizedBox(width: 8),
@@ -309,7 +363,7 @@ class TransactionCard extends StatelessWidget {
         ],
         
         if (canDelete) ...[
-          if (!canComplete && !canVerify)
+          if (!canComplete && !canVerify && !canRequestCompletion)
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: onDelete,

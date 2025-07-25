@@ -21,6 +21,9 @@ class Transaction extends Equatable {
   final String? verifiedBy;
   final QRData? qrGeneratedData;
   final String? recipientUserId;
+  final bool completionRequested;
+  final String? completionRequestedBy;
+  final DateTime? completionRequestedAt;
 
   const Transaction({
     required this.id,
@@ -40,6 +43,9 @@ class Transaction extends Equatable {
     this.verifiedBy,
     this.qrGeneratedData,
     this.recipientUserId,
+    this.completionRequested = false,
+    this.completionRequestedBy,
+    this.completionRequestedAt,
   });
 
   Transaction copyWith({
@@ -60,6 +66,9 @@ class Transaction extends Equatable {
     String? verifiedBy,
     QRData? qrGeneratedData,
     String? recipientUserId,
+    bool? completionRequested,
+    String? completionRequestedBy,
+    DateTime? completionRequestedAt,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -79,6 +88,9 @@ class Transaction extends Equatable {
       verifiedBy: verifiedBy ?? this.verifiedBy,
       qrGeneratedData: qrGeneratedData ?? this.qrGeneratedData,
       recipientUserId: recipientUserId ?? this.recipientUserId,
+      completionRequested: completionRequested ?? this.completionRequested,
+      completionRequestedBy: completionRequestedBy ?? this.completionRequestedBy,
+      completionRequestedAt: completionRequestedAt ?? this.completionRequestedAt,
     );
   }
 
@@ -86,6 +98,7 @@ class Transaction extends Equatable {
   bool get isCompleted => status == TransactionStatus.completed;
   bool get canBeVerified => status == TransactionStatus.pending && verificationRequired && !isVerified;
   bool get canBeCompleted => status == TransactionStatus.verified || (status == TransactionStatus.pending && !verificationRequired);
+  bool get canRequestCompletion => !isCompleted && !completionRequested && status != TransactionStatus.cancelled;
 
   String get formattedAmount {
     return 'NPR ${amount.toStringAsFixed(2)}';
@@ -112,5 +125,8 @@ class Transaction extends Equatable {
         verifiedBy,
         qrGeneratedData,
         recipientUserId,
+        completionRequested,
+        completionRequestedBy,
+        completionRequestedAt,
       ];
 }

@@ -5,11 +5,13 @@ import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/core/di/di.dart' as di;
 import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/domain/entities/transaction_stats.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_list/transaction_list_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_stats/transaction_stats_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/received_transaction_requests/received_transaction_requests_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/completion_requests/completion_requests_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_card.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_summary_widget.dart';
 import 'package:udharoo/features/transactions/presentation/utils/transaction_utils.dart';
@@ -29,8 +31,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   String _searchQuery = '';
   TransactionStatus? _selectedStatus;
   TransactionType? _selectedType;
-  Map<String, dynamic>? _stats;
+  TransactionStats? _stats;
   int _pendingVerificationCount = 0;
+  int _completionRequestsCount = 0;
 
   @override
   void initState() {
@@ -54,6 +57,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     
     _refreshTransactions();
     _loadPendingVerificationCount();
+    _loadCompletionRequestsCount();
   }
 
   void _loadPendingVerificationCount() async {
@@ -64,6 +68,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     if (state is ReceivedTransactionRequestsLoaded) {
       setState(() {
         _pendingVerificationCount = state.requests.length;
+      });
+    }
+  }
+
+  void _loadCompletionRequestsCount() async {
+    final completionRequestsCubit = di.sl<CompletionRequestsCubit>();
+    await completionRequestsCubit.loadCompletionRequests();
+    
+    final state = completionRequestsCubit.state;
+    if (state is CompletionRequestsLoaded) {
+      setState(() {
+        _completionRequestsCount = state.requests.length;
       });
     }
   }
@@ -147,6 +163,50 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             ),
                             child: Text(
                               _pendingVerificationCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              if (_completionRequestsCount > 0)
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  child: Stack(
+                    children: [
+                      IconButton(
+                        onPressed: _navigateToCompletionRequests,
+                        icon: const Icon(Icons.pending_actions),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                          foregroundColor: Colors.orange,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      if (_completionRequestsCount > 0)
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Text(
+                              _completionRequestsCount.toString(),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 10,
@@ -261,9 +321,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     ),
                     const SizedBox(height: 16),
                     TransactionQuickStats(
-                      totalTransactions: state.stats['totalTransactions'] as int? ?? 0,
-                      pendingTransactions: state.stats['pendingTransactions'] as int? ?? 0,
-                      completedTransactions: state.stats['completedTransactions'] as int? ?? 0,
+                      stats: state.stats,
                       padding: EdgeInsets.zero,
                     ),
                     const SizedBox(height: 12),
@@ -349,6 +407,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
     context.read<TransactionStatsCubit>().loadTransactionStats();
     _loadPendingVerificationCount();
+    _loadCompletionRequestsCount();
   }
 
   void _onSearchChanged(String query) {
@@ -380,6 +439,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   void _navigateToReceivedRequests() {
     context.push(Routes.receivedTransactionRequests);
+  }
+
+  void _navigateToCompletionRequests() {
+    context.push('/completion-requests');
   }
 
   @override
@@ -540,13 +603,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     
     switch (status) {
       case null:
-        return _stats!['totalTransactions'] as int? ?? 0;
+        return _stats!.totalTransactions;
       case TransactionStatus.pending:
-        return _stats!['pendingTransactions'] as int? ?? 0;
+        return _stats!.pendingTransactions;
       case TransactionStatus.verified:
-        return _stats!['verifiedTransactions'] as int? ?? 0;
+        return _stats!.verifiedTransactions;
       case TransactionStatus.completed:
-        return _stats!['completedTransactions'] as int? ?? 0;
+        return _stats!.completedTransactions;
       case TransactionStatus.cancelled:
         return 0;
     }
@@ -592,6 +655,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         : null,
                     onDelete: transaction.isPending && transaction.createdBy == _getCurrentUserId()
                         ? () => _deleteTransaction(transaction)
+                        : null,
+                    onRequestCompletion: TransactionUtils.canUserRequestCompletion(transaction, _getCurrentUserId() ?? '')
+                        ? () => _requestCompletion(transaction)
                         : null,
                   ),
                 );
@@ -838,6 +904,99 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _requestCompletion(Transaction transaction) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Request Completion'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Send a completion request for this transaction?'),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.orange.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Transaction: ${transaction.contactName}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    'Amount: ${transaction.formattedAmount}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.blue.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: Colors.blue,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'The lender will be notified and can approve the completion request.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              final currentUserId = _getCurrentUserId();
+              if (currentUserId != null) {
+                final completionRequestsCubit = di.sl<CompletionRequestsCubit>();
+                completionRequestsCubit.requestCompletion(transaction.id, currentUserId);
+                CustomToast.show(
+                  context,
+                  message: 'Completion request sent successfully',
+                  isSuccess: true,
+                );
+                _refreshTransactions();
+              }
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Send Request'),
           ),
         ],
       ),

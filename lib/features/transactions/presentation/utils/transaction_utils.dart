@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/domain/entities/transaction_stats.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 
@@ -166,35 +167,44 @@ class TransactionUtils {
     return filtered;
   }
 
-  static Map<String, double> calculateTransactionSummary(List<Transaction> transactions) {
+  static TransactionStats calculateTransactionSummary(List<Transaction> transactions) {
     double totalLending = 0;
     double totalBorrowing = 0;
-    double pendingLending = 0;
-    double pendingBorrowing = 0;
+    int pendingTransactions = 0;
+    int verifiedTransactions = 0;
+    int completedTransactions = 0;
 
     for (final transaction in transactions) {
       if (transaction.status != TransactionStatus.cancelled && transaction.status != TransactionStatus.completed) {
         if (transaction.type == TransactionType.lending) {
           totalLending += transaction.amount;
           if (transaction.status == TransactionStatus.pending) {
-            pendingLending += transaction.amount;
+            pendingTransactions++;
+          } else if (transaction.status == TransactionStatus.verified) {
+            verifiedTransactions++;
           }
         } else {
           totalBorrowing += transaction.amount;
           if (transaction.status == TransactionStatus.pending) {
-            pendingBorrowing += transaction.amount;
+            pendingTransactions++;
+          } else if (transaction.status == TransactionStatus.verified) {
+            verifiedTransactions++;
           }
         }
+      } else if (transaction.status == TransactionStatus.completed) {
+        completedTransactions++;
       }
     }
 
-    return {
-      'totalLending': totalLending,
-      'totalBorrowing': totalBorrowing,
-      'pendingLending': pendingLending,
-      'pendingBorrowing': pendingBorrowing,
-      'netAmount': totalLending - totalBorrowing,
-    };
+    return TransactionStats(
+      totalTransactions: transactions.length,
+      pendingTransactions: pendingTransactions,
+      verifiedTransactions: verifiedTransactions,
+      completedTransactions: completedTransactions,
+      totalLending: totalLending,
+      totalBorrowing: totalBorrowing,
+      netAmount: totalLending - totalBorrowing,
+    );
   }
 
   static String getTransactionIdentifier(Transaction transaction) {
@@ -231,6 +241,21 @@ class TransactionUtils {
       return isCreator;
     } else {
       return isRecipient;
+    }
+  }
+
+  static bool canUserRequestCompletion(Transaction transaction, String currentUserId) {
+    if (!transaction.canRequestCompletion) {
+      return false;
+    }
+
+    final isCreator = transaction.createdBy == currentUserId;
+    final isRecipient = transaction.recipientUserId == currentUserId;
+
+    if (transaction.type == TransactionType.lending) {
+      return isRecipient && transaction.recipientUserId != null;
+    } else {
+      return isCreator;
     }
   }
 

@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/core/network/api_result.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/domain/entities/transaction_stats.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_transaction_stats_usecase.dart';
@@ -45,7 +46,7 @@ class TransactionStatsCubit extends Cubit<TransactionStatsState> {
     }
   }
 
-  Map<String, dynamic> _calculateStatsFromTransactions(List<Transaction> transactions) {
+  TransactionStats _calculateStatsFromTransactions(List<Transaction> transactions) {
     int totalTransactions = 0;
     int pendingTransactions = 0;
     int verifiedTransactions = 0;
@@ -81,13 +82,14 @@ class TransactionStatsCubit extends Cubit<TransactionStatsState> {
       }
     }
 
-    return {
-      'totalTransactions': totalTransactions,
-      'pendingTransactions': pendingTransactions,
-      'verifiedTransactions': verifiedTransactions,
-      'completedTransactions': completedTransactions,
-      'totalLending': totalLending,
-      'totalBorrowing': totalBorrowing,
-    };
+    return TransactionStats(
+      totalTransactions: totalTransactions,
+      pendingTransactions: pendingTransactions,
+      verifiedTransactions: verifiedTransactions,
+      completedTransactions: completedTransactions,
+      totalLending: totalLending,
+      totalBorrowing: totalBorrowing,
+      netAmount: totalLending - totalBorrowing,
+    );
   }
 }

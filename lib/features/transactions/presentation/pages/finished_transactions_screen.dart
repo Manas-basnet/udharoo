@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
-import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/finished_transactions/finished_transactions_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_card.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_summary_widget.dart';
-import 'package:udharoo/features/transactions/presentation/utils/transaction_utils.dart';
 
 class FinishedTransactionsScreen extends StatefulWidget {
   const FinishedTransactionsScreen({super.key});
@@ -14,49 +14,14 @@ class FinishedTransactionsScreen extends StatefulWidget {
 }
 
 class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen> {
-  List<Transaction> _finishedTransactions = [];
-  Map<String, dynamic> _stats = {};
-  bool _isLoading = true;
-  String? _errorMessage;
-  
   @override
   void initState() {
     super.initState();
     _loadFinishedTransactions();
   }
 
-  void _loadFinishedTransactions() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {      
-      await Future.delayed(const Duration(milliseconds: 100));
-      
-      setState(() {
-        _finishedTransactions = [];
-        _isLoading = false;
-      });
-      
-      _calculateStats(_finishedTransactions);
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Failed to load finished transactions';
-      });
-    }
-  }
-
-  void _calculateStats(List<Transaction> transactions) {
-    final summary = TransactionUtils.calculateTransactionSummary(transactions);
-    
-    setState(() {
-      _stats = {
-        'totalLending': summary['totalLending'],
-        'totalBorrowing': summary['totalBorrowing'],
-      };
-    });
+  void _loadFinishedTransactions() {
+    context.read<FinishedTransactionsCubit>().loadFinishedTransactions();
   }
 
   @override
@@ -78,20 +43,23 @@ class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen>
           ),
         ],
       ),
-      body: Column(
-        children: [
-          if (_stats.isNotEmpty) _buildSummaryHeader(),
-          Expanded(
-            child: _buildContent(),
-          ),
-        ],
+      body: BlocBuilder<FinishedTransactionsCubit, FinishedTransactionsState>(
+        builder: (context, state) {
+          return Column(
+            children: [
+              if (state is FinishedTransactionsLoaded) 
+                _buildSummaryHeader(state.stats, theme),
+              Expanded(
+                child: _buildContent(state, theme),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildSummaryHeader() {
-    final theme = Theme.of(context);
-    
+  Widget _buildSummaryHeader(stats, ThemeData theme) {
     return Container(
       color: theme.colorScheme.surface,
       child: Column(
@@ -116,9 +84,7 @@ class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen>
               ],
             ),
           ),
-          TransactionSummaryWidget(
-            stats: _stats,
-          ),
+          TransactionSummaryWidget(stats: stats),
           const SizedBox(height: 10),
           Divider(
             height: 1,
@@ -129,30 +95,33 @@ class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen>
     );
   }
 
-  Widget _buildContent() {
-    if (_isLoading) {
+  Widget _buildContent(FinishedTransactionsState state, ThemeData theme) {
+    if (state is FinishedTransactionsLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_errorMessage != null) {
-      return _buildErrorState();
+    if (state is FinishedTransactionsError) {
+      return _buildErrorState(state.message, theme);
     }
 
-    if (_finishedTransactions.isEmpty) {
-      return _buildEmptyState();
+    if (state is FinishedTransactionsLoaded) {
+      if (state.transactions.isEmpty) {
+        return _buildEmptyState(theme);
+      }
+      return _buildTransactionsList(state.transactions);
     }
 
-    return _buildTransactionsList();
+    return _buildEmptyState(theme);
   }
 
-  Widget _buildTransactionsList() {
+  Widget _buildTransactionsList(transactions) {
     return RefreshIndicator(
       onRefresh: () async => _loadFinishedTransactions(),
       child: ListView.builder(
         padding: const EdgeInsets.all(20),
-        itemCount: _finishedTransactions.length,
+        itemCount: transactions.length,
         itemBuilder: (context, index) {
-          final transaction = _finishedTransactions[index];
+          final transaction = transactions[index];
           return TransactionCard(
             transaction: transaction,
             onTap: () {
@@ -164,9 +133,7 @@ class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen>
     );
   }
 
-  Widget _buildEmptyState() {
-    final theme = Theme.of(context);
-    
+  Widget _buildEmptyState(ThemeData theme) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -224,9 +191,7 @@ class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen>
     );
   }
 
-  Widget _buildErrorState() {
-    final theme = Theme.of(context);
-    
+  Widget _buildErrorState(String message, ThemeData theme) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -248,7 +213,7 @@ class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen>
             ),
             const SizedBox(height: 12),
             Text(
-              _errorMessage ?? 'Something went wrong',
+              message,
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),

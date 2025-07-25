@@ -9,6 +9,7 @@ import 'package:udharoo/features/transactions/domain/datasources/local/transacti
 import 'package:udharoo/features/transactions/domain/datasources/remote/transaction_remote_datasource.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction_contact.dart';
+import 'package:udharoo/features/transactions/domain/entities/transaction_stats.dart';
 import 'package:udharoo/features/transactions/domain/entities/qr_data.dart';
 import 'package:udharoo/features/transactions/domain/repositories/transaction_repository.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
@@ -429,7 +430,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
   }
 
   @override
-  Future<ApiResult<Map<String, dynamic>>> getTransactionStats() async {
+  Future<ApiResult<TransactionStats>> getTransactionStats() async {
     return ExceptionHandler.handleExceptions(() async {
       if (_currentUserId == null) {
         return ApiResult.failure('User not authenticated', FailureType.auth);
@@ -443,7 +444,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         return ApiResult.success(stats);
       }
 
-      return handleRemoteCallFirst<Map<String, dynamic>>(
+      return handleRemoteCallFirst<TransactionStats>(
         remoteCall: () async {
           final result = await _remoteDatasource.getTransactionStats(_currentUserId!);
           return ApiResult.success(result);
@@ -486,7 +487,46 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
     });
   }
 
-  Map<String, dynamic> _calculateStatsFromTransactions(List<TransactionModel> transactions) {
+  @override
+  Future<ApiResult<Transaction>> requestTransactionCompletion(String transactionId, String requestedBy) async {
+    return ExceptionHandler.handleExceptions(() async {
+      if (_currentUserId == null) {
+        return ApiResult.failure('User not authenticated', FailureType.auth);
+      }
+
+      return handleRemoteCallFirst<Transaction>(
+        remoteCall: () async {
+          final result = await _remoteDatasource.requestTransactionCompletion(transactionId, requestedBy);
+          return ApiResult.success(result);
+        },
+        saveLocalData: (data) async {
+          if (data != null) {
+            await _localDatasource.cacheTransaction(_currentUserId!, TransactionModel.fromEntity(data));
+          }
+        },
+      );
+    });
+  }
+
+  @override
+  Future<ApiResult<List<Transaction>>> getCompletionRequests() async {
+    return ExceptionHandler.handleExceptions(() async {
+      if (_currentUserId == null) {
+        return ApiResult.failure('User not authenticated', FailureType.auth);
+      }
+
+      return handleRemoteCallFirst<List<Transaction>>(
+        remoteCall: () async {
+          final result = await _remoteDatasource.getCompletionRequests(_currentUserId!);
+          return ApiResult.success(result.cast<Transaction>());
+        },
+        saveLocalData: (data) async {
+        },
+      );
+    });
+  }
+
+  TransactionStats _calculateStatsFromTransactions(List<TransactionModel> transactions) {
     int totalTransactions = 0;
     int pendingTransactions = 0;
     int verifiedTransactions = 0;
@@ -522,13 +562,14 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
       }
     }
 
-    return {
-      'totalTransactions': totalTransactions,
-      'pendingTransactions': pendingTransactions,
-      'verifiedTransactions': verifiedTransactions,
-      'completedTransactions': completedTransactions,
-      'totalLending': totalLending,
-      'totalBorrowing': totalBorrowing,
-    };
+    return TransactionStats(
+      totalTransactions: totalTransactions,
+      pendingTransactions: pendingTransactions,
+      verifiedTransactions: verifiedTransactions,
+      completedTransactions: completedTransactions,
+      totalLending: totalLending,
+      totalBorrowing: totalBorrowing,
+      netAmount: totalLending - totalBorrowing,
+    );
   }
 }

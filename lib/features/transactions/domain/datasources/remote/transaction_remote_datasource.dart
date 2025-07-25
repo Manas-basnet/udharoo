@@ -1,5 +1,6 @@
 import 'package:udharoo/features/transactions/data/models/transaction_model.dart';
 import 'package:udharoo/features/transactions/data/models/transaction_contact_model.dart';
+import 'package:udharoo/features/transactions/data/models/transaction_stats_model.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
 
@@ -25,7 +26,9 @@ abstract class TransactionRemoteDatasource {
   Future<List<TransactionModel>> getContactTransactions(String userId, String contactPhone);
   Future<bool> getGlobalVerificationSetting(String userId);
   Future<void> setGlobalVerificationSetting(String userId, bool enabled);
-  Future<Map<String, dynamic>> getTransactionStats(String userId);
+  Future<TransactionStatsModel> getTransactionStats(String userId);
   Future<String?> verifyPhoneExists(String phoneNumber);
   Future<List<TransactionModel>> getReceivedTransactionRequests(String userId);
+  Future<TransactionModel> requestTransactionCompletion(String transactionId, String requestedBy);
+  Future<List<TransactionModel>> getCompletionRequests(String userId);
 }

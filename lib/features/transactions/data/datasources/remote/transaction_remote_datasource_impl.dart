@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:udharoo/features/transactions/data/models/transaction_model.dart';
 import 'package:udharoo/features/transactions/data/models/transaction_contact_model.dart';
+import 'package:udharoo/features/transactions/data/models/transaction_stats_model.dart';
 import 'package:udharoo/features/transactions/domain/datasources/remote/transaction_remote_datasource.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
@@ -68,10 +69,6 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         .collection('users')
         .doc(userId)
         .collection('transactions');
-
-    // if(lastSyncTime != null) {
-    //   query = query.where('updatedAt', isGreaterThan: Timestamp.fromDate(lastSyncTime));
-    // }
 
     query = query.orderBy('updatedAt', descending: true);
 
@@ -488,7 +485,7 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
   }
 
   @override
-  Future<Map<String, dynamic>> getTransactionStats(String userId) async {
+  Future<TransactionStatsModel> getTransactionStats(String userId) async {
     final querySnapshot = await _firestore
         .collection('users')
         .doc(userId)
@@ -541,8 +538,88 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         .toList();
   }
 
-  Future<UserTransactionRole?> _getUserRoleForTransaction(String transactionId, String userId) async {
+  @override
+  Future<TransactionModel> requestTransactionCompletion(String transactionId, String requestedBy) async {
+    final transaction = await getTransactionById(transactionId, requestedBy);
+    
+    if (transaction.completionRequested) {
+      throw Exception('Completion request already sent for this transaction');
+    }
 
+    if (transaction.isCompleted) {
+      throw Exception('Transaction is already completed');
+    }
+
+    final updatedTransaction = TransactionModel.fromEntity(
+      transaction.copyWith(
+        completionRequested: true,
+        completionRequestedBy: requestedBy,
+        completionRequestedAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+    );
+
+    final batch = _firestore.batch();
+
+    final creatorDocRef = _firestore
+        .collection('users')
+        .doc(transaction.createdBy)
+        .collection('transactions')
+        .doc(transactionId);
+
+    batch.update(creatorDocRef, updatedTransaction.toJson());
+
+    if (transaction.recipientUserId != null) {
+      final recipientDocRef = _firestore
+          .collection('users')
+          .doc(transaction.recipientUserId)
+          .collection('received_transactions')
+          .doc(transactionId);
+
+      batch.update(recipientDocRef, updatedTransaction.toJson());
+
+      final recipientTransactionDocRef = _firestore
+          .collection('users')
+          .doc(transaction.recipientUserId)
+          .collection('transactions')
+          .doc(transactionId);
+
+      final flippedTransaction = await _createFlippedTransaction(updatedTransaction, transaction.recipientUserId!);
+      batch.update(recipientTransactionDocRef, flippedTransaction.toJson());
+    }
+
+    final completionRequestRef = _firestore
+        .collection('users')
+        .doc(transaction.createdBy)
+        .collection('completion_requests')
+        .doc(transactionId);
+
+    batch.set(completionRequestRef, updatedTransaction.toJson());
+
+    await batch.commit();
+
+    return updatedTransaction;
+  }
+
+  @override
+  Future<List<TransactionModel>> getCompletionRequests(String userId) async {
+    final querySnapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('completion_requests')
+        .where('completionRequested', isEqualTo: true)
+        .orderBy('completionRequestedAt', descending: true)
+        .get();
+
+    return querySnapshot.docs
+        .map((doc) => TransactionModel.fromJson({
+              ...doc.data(),
+              'id': doc.id,
+            }))
+        .toList();
+  }
+
+  Future<UserTransactionRole?> _getUserRoleForTransaction(String transactionId, String userId) async {
     final recipientDoc = await _firestore
         .collection('users')
         .doc(userId)
@@ -609,7 +686,7 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
     return 'Transaction Partner';
   }
 
-  Map<String, dynamic> _calculateStatsFromTransactions(List<TransactionModel> transactions) {
+  TransactionStatsModel _calculateStatsFromTransactions(List<TransactionModel> transactions) {
     int totalTransactions = 0;
     int pendingTransactions = 0;
     int verifiedTransactions = 0;
@@ -645,14 +722,15 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
       }
     }
 
-    return {
-      'totalTransactions': totalTransactions,
-      'pendingTransactions': pendingTransactions,
-      'verifiedTransactions': verifiedTransactions,
-      'completedTransactions': completedTransactions,
-      'totalLending': totalLending,
-      'totalBorrowing': totalBorrowing,
-    };
+    return TransactionStatsModel(
+      totalTransactions: totalTransactions,
+      pendingTransactions: pendingTransactions,
+      verifiedTransactions: verifiedTransactions,
+      completedTransactions: completedTransactions,
+      totalLending: totalLending,
+      totalBorrowing: totalBorrowing,
+      netAmount: totalLending - totalBorrowing,
+    );
   }
 }
 

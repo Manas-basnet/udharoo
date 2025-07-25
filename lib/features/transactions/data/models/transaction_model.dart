@@ -22,6 +22,9 @@ class TransactionModel extends Transaction {
     super.verifiedBy,
     super.qrGeneratedData,
     super.recipientUserId,
+    super.completionRequested = false,
+    super.completionRequestedBy,
+    super.completionRequestedAt,
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
@@ -51,6 +54,11 @@ class TransactionModel extends Transaction {
           ? QRDataModel.fromJson(json['qrGeneratedData'] as Map<String, dynamic>)
           : null,
       recipientUserId: json['recipientUserId'] as String?,
+      completionRequested: json['completionRequested'] as bool? ?? false,
+      completionRequestedBy: json['completionRequestedBy'] as String?,
+      completionRequestedAt: json['completionRequestedAt'] != null
+          ? DateTime.parse(json['completionRequestedAt'] as String)
+          : null,
     );
   }
 
@@ -75,6 +83,9 @@ class TransactionModel extends Transaction {
           ? QRDataModel.fromEntity(qrGeneratedData!).toJson()
           : null,
       'recipientUserId': recipientUserId,
+      'completionRequested': completionRequested,
+      'completionRequestedBy': completionRequestedBy,
+      'completionRequestedAt': completionRequestedAt?.toIso8601String(),
     };
   }
 
@@ -97,6 +108,9 @@ class TransactionModel extends Transaction {
       verifiedBy: transaction.verifiedBy,
       qrGeneratedData: transaction.qrGeneratedData,
       recipientUserId: transaction.recipientUserId,
+      completionRequested: transaction.completionRequested,
+      completionRequestedBy: transaction.completionRequestedBy,
+      completionRequestedAt: transaction.completionRequestedAt,
     );
   }
 }

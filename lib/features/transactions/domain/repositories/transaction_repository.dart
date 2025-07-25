@@ -1,6 +1,7 @@
 import 'package:udharoo/core/network/api_result.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction_contact.dart';
+import 'package:udharoo/features/transactions/domain/entities/transaction_stats.dart';
 import 'package:udharoo/features/transactions/domain/entities/qr_data.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
@@ -38,7 +39,9 @@ abstract class TransactionRepository {
   Future<ApiResult<QRData>> parseQRCode(String qrCodeData);
   Future<ApiResult<bool>> getGlobalVerificationSetting();
   Future<ApiResult<void>> setGlobalVerificationSetting(bool enabled);
-  Future<ApiResult<Map<String, dynamic>>> getTransactionStats();
+  Future<ApiResult<TransactionStats>> getTransactionStats();
   Future<ApiResult<String?>> verifyPhoneExists(String phoneNumber);
   Future<ApiResult<List<Transaction>>> getReceivedTransactionRequests();
+  Future<ApiResult<Transaction>> requestTransactionCompletion(String transactionId, String requestedBy);
+  Future<ApiResult<List<Transaction>>> getCompletionRequests();
 }

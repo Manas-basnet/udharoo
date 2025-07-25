@@ -16,7 +16,7 @@ final class TransactionStatsLoading extends TransactionStatsState {
 }
 
 final class TransactionStatsLoaded extends TransactionStatsState {
-  final Map<String, dynamic> stats;
+  final TransactionStats stats;
 
   const TransactionStatsLoaded(this.stats);
 
