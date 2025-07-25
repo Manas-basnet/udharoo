@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
@@ -39,15 +40,15 @@ class TransactionModel extends Transaction {
       contactEmail: json['contactEmail'] as String?,
       description: json['description'] as String?,
       dueDate: json['dueDate'] != null 
-          ? DateTime.parse(json['dueDate'] as String) 
+          ? (json['dueDate'] as Timestamp).toDate()
           : null,
       isVerified: json['isVerified'] as bool? ?? false,
       verificationRequired: json['verificationRequired'] as bool? ?? false,
       status: TransactionStatus.values.firstWhere(
         (e) => e.name == json['status'],
       ),
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      createdAt: (json['createdAt'] as Timestamp).toDate(),
+      updatedAt: (json['updatedAt'] as Timestamp).toDate(),
       createdBy: json['createdBy'] as String,
       verifiedBy: json['verifiedBy'] as String?,
       qrGeneratedData: json['qrGeneratedData'] != null
@@ -57,7 +58,7 @@ class TransactionModel extends Transaction {
       completionRequested: json['completionRequested'] as bool? ?? false,
       completionRequestedBy: json['completionRequestedBy'] as String?,
       completionRequestedAt: json['completionRequestedAt'] != null
-          ? DateTime.parse(json['completionRequestedAt'] as String)
+          ? (json['completionRequestedAt'] as Timestamp).toDate()
           : null,
     );
   }
@@ -71,12 +72,12 @@ class TransactionModel extends Transaction {
       'contactName': contactName,
       'contactEmail': contactEmail,
       'description': description,
-      'dueDate': dueDate?.toIso8601String(),
+      'dueDate': dueDate != null ? Timestamp.fromDate(dueDate!) : null,
       'isVerified': isVerified,
       'verificationRequired': verificationRequired,
       'status': status.name,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': Timestamp.fromDate(updatedAt),
       'createdBy': createdBy,
       'verifiedBy': verifiedBy,
       'qrGeneratedData': qrGeneratedData != null
@@ -85,7 +86,9 @@ class TransactionModel extends Transaction {
       'recipientUserId': recipientUserId,
       'completionRequested': completionRequested,
       'completionRequestedBy': completionRequestedBy,
-      'completionRequestedAt': completionRequestedAt?.toIso8601String(),
+      'completionRequestedAt': completionRequestedAt != null 
+          ? Timestamp.fromDate(completionRequestedAt!) 
+          : null,
     };
   }
 
