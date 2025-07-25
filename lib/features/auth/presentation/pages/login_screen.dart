@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/core/di/di.dart' as di;
 import 'package:udharoo/features/auth/presentation/bloc/signin_cubit.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
-import 'package:udharoo/features/auth/presentation/pages/sign_up_screen.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -543,11 +544,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _navigateToSignUp(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const SignUpScreen(),
-      ),
-    );
+    context.push(Routes.signUp);
   }
 
   @override

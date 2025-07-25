@@ -7,7 +7,7 @@ class Transaction extends Equatable {
   final String id;
   final TransactionType type;
   final double amount;
-  final String contactPhone;
+  final String? contactPhone;
   final String contactName;
   final String? contactEmail;
   final String? description;
@@ -20,12 +20,13 @@ class Transaction extends Equatable {
   final String createdBy;
   final String? verifiedBy;
   final QRData? qrGeneratedData;
+  final String? recipientUserId;
 
   const Transaction({
     required this.id,
     required this.type,
     required this.amount,
-    required this.contactPhone,
+    this.contactPhone,
     required this.contactName,
     this.contactEmail,
     this.description,
@@ -38,6 +39,7 @@ class Transaction extends Equatable {
     required this.createdBy,
     this.verifiedBy,
     this.qrGeneratedData,
+    this.recipientUserId,
   });
 
   Transaction copyWith({
@@ -57,6 +59,7 @@ class Transaction extends Equatable {
     String? createdBy,
     String? verifiedBy,
     QRData? qrGeneratedData,
+    String? recipientUserId,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -75,17 +78,20 @@ class Transaction extends Equatable {
       createdBy: createdBy ?? this.createdBy,
       verifiedBy: verifiedBy ?? this.verifiedBy,
       qrGeneratedData: qrGeneratedData ?? this.qrGeneratedData,
+      recipientUserId: recipientUserId ?? this.recipientUserId,
     );
   }
 
   bool get isPending => status == TransactionStatus.pending;
   bool get isCompleted => status == TransactionStatus.completed;
-  bool get canBeVerified => status == TransactionStatus.pending && verificationRequired;
+  bool get canBeVerified => status == TransactionStatus.pending && verificationRequired && !isVerified;
   bool get canBeCompleted => status == TransactionStatus.verified || (status == TransactionStatus.pending && !verificationRequired);
 
   String get formattedAmount {
     return 'NPR ${amount.toStringAsFixed(2)}';
   }
+
+  bool get hasValidRecipient => contactPhone != null && recipientUserId != null;
 
   @override
   List<Object?> get props => [
@@ -105,5 +111,6 @@ class Transaction extends Equatable {
         createdBy,
         verifiedBy,
         qrGeneratedData,
+        recipientUserId,
       ];
 }

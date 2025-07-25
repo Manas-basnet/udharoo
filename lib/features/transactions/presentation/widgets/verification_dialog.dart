@@ -124,17 +124,35 @@ class TransactionVerificationDialog extends StatelessWidget {
                     transaction.contactName,
                     theme,
                   ),
-                  const SizedBox(height: 8),
-                  _buildDetailRow(
-                    'Phone',
-                    transaction.contactPhone,
-                    theme,
-                  ),
+                  if (transaction.contactPhone != null) ...[
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Phone',
+                      transaction.contactPhone!,
+                      theme,
+                    ),
+                  ],
+                  if (transaction.contactEmail != null) ...[
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Email',
+                      transaction.contactEmail!,
+                      theme,
+                    ),
+                  ],
                   if (transaction.description != null) ...[
                     const SizedBox(height: 8),
                     _buildDetailRow(
                       'Description',
                       transaction.description!,
+                      theme,
+                    ),
+                  ],
+                  if (transaction.dueDate != null) ...[
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Due Date',
+                      '${transaction.dueDate!.day}/${transaction.dueDate!.month}/${transaction.dueDate!.year}',
                       theme,
                     ),
                   ],
@@ -163,7 +181,9 @@ class TransactionVerificationDialog extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'By verifying this transaction, you confirm that the details are accurate and agree to the terms.',
+                      transaction.hasValidRecipient
+                          ? 'By verifying this transaction, you confirm that the details are accurate and agree to the terms.'
+                          : 'This transaction requires verification but the recipient information may be incomplete. Please verify carefully.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.blue,
                       ),
@@ -172,6 +192,39 @@ class TransactionVerificationDialog extends StatelessWidget {
                 ],
               ),
             ),
+            
+            if (!transaction.hasValidRecipient) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.warning_amber_outlined,
+                      size: 18,
+                      color: Colors.orange,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Warning: This transaction may not have complete recipient information.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             
             const SizedBox(height: 24),
             

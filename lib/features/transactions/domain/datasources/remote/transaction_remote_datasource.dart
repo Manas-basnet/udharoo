@@ -22,4 +22,6 @@ abstract class TransactionRemoteDatasource {
   Future<bool> getGlobalVerificationSetting(String userId);
   Future<void> setGlobalVerificationSetting(String userId, bool enabled);
   Future<Map<String, dynamic>> getTransactionStats(String userId);
+  Future<String?> verifyPhoneExists(String phoneNumber);
+  Future<List<TransactionModel>> getReceivedTransactionRequests(String userId);
 }

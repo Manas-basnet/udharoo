@@ -68,12 +68,32 @@ class TransactionCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            transaction.contactPhone,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          if (transaction.contactPhone != null) ...[
+                            Text(
+                              transaction.contactPhone!,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
                             ),
-                          ),
+                          ] else ...[
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.person_outline,
+                                  size: 14,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Contact only',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -152,12 +172,63 @@ class TransactionCard extends StatelessWidget {
                     
                     const Spacer(),
                     
-                    if (transaction.verificationRequired && !transaction.isVerified)
-                      Icon(
-                        Icons.verified_user_outlined,
-                        size: 16,
-                        color: Colors.orange,
+                    if (transaction.verificationRequired) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: transaction.isVerified 
+                              ? Colors.green.withValues(alpha: 0.1)
+                              : Colors.orange.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              transaction.isVerified 
+                                  ? Icons.verified_user
+                                  : Icons.verified_user_outlined,
+                              size: 12,
+                              color: transaction.isVerified ? Colors.green : Colors.orange,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              transaction.isVerified ? 'Verified' : 'Needs Verification',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: transaction.isVerified ? Colors.green : Colors.orange,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline,
+                              size: 12,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'No Verification',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 

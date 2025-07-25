@@ -37,16 +37,26 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         return ApiResult.failure('User not authenticated', FailureType.auth);
       }
 
-      final transactionModel = TransactionModel.fromEntity(transaction);
+      String? recipientUserId;
+      if (transaction.verificationRequired && transaction.contactPhone != null) {
+        recipientUserId = await _remoteDatasource.verifyPhoneExists(transaction.contactPhone!);
+        if (recipientUserId == null) {
+          return ApiResult.failure('User with this phone number does not exist', FailureType.validation);
+        }
+      }
+
+      final transactionWithRecipient = TransactionModel.fromEntity(
+        transaction.copyWith(recipientUserId: recipientUserId),
+      );
       
       return handleRemoteCallFirst<Transaction>(
         remoteCall: () async {
-          final result = await _remoteDatasource.createTransaction(transactionModel);
+          final result = await _remoteDatasource.createTransaction(transactionWithRecipient);
           return ApiResult.success(result);
         },
         saveLocalData: (data) async {
           if (data != null) {
-            await _localDatasource.cacheTransaction(TransactionModel.fromEntity(data));
+            await _localDatasource.cacheTransaction(_currentUserId!, TransactionModel.fromEntity(data));
           }
         },
       );
@@ -66,7 +76,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         return ApiResult.failure('User not authenticated', FailureType.auth);
       }
 
-      final cached = await _localDatasource.getCachedTransactions();
+      final cached = await _localDatasource.getCachedTransactions(_currentUserId!);
       List<TransactionModel> filtered = cached;
 
       if (status != null) {
@@ -81,7 +91,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         final searchLower = searchQuery.toLowerCase();
         filtered = filtered.where((transaction) {
           return transaction.contactName.toLowerCase().contains(searchLower) ||
-                 transaction.contactPhone.contains(searchQuery) ||
+                 (transaction.contactPhone?.contains(searchQuery) ?? false) ||
                  (transaction.description?.toLowerCase().contains(searchLower) ?? false);
         }).toList();
       }
@@ -106,7 +116,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         return ApiResult.failure('User not authenticated', FailureType.auth);
       }
 
-      final lastSyncTime = await _localDatasource.getLastSyncTimestamp();
+      final lastSyncTime = await _localDatasource.getLastSyncTimestamp(_currentUserId!);
       
       return handleRemoteCallFirst<List<Transaction>>(
         remoteCall: () async {
@@ -125,14 +135,14 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
             final transactionModels = data.map((t) => TransactionModel.fromEntity(t)).toList();
             
             if (lastSyncTime != null) {
-              await _localDatasource.mergeTransactions(transactionModels);
+              await _localDatasource.mergeTransactions(_currentUserId!, transactionModels);
             } else {
-              await _localDatasource.cacheTransactions(transactionModels);
+              await _localDatasource.cacheTransactions(_currentUserId!, transactionModels);
             }
             
-            await _localDatasource.setLastSyncTimestamp(DateTime.now());
+            await _localDatasource.setLastSyncTimestamp(_currentUserId!, DateTime.now());
           } else if (lastSyncTime == null) {
-            await _localDatasource.setLastSyncTimestamp(DateTime.now());
+            await _localDatasource.setLastSyncTimestamp(_currentUserId!, DateTime.now());
           }
         },
       );
@@ -148,7 +158,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
 
       return handleCacheCallFirst<Transaction>(
         localCall: () async {
-          final cached = await _localDatasource.getCachedTransaction(id);
+          final cached = await _localDatasource.getCachedTransaction(_currentUserId!, id);
           if (cached != null) {
             return ApiResult.success(cached);
           }
@@ -160,7 +170,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         },
         saveLocalData: (data) async {
           if (data != null) {
-            await _localDatasource.cacheTransaction(TransactionModel.fromEntity(data));
+            await _localDatasource.cacheTransaction(_currentUserId!, TransactionModel.fromEntity(data));
           }
         },
       );
@@ -174,7 +184,17 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         return ApiResult.failure('User not authenticated', FailureType.auth);
       }
 
-      final transactionModel = TransactionModel.fromEntity(transaction);
+      String? recipientUserId = transaction.recipientUserId;
+      if (transaction.verificationRequired && transaction.contactPhone != null && recipientUserId == null) {
+        recipientUserId = await _remoteDatasource.verifyPhoneExists(transaction.contactPhone!);
+        if (recipientUserId == null) {
+          return ApiResult.failure('User with this phone number does not exist', FailureType.validation);
+        }
+      }
+
+      final transactionModel = TransactionModel.fromEntity(
+        transaction.copyWith(recipientUserId: recipientUserId),
+      );
       
       return handleRemoteCallFirst<Transaction>(
         remoteCall: () async {
@@ -183,7 +203,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         },
         saveLocalData: (data) async {
           if (data != null) {
-            await _localDatasource.cacheTransaction(TransactionModel.fromEntity(data));
+            await _localDatasource.cacheTransaction(_currentUserId!, TransactionModel.fromEntity(data));
           }
         },
       );
@@ -203,7 +223,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
           return ApiResult.success(null);
         },
         saveLocalData: (data) async {
-          await _localDatasource.removeCachedTransaction(id);
+          await _localDatasource.removeCachedTransaction(_currentUserId!, id);
         },
       );
     });
@@ -233,7 +253,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         },
         saveLocalData: (data) async {
           if (data != null) {
-            await _localDatasource.cacheTransaction(TransactionModel.fromEntity(data));
+            await _localDatasource.cacheTransaction(_currentUserId!, TransactionModel.fromEntity(data));
           }
         },
       );
@@ -262,7 +282,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         },
         saveLocalData: (data) async {
           if (data != null) {
-            await _localDatasource.cacheTransaction(TransactionModel.fromEntity(data));
+            await _localDatasource.cacheTransaction(_currentUserId!, TransactionModel.fromEntity(data));
           }
         },
       );
@@ -395,6 +415,38 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         remoteCall: () async {
           final result = await _remoteDatasource.getTransactionStats(_currentUserId!);
           return ApiResult.success(result);
+        },
+        saveLocalData: (data) async {
+        },
+      );
+    });
+  }
+
+  @override
+  Future<ApiResult<String?>> verifyPhoneExists(String phoneNumber) async {
+    return ExceptionHandler.handleExceptions(() async {
+      return handleRemoteCallFirst<String?>(
+        remoteCall: () async {
+          final result = await _remoteDatasource.verifyPhoneExists(phoneNumber);
+          return ApiResult.success(result);
+        },
+        saveLocalData: (data) async {
+        },
+      );
+    });
+  }
+
+  @override
+  Future<ApiResult<List<Transaction>>> getReceivedTransactionRequests() async {
+    return ExceptionHandler.handleExceptions(() async {
+      if (_currentUserId == null) {
+        return ApiResult.failure('User not authenticated', FailureType.auth);
+      }
+
+      return handleRemoteCallFirst<List<Transaction>>(
+        remoteCall: () async {
+          final result = await _remoteDatasource.getReceivedTransactionRequests(_currentUserId!);
+          return ApiResult.success(result.cast<Transaction>());
         },
         saveLocalData: (data) async {
         },

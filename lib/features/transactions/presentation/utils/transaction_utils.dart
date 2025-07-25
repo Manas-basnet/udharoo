@@ -82,14 +82,14 @@ class TransactionUtils {
     return DateTime.now().isAfter(dueDate);
   }
 
-  static bool isValidPhoneNumber(String phone) {
-    if (phone.isEmpty) return false;
+  static bool isValidPhoneNumber(String? phone) {
+    if (phone == null || phone.isEmpty) return false;
     final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
     return cleanPhone.length >= 7 && cleanPhone.length <= 15;
   }
 
   static bool isValidEmail(String email) {
-    if (email.isEmpty) return true; // Email is optional
+    if (email.isEmpty) return true;
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
@@ -97,7 +97,10 @@ class TransactionUtils {
     return amount != null && amount > 0;
   }
 
-  static String? validatePhoneNumber(String? phone) {
+  static String? validatePhoneNumber(String? phone, {bool required = false}) {
+    if (!required && (phone == null || phone.isEmpty)) {
+      return null;
+    }
     if (phone == null || phone.isEmpty) {
       return 'Phone number is required';
     }
@@ -156,7 +159,7 @@ class TransactionUtils {
       final query = searchQuery.toLowerCase();
       filtered = filtered.where((t) =>
           t.contactName.toLowerCase().contains(query) ||
-          t.contactPhone.contains(searchQuery) ||
+          (t.contactPhone?.contains(searchQuery) ?? false) ||
           (t.description?.toLowerCase().contains(query) ?? false)).toList();
     }
 
@@ -192,5 +195,22 @@ class TransactionUtils {
       'pendingBorrowing': pendingBorrowing,
       'netAmount': totalLending - totalBorrowing,
     };
+  }
+
+  static String getTransactionIdentifier(Transaction transaction) {
+    if (transaction.contactPhone != null) {
+      return '${transaction.contactName} (${transaction.contactPhone})';
+    }
+    return transaction.contactName;
+  }
+
+  static bool requiresVerification(Transaction transaction) {
+    return transaction.verificationRequired && transaction.contactPhone != null;
+  }
+
+  static bool canUserVerify(Transaction transaction, String currentUserId) {
+    return transaction.verificationRequired && 
+           transaction.recipientUserId == currentUserId && 
+           !transaction.isVerified;
   }
 }

@@ -26,6 +26,15 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
 
     await docRef.set(transactionWithId.toJson());
 
+    if (transaction.recipientUserId != null) {
+      await _firestore
+          .collection('users')
+          .doc(transaction.recipientUserId)
+          .collection('received_transactions')
+          .doc(docRef.id)
+          .set(transactionWithId.toJson());
+    }
+
     return transactionWithId;
   }
 
@@ -89,7 +98,7 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
       final searchLower = searchQuery.toLowerCase();
       transactions = transactions.where((transaction) {
         return transaction.contactName.toLowerCase().contains(searchLower) ||
-               transaction.contactPhone.contains(searchQuery) ||
+               (transaction.contactPhone?.contains(searchQuery) ?? false) ||
                (transaction.description?.toLowerCase().contains(searchLower) ?? false);
       }).toList();
     }
@@ -133,17 +142,37 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         .doc(transaction.id)
         .update(updatedTransaction.toJson());
 
+    if (transaction.recipientUserId != null) {
+      await _firestore
+          .collection('users')
+          .doc(transaction.recipientUserId)
+          .collection('received_transactions')
+          .doc(transaction.id)
+          .update(updatedTransaction.toJson());
+    }
+
     return updatedTransaction;
   }
 
   @override
   Future<void> deleteTransaction(String id, String userId) async {
+    final transaction = await getTransactionById(id, userId);
+    
     await _firestore
         .collection('users')
         .doc(userId)
         .collection('transactions')
         .doc(id)
         .delete();
+
+    if (transaction.recipientUserId != null) {
+      await _firestore
+          .collection('users')
+          .doc(transaction.recipientUserId)
+          .collection('received_transactions')
+          .doc(id)
+          .delete();
+    }
   }
 
   @override
@@ -162,7 +191,9 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         'id': doc.id,
       });
 
-      final phone = transaction.contactPhone;
+      if (transaction.contactPhone == null) continue;
+
+      final phone = transaction.contactPhone!;
       final existing = contactsMap[phone];
 
       if (existing == null) {
@@ -284,5 +315,39 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
       'totalBorrowing': totalBorrowing,
       'netAmount': totalLending - totalBorrowing,
     };
+  }
+
+  @override
+  Future<String?> verifyPhoneExists(String phoneNumber) async {
+    final querySnapshot = await _firestore
+        .collection('users')
+        .where('phoneNumber', isEqualTo: '+977$phoneNumber')
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      return querySnapshot.docs.first.id;
+    }
+    
+    return null;
+  }
+
+  @override
+  Future<List<TransactionModel>> getReceivedTransactionRequests(String userId) async {
+    final querySnapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('received_transactions')
+        .where('status', isEqualTo: TransactionStatus.pending.name)
+        .where('verificationRequired', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .get();
+
+    return querySnapshot.docs
+        .map((doc) => TransactionModel.fromJson({
+              ...doc.data(),
+              'id': doc.id,
+            }))
+        .toList();
   }
 }

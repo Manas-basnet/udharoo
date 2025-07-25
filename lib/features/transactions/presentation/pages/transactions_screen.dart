@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
+import 'package:udharoo/core/di/di.dart' as di;
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_list/transaction_list_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_stats/transaction_stats_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/received_transaction_requests/received_transaction_requests_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_card.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_summary_widget.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
@@ -26,6 +28,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   TransactionStatus? _selectedStatus;
   TransactionType? _selectedType;
   Map<String, dynamic>? _stats;
+  int _pendingVerificationCount = 0;
 
   @override
   void initState() {
@@ -48,6 +51,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     statsCubit.loadTransactionStats();
     
     _refreshTransactions();
+    _loadPendingVerificationCount();
+  }
+
+  void _loadPendingVerificationCount() async {
+    final receivedRequestsCubit = di.sl<ReceivedTransactionRequestsCubit>();
+    await receivedRequestsCubit.loadReceivedTransactionRequests();
+    
+    final state = receivedRequestsCubit.state;
+    if (state is ReceivedTransactionRequestsLoaded) {
+      setState(() {
+        _pendingVerificationCount = state.requests.length;
+      });
+    }
   }
 
   Widget _buildSliverContent(ThemeData theme) {
@@ -88,6 +104,52 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ),
               ),
             ),
+            actions: [
+              if (_pendingVerificationCount > 0)
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  child: Stack(
+                    children: [
+                      IconButton(
+                        onPressed: _navigateToReceivedRequests,
+                        icon: const Icon(Icons.verified_user),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                          foregroundColor: Colors.blue,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      if (_pendingVerificationCount > 0)
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Text(
+                              _pendingVerificationCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
           ),
           _buildSliverTransactionsList(),
         ],
@@ -237,6 +299,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
     );
     context.read<TransactionStatsCubit>().loadTransactionStats();
+    _loadPendingVerificationCount();
   }
 
   void _onSearchChanged(String query) {
@@ -264,6 +327,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       type: _selectedType,
       searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
     );
+  }
+
+  void _navigateToReceivedRequests() {
+    context.push(Routes.receivedTransactionRequests);
   }
 
   @override

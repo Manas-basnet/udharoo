@@ -5,23 +5,27 @@ import 'package:udharoo/features/transactions/domain/datasources/local/transacti
 
 class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
   static const String _transactionsKey = 'cached_transactions';
-  static const String _transactionPrefix = 'cached_transaction_';
+  static const String _transactionPrefix = 'cached_transaction';
   static const String _lastSyncTimestampKey = 'last_sync_timestamp';
 
+  String _getUserTransactionsKey(String userId) => '${_transactionsKey}_$userId';
+  String _getUserTransactionKey(String userId, String transactionId) => '${_transactionPrefix}_${userId}_$transactionId';
+  String _getUserSyncKey(String userId) => '${_lastSyncTimestampKey}_$userId';
+
   @override
-  Future<void> cacheTransactions(List<TransactionModel> transactions) async {
+  Future<void> cacheTransactions(String userId, List<TransactionModel> transactions) async {
     final prefs = await SharedPreferences.getInstance();
     final transactionsJson = transactions
         .map((transaction) => transaction.toJson())
         .toList();
     
-    await prefs.setString(_transactionsKey, jsonEncode(transactionsJson));
+    await prefs.setString(_getUserTransactionsKey(userId), jsonEncode(transactionsJson));
   }
 
   @override
-  Future<List<TransactionModel>> getCachedTransactions() async {
+  Future<List<TransactionModel>> getCachedTransactions(String userId) async {
     final prefs = await SharedPreferences.getInstance();
-    final transactionsString = prefs.getString(_transactionsKey);
+    final transactionsString = prefs.getString(_getUserTransactionsKey(userId));
     
     if (transactionsString == null) {
       return [];
@@ -34,18 +38,18 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
   }
 
   @override
-  Future<void> cacheTransaction(TransactionModel transaction) async {
+  Future<void> cacheTransaction(String userId, TransactionModel transaction) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
-      '$_transactionPrefix${transaction.id}',
+      _getUserTransactionKey(userId, transaction.id),
       jsonEncode(transaction.toJson()),
     );
   }
 
   @override
-  Future<TransactionModel?> getCachedTransaction(String id) async {
+  Future<TransactionModel?> getCachedTransaction(String userId, String id) async {
     final prefs = await SharedPreferences.getInstance();
-    final transactionString = prefs.getString('$_transactionPrefix$id');
+    final transactionString = prefs.getString(_getUserTransactionKey(userId, id));
     
     if (transactionString == null) {
       return null;
@@ -56,33 +60,47 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
   }
 
   @override
-  Future<void> removeCachedTransaction(String id) async {
+  Future<void> removeCachedTransaction(String userId, String id) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('$_transactionPrefix$id');
+    await prefs.remove(_getUserTransactionKey(userId, id));
   }
 
   @override
-  Future<void> clearCache() async {
+  Future<void> clearCache(String userId) async {
     final prefs = await SharedPreferences.getInstance();
     final keys = prefs.getKeys();
     
     for (final key in keys) {
-      if (key.startsWith(_transactionPrefix) || key == _transactionsKey) {
+      if (key.contains('_${userId}_') || key.endsWith('_$userId')) {
         await prefs.remove(key);
       }
     }
   }
 
   @override
-  Future<void> setLastSyncTimestamp(DateTime timestamp) async {
+  Future<void> clearAllCache() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_lastSyncTimestampKey, timestamp.toIso8601String());
+    final keys = prefs.getKeys();
+    
+    for (final key in keys) {
+      if (key.startsWith(_transactionPrefix) || 
+          key.startsWith(_transactionsKey) || 
+          key.startsWith(_lastSyncTimestampKey)) {
+        await prefs.remove(key);
+      }
+    }
   }
 
   @override
-  Future<DateTime?> getLastSyncTimestamp() async {
+  Future<void> setLastSyncTimestamp(String userId, DateTime timestamp) async {
     final prefs = await SharedPreferences.getInstance();
-    final timestampString = prefs.getString(_lastSyncTimestampKey);
+    await prefs.setString(_getUserSyncKey(userId), timestamp.toIso8601String());
+  }
+
+  @override
+  Future<DateTime?> getLastSyncTimestamp(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final timestampString = prefs.getString(_getUserSyncKey(userId));
     
     if (timestampString == null) {
       return null;
@@ -92,8 +110,8 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
   }
 
   @override
-  Future<void> mergeTransactions(List<TransactionModel> newTransactions) async {
-    final existingTransactions = await getCachedTransactions();
+  Future<void> mergeTransactions(String userId, List<TransactionModel> newTransactions) async {
+    final existingTransactions = await getCachedTransactions(userId);
     final transactionMap = <String, TransactionModel>{};
     
     for (final transaction in existingTransactions) {
@@ -107,6 +125,6 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
     final mergedTransactions = transactionMap.values.toList();
     mergedTransactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     
-    await cacheTransactions(mergedTransactions);
+    await cacheTransactions(userId, mergedTransactions);
   }
 }

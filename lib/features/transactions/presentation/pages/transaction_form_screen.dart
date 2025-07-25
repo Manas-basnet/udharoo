@@ -40,7 +40,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   
   TransactionType _selectedType = TransactionType.lending;
   double? _amount;
-  String _contactPhone = '';
+  String? _contactPhone;
   String _contactName = '';
   String? _contactEmail;
   DateTime? _dueDate;
@@ -51,6 +51,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   String? _amountError;
   String? _phoneError;
   String? _nameError;
+  bool _phoneExists = false;
 
   @override
   void initState() {
@@ -77,7 +78,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       _verificationRequired = transaction.verificationRequired;
       _descriptionController.text = transaction.description ?? '';
     } else if (widget.scannedContactPhone != null) {
-      _contactPhone = widget.scannedContactPhone!;
+      _contactPhone = widget.scannedContactPhone;
       _contactName = widget.scannedContactName ?? '';
       _contactEmail = widget.scannedContactEmail;
       _verificationRequired = widget.scannedVerificationRequired ?? false;
@@ -86,6 +87,47 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   void _loadRecentContacts() {
     context.read<TransactionFormCubit>().loadTransactionContacts();
+  }
+
+  void _onVerificationToggled(bool value) {
+    if (mounted) {
+      setState(() {
+        _verificationRequired = value;
+        if (!value) {
+          _contactPhone = null;
+          _phoneError = null;
+          _phoneExists = false;
+        }
+      });
+    }
+  }
+
+  void _onContactSelected(String? phone, String name, String? email) {
+    if (mounted) {
+      setState(() {
+        _contactPhone = phone;
+        _contactName = name;
+        _contactEmail = email;
+        _phoneError = null;
+        _nameError = null;
+      });
+    }
+  }
+
+  void _onPhoneValidation(String phone) {
+    if (!mounted) return;
+    
+    setState(() {
+      _phoneError = null;
+    });
+
+    if (phone.length >= 10) {
+      context.read<TransactionFormCubit>().verifyPhoneExists(phone);
+    } else {
+      setState(() {
+        _phoneExists = false;
+      });
+    }
   }
 
   bool _validateForm() {
@@ -104,16 +146,23 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       isValid = false;
     }
 
-    if (_contactPhone.isEmpty) {
-      setState(() {
-        _phoneError = 'Phone number is required';
-      });
-      isValid = false;
-    } else if (_contactPhone.length < 7) {
-      setState(() {
-        _phoneError = 'Please enter a valid phone number';
-      });
-      isValid = false;
+    if (_verificationRequired) {
+      if (_contactPhone == null || _contactPhone!.isEmpty) {
+        setState(() {
+          _phoneError = 'Phone number is required when verification is enabled';
+        });
+        isValid = false;
+      } else if (_contactPhone!.length < 7) {
+        setState(() {
+          _phoneError = 'Please enter a valid phone number';
+        });
+        isValid = false;
+      } else if (!_phoneExists) {
+        setState(() {
+          _phoneError = 'No user found with this phone number';
+        });
+        isValid = false;
+      }
     }
 
     if (_contactName.isEmpty) {
@@ -157,7 +206,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       id: widget.transaction?.id ?? '',
       type: _selectedType,
       amount: _amount!,
-      contactPhone: _contactPhone,
+      contactPhone: _verificationRequired ? _contactPhone : null,
       contactName: _contactName,
       contactEmail: _contactEmail?.isEmpty == true ? null : _contactEmail,
       description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
@@ -199,16 +248,44 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             );
             context.pop(state.transaction);
           case TransactionFormContactsLoaded():
-            setState(() {
-              _recentContacts = state.contacts;
-            });
+            if (mounted) {
+              setState(() {
+                _recentContacts = state.contacts;
+              });
+            }
+          case TransactionFormPhoneValidating():
+            if (mounted) {
+              setState(() {});
+            }
+            break;
+          case TransactionFormPhoneVerified():
+            if (mounted) {
+              setState(() {
+                _phoneExists = true;
+                _phoneError = null;
+              });
+            }
+          case TransactionFormPhoneNotFound():
+            if (mounted) {
+              setState(() {
+                _phoneExists = false;
+                _phoneError = state.message;
+              });
+            }
           case TransactionFormError():
+            if (mounted) {
+              setState(() {
+              });
+            }
             CustomToast.show(
               context,
               message: state.message,
               isSuccess: false,
             );
           default:
+            if (mounted) {
+              setState(() {});
+            }
             break;
         }
       },
@@ -260,9 +337,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 TransactionTypeSelector(
                   selectedType: _selectedType,
                   onTypeChanged: (type) {
-                    setState(() {
-                      _selectedType = type;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        _selectedType = type;
+                      });
+                    }
                   },
                 ),
                 
@@ -271,12 +350,72 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 AmountInputWidget(
                   initialAmount: _amount,
                   onAmountChanged: (amount) {
-                    setState(() {
-                      _amount = amount;
-                      _amountError = null;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        _amount = amount;
+                        _amountError = null;
+                      });
+                    }
                   },
                   errorText: _amountError,
+                ),
+                
+                const SizedBox(height: 24),
+                
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.verified_user,
+                        color: _verificationRequired 
+                            ? theme.colorScheme.primary 
+                            : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Verification Required',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              'Require the other party to verify this transaction',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                            ),
+                            if (_verificationRequired) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'Phone number must exist in the system',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.orange,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: _verificationRequired,
+                        onChanged: _onVerificationToggled,
+                        activeColor: theme.colorScheme.primary,
+                      ),
+                    ],
+                  ),
                 ),
                 
                 const SizedBox(height: 24),
@@ -286,15 +425,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   initialName: _contactName,
                   initialEmail: _contactEmail,
                   recentContacts: _recentContacts,
-                  onContactSelected: (phone, name, email) {
-                    setState(() {
-                      _contactPhone = phone;
-                      _contactName = name;
-                      _contactEmail = email;
-                      _phoneError = null;
-                      _nameError = null;
-                    });
-                  },
+                  verificationRequired: _verificationRequired,
+                  onContactSelected: _onContactSelected,
+                  onPhoneValidation: _onPhoneValidation,
                   onQRScanTap: () {
                     context.push(Routes.qrScanner);
                   },
@@ -343,65 +476,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   hintText: 'Tap to select due date',
                   selectedDate: _dueDate,
                   onDateSelected: (date) {
-                    setState(() {
-                      _dueDate = date;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        _dueDate = date;
+                      });
+                    }
                   },
                   firstDate: DateTime.now(),
                   lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
                   prefixIcon: Icons.event,
-                ),
-                
-                const SizedBox(height: 24),
-                
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.colorScheme.outline.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.verified_user,
-                        color: _verificationRequired 
-                            ? theme.colorScheme.primary 
-                            : theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Verification Required',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              'Require the other party to verify this transaction',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Switch(
-                        value: _verificationRequired,
-                        onChanged: (value) {
-                          setState(() {
-                            _verificationRequired = value;
-                          });
-                        },
-                        activeColor: theme.colorScheme.primary,
-                      ),
-                    ],
-                  ),
                 ),
               ],
             ),

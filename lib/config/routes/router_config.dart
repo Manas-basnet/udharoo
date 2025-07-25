@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/core/di/di.dart' as di;
+import 'package:udharoo/features/auth/presentation/pages/login_screen.dart';
 import 'package:udharoo/features/auth/presentation/pages/profile_completion_screen.dart';
+import 'package:udharoo/features/auth/presentation/pages/sign_up_screen.dart';
 import 'package:udharoo/features/phone_verification/presentation/pages/phone_setup_screen.dart';
 import 'package:udharoo/features/phone_verification/presentation/pages/phone_verification_screen.dart';
 import 'package:udharoo/features/phone_verification/presentation/pages/change_phone_setup_screen.dart';
@@ -15,6 +17,7 @@ import 'package:udharoo/features/transactions/presentation/bloc/transaction_deta
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_list/transaction_list_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_stats/transaction_stats_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/received_transaction_requests/received_transaction_requests_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transactions_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_detail_screen.dart';
@@ -22,6 +25,7 @@ import 'package:udharoo/features/transactions/presentation/pages/qr_scanner_scre
 import 'package:udharoo/features/transactions/presentation/pages/qr_generator_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/finished_transactions_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/contact_transactions_screen.dart';
+import 'package:udharoo/features/transactions/presentation/pages/received_transaction_requests_screen.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction_contact.dart';
 import 'package:udharoo/features/contacts/presentation/pages/contacts_screen.dart';
@@ -67,6 +71,16 @@ class AppRouter {
                 path: '/home',
                 name: 'home',
                 builder: (context, state) => const HomeScreen(),
+              ),
+              GoRoute(
+                path: Routes.signUp,
+                name: 'signUp',
+                builder: (context, state) => const SignUpScreen(),
+              ),
+              GoRoute(
+                path: Routes.login,
+                name: 'login',
+                builder: (context, state) => const LoginScreen(),
               ),
             ],
           ),
@@ -265,6 +279,15 @@ class AppRouter {
             child: ContactTransactionsScreen(contact: contact),
           );
         },
+      ),
+
+      GoRoute(
+        path: Routes.receivedTransactionRequests,
+        name: 'receivedTransactionRequests',
+        builder: (context, state) => BlocProvider(
+          create: (context) => di.sl<ReceivedTransactionRequestsCubit>(),
+          child: const ReceivedTransactionRequestsScreen(),
+        ),
       ),
 
       GoRoute(

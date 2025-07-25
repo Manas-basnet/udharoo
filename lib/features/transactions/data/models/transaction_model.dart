@@ -8,7 +8,7 @@ class TransactionModel extends Transaction {
     required super.id,
     required super.type,
     required super.amount,
-    required super.contactPhone,
+    super.contactPhone,
     required super.contactName,
     super.contactEmail,
     super.description,
@@ -21,6 +21,7 @@ class TransactionModel extends Transaction {
     required super.createdBy,
     super.verifiedBy,
     super.qrGeneratedData,
+    super.recipientUserId,
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
@@ -30,7 +31,7 @@ class TransactionModel extends Transaction {
         (e) => e.name == json['type'],
       ),
       amount: (json['amount'] as num).toDouble(),
-      contactPhone: json['contactPhone'] as String,
+      contactPhone: json['contactPhone'] as String?,
       contactName: json['contactName'] as String,
       contactEmail: json['contactEmail'] as String?,
       description: json['description'] as String?,
@@ -49,6 +50,7 @@ class TransactionModel extends Transaction {
       qrGeneratedData: json['qrGeneratedData'] != null
           ? QRDataModel.fromJson(json['qrGeneratedData'] as Map<String, dynamic>)
           : null,
+      recipientUserId: json['recipientUserId'] as String?,
     );
   }
 
@@ -72,6 +74,7 @@ class TransactionModel extends Transaction {
       'qrGeneratedData': qrGeneratedData != null
           ? QRDataModel.fromEntity(qrGeneratedData!).toJson()
           : null,
+      'recipientUserId': recipientUserId,
     };
   }
 
@@ -93,6 +96,7 @@ class TransactionModel extends Transaction {
       createdBy: transaction.createdBy,
       verifiedBy: transaction.verifiedBy,
       qrGeneratedData: transaction.qrGeneratedData,
+      recipientUserId: transaction.recipientUserId,
     );
   }
 }

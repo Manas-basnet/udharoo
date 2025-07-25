@@ -18,8 +18,11 @@ import 'package:udharoo/features/transactions/domain/usecases/get_contact_transa
 import 'package:udharoo/features/transactions/domain/usecases/generate_qr_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/parse_qr_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_transaction_stats_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/verify_phone_exists_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/get_received_transaction_requests_usecase.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/qr_code/qr_code_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/received_transaction_requests/received_transaction_requests_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_detail/transaction_detail_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_list/transaction_list_cubit.dart';
@@ -39,6 +42,8 @@ Future<void> initTransaction(GetIt sl) async {
   sl.registerLazySingleton(() => GenerateQRUseCase(sl()));
   sl.registerLazySingleton(() => ParseQRUseCase(sl()));
   sl.registerLazySingleton(() => GetTransactionStatsUseCase(sl()));
+  sl.registerLazySingleton(() => VerifyPhoneExistsUseCase(sl()));
+  sl.registerLazySingleton(() => GetReceivedTransactionRequestsUseCase(sl()));
 
   sl.registerLazySingleton<TransactionRepository>(
     () => TransactionRepositoryImpl(
@@ -84,6 +89,7 @@ Future<void> initTransaction(GetIt sl) async {
       createTransactionUseCase: sl(),
       updateTransactionUseCase: sl(),
       getTransactionContactsUseCase: sl(),
+      verifyPhoneExistsUseCase: sl(),
     ),
   );
 
@@ -107,6 +113,13 @@ Future<void> initTransaction(GetIt sl) async {
       verifyTransactionUseCase: sl(),
       completeTransactionUseCase: sl(),
       deleteTransactionUseCase: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => ReceivedTransactionRequestsCubit(
+      getReceivedTransactionRequestsUseCase: sl(),
+      verifyTransactionUseCase: sl(),
     ),
   );
 }

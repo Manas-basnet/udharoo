@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_detail/transaction_detail_cubit.dart';
@@ -230,7 +231,10 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           
           _buildInfoSection('Contact Information', [
             _buildInfoRow(Icons.person, 'Name', transaction.contactName),
-            _buildInfoRow(Icons.phone, 'Phone', transaction.contactPhone),
+            if (transaction.contactPhone != null)
+              _buildInfoRow(Icons.phone, 'Phone', transaction.contactPhone!)
+            else
+              _buildInfoRow(Icons.phone_disabled, 'Phone', 'Not provided', textColor: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
             if (transaction.contactEmail != null)
               _buildInfoRow(Icons.email, 'Email', transaction.contactEmail!),
           ]),
@@ -252,22 +256,47 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
               _buildInfoRow(Icons.note, 'Description', transaction.description!),
           ]),
           
-          if (transaction.verificationRequired || transaction.isVerified) ...[
-            const SizedBox(height: 16),
-            
-            _buildInfoSection('Verification', [
+          const SizedBox(height: 16),
+          
+          _buildInfoSection('Verification Status', [
+            _buildInfoRow(
+              transaction.verificationRequired ? Icons.verified_user : Icons.check_circle_outline,
+              'Verification Required',
+              transaction.verificationRequired ? 'Yes' : 'No',
+              textColor: transaction.verificationRequired ? Colors.orange : Colors.green,
+            ),
+            if (transaction.verificationRequired) ...[
               _buildInfoRow(
-                Icons.verified_user,
-                'Verification Required',
-                transaction.verificationRequired ? 'Yes' : 'No',
+                transaction.isVerified ? Icons.check_circle : Icons.pending,
+                'Verification Status',
+                transaction.isVerified ? 'Verified' : 'Pending',
+                textColor: transaction.isVerified ? Colors.green : Colors.orange,
               ),
-              if (transaction.isVerified) ...[
-                _buildInfoRow(Icons.check_circle, 'Status', 'Verified'),
-                if (transaction.verifiedBy != null)
-                  _buildInfoRow(Icons.person_outline, 'Verified By', transaction.verifiedBy!),
-              ],
-            ]),
-          ],
+              if (transaction.isVerified && transaction.verifiedBy != null)
+                _buildInfoRow(Icons.person_outline, 'Verified By', transaction.verifiedBy!),
+              if (transaction.contactPhone != null)
+                _buildInfoRow(
+                  Icons.phone_android,
+                  'Verification Method',
+                  'Phone-based verification',
+                  textColor: Colors.blue,
+                )
+              else
+                _buildInfoRow(
+                  Icons.warning_amber,
+                  'Verification Method',
+                  'Contact-only verification',
+                  textColor: Colors.orange,
+                ),
+            ] else ...[
+              _buildInfoRow(
+                Icons.info_outline,
+                'Transaction Type',
+                'Simple transaction (no verification needed)',
+                textColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ],
+          ]),
           
           const SizedBox(height: 24),
           
@@ -321,7 +350,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           Icon(
             icon,
             size: 20,
-            color: theme.colorScheme.primary,
+            color: textColor ?? theme.colorScheme.primary,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -351,13 +380,21 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   Widget _buildActionButtons(Transaction transaction) {
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is! AuthSessionAuthenticated) {
+      return const SizedBox.shrink();
+    }
+
+    final currentUserId = authState.user.uid;
+    final canVerify = TransactionUtils.canUserVerify(transaction, currentUserId);
+    
     if (transaction.isCompleted || transaction.status == TransactionStatus.cancelled) {
       return const SizedBox.shrink();
     }
 
     return Column(
       children: [
-        if (transaction.canBeVerified) ...[
+        if (canVerify) ...[
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -392,7 +429,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           const SizedBox(height: 12),
         ],
         
-        if (transaction.canBeCompleted) ...[
+        if (transaction.canBeCompleted && transaction.createdBy == currentUserId) ...[
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -520,10 +557,13 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   void _verifyTransaction(Transaction transaction) {
-    context.read<TransactionDetailCubit>().verifyTransaction(
-      transaction.id,
-      'current-user-id',
-    );
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is AuthSessionAuthenticated) {
+      context.read<TransactionDetailCubit>().verifyTransaction(
+        transaction.id,
+        authState.user.uid,
+      );
+    }
     Navigator.of(context).pop();
   }
 
@@ -532,10 +572,12 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   void _shareTransaction(Transaction transaction) {
+    final summary = TransactionUtils.getTransactionSummary(transaction);
+    
     CustomToast.show(
       context,
-      message: 'Share functionality coming soon',
-      isSuccess: false,
+      message: 'Share: $summary',
+      isSuccess: true,
     );
   }
 }

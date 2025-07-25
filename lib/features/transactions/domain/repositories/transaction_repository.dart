@@ -38,4 +38,6 @@ abstract class TransactionRepository {
   Future<ApiResult<bool>> getGlobalVerificationSetting();
   Future<ApiResult<void>> setGlobalVerificationSetting(bool enabled);
   Future<ApiResult<Map<String, dynamic>>> getTransactionStats();
+  Future<ApiResult<String?>> verifyPhoneExists(String phoneNumber);
+  Future<ApiResult<List<Transaction>>> getReceivedTransactionRequests();
 }
