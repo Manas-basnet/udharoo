@@ -70,6 +70,10 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         .doc(userId)
         .collection('transactions');
 
+    // if (lastSyncTime != null) {
+    //   query = query.where('updatedAt', isGreaterThan: Timestamp.fromDate(lastSyncTime));
+    // }
+
     query = query.orderBy('updatedAt', descending: true);
 
     if (status != null) {
@@ -220,6 +224,16 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
   Future<void> deleteTransaction(String id, String userId) async {
     final transaction = await getTransactionById(id, userId);
     
+    if (transaction.isVerified) {
+      throw Exception('Cannot delete verified transactions');
+    }
+
+    final userRole = await _getUserRoleForTransaction(id, userId);
+    
+    if (userRole != UserTransactionRole.creator) {
+      throw Exception('Only transaction creator can delete the transaction');
+    }
+
     final batch = _firestore.batch();
 
     final creatorDocRef = _firestore
@@ -631,6 +645,17 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
       return UserTransactionRole.recipient;
     }
 
+    final creatorDoc = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('transactions')
+        .doc(transactionId)
+        .get();
+
+    if (creatorDoc.exists && creatorDoc.data()?['createdBy'] == userId) {
+      return UserTransactionRole.creator;
+    }
+
     final finishedDoc = await _firestore
         .collection('users')
         .doc(userId)
@@ -681,7 +706,7 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         return userData['displayName'] as String? ?? userData['email'] as String? ?? 'Transaction Partner';
       }
     } catch (e) {
-      // Fallback to default name if unable to fetch user data
+      // TODO: do smth with this idk what 
     }
     return 'Transaction Partner';
   }

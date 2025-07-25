@@ -12,6 +12,7 @@ import 'package:udharoo/features/phone_verification/presentation/pages/change_ph
 import 'package:udharoo/features/phone_verification/presentation/pages/change_phone_verification_screen.dart';
 import 'package:udharoo/features/home/presentation/pages/home_screen.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/finished_transactions/finished_transactions_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/qr_code/qr_code_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_detail/transaction_detail_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
@@ -260,7 +261,7 @@ class AppRouter {
         path: Routes.finishedTransactions,
         name: 'finishedTransactions',
         builder: (context, state) => BlocProvider(
-          create: (context) => di.sl<TransactionListCubit>(),
+          create: (context) => di.sl<FinishedTransactionsCubit>(),
           child: const FinishedTransactionsScreen(),
         ),
       ),

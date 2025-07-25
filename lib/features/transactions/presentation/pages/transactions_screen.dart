@@ -653,7 +653,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     onComplete: TransactionUtils.canUserComplete(transaction, _getCurrentUserId() ?? '')
                         ? () => _completeTransaction(transaction)
                         : null,
-                    onDelete: transaction.isPending && transaction.createdBy == _getCurrentUserId()
+                    onDelete: transaction.createdBy == _getCurrentUserId() && !transaction.isVerified
                         ? () => _deleteTransaction(transaction)
                         : null,
                     onRequestCompletion: TransactionUtils.canUserRequestCompletion(transaction, _getCurrentUserId() ?? '')
@@ -891,7 +891,42 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Transaction'),
-        content: const Text('Are you sure you want to delete this transaction?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Are you sure you want to delete this transaction? This action cannot be undone.'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.red.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.warning,
+                    size: 16,
+                    color: Colors.red,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Only unverified transactions can be deleted.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),

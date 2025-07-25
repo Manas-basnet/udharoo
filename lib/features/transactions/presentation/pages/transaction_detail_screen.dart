@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
@@ -68,13 +67,6 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
               isSuccess: true,
             );
             context.pop();
-          case TransactionDetailUpdated():
-            CustomToast.show(
-              context,
-              message: 'Transaction updated successfully',
-              isSuccess: true,
-            );
-            _loadTransaction();
           case TransactionDetailDeleted():
             CustomToast.show(
               context,
@@ -112,21 +104,12 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                     final currentUserId = authState.user.uid;
                     final transaction = state.transaction;
                     final isCreator = transaction.createdBy == currentUserId;
+                    final canDelete = isCreator && !transaction.isVerified;
                     
-                    return PopupMenuButton<String>(
-                      onSelected: (value) => _handleMenuAction(value, transaction, isCreator),
-                      itemBuilder: (context) => [
-                        if (isCreator && transaction.isPending) ...[
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit),
-                                SizedBox(width: 8),
-                                Text('Edit'),
-                              ],
-                            ),
-                          ),
+                    if (canDelete) {
+                      return PopupMenuButton<String>(
+                        onSelected: (value) => _handleMenuAction(value, transaction),
+                        itemBuilder: (context) => [
                           const PopupMenuItem(
                             value: 'delete',
                             child: Row(
@@ -137,19 +120,35 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                               ],
                             ),
                           ),
-                        ],
-                        const PopupMenuItem(
-                          value: 'share',
-                          child: Row(
-                            children: [
-                              Icon(Icons.share),
-                              SizedBox(width: 8),
-                              Text('Share'),
-                            ],
+                          const PopupMenuItem(
+                            value: 'share',
+                            child: Row(
+                              children: [
+                                Icon(Icons.share),
+                                SizedBox(width: 8),
+                                Text('Share'),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    );
+                        ],
+                      );
+                    } else {
+                      return PopupMenuButton<String>(
+                        onSelected: (value) => _handleMenuAction(value, transaction),
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'share',
+                            child: Row(
+                              children: [
+                                Icon(Icons.share),
+                                SizedBox(width: 8),
+                                Text('Share'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }
                   }
                 }
                 return const SizedBox.shrink();
@@ -578,19 +577,11 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     );
   }
 
-  void _handleMenuAction(String action, Transaction transaction, bool isCreator) {
+  void _handleMenuAction(String action, Transaction transaction) {
     switch (action) {
-      case 'edit':
-        if (isCreator) {
-          context.push(Routes.transactionForm, extra: transaction).then((result) {
-            if (result is Transaction) {
-              _loadTransaction();
-            }
-          });
-        }
-        break;
       case 'delete':
-        if (isCreator) {
+        final currentUserId = _getCurrentUserId();
+        if (currentUserId != null && transaction.createdBy == currentUserId && !transaction.isVerified) {
           _showDeleteDialog(transaction);
         }
         break;
@@ -605,7 +596,42 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Transaction'),
-        content: const Text('Are you sure you want to delete this transaction? This action cannot be undone.'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Are you sure you want to delete this transaction? This action cannot be undone.'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.red.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.warning,
+                    size: 16,
+                    color: Colors.red,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Only unverified transactions can be deleted.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),

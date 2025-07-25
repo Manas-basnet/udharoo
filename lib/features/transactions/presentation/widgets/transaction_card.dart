@@ -295,7 +295,7 @@ class TransactionCard extends StatelessWidget {
     
     final canVerify = TransactionUtils.canUserVerify(transaction, currentUserId) && onVerify != null;
     final canComplete = TransactionUtils.canUserComplete(transaction, currentUserId) && onComplete != null;
-    final canDelete = transaction.isPending && transaction.createdBy == currentUserId && onDelete != null;
+    final canDelete = transaction.createdBy == currentUserId && !transaction.isVerified && onDelete != null;
     final canRequestCompletion = TransactionUtils.canUserRequestCompletion(transaction, currentUserId) && onRequestCompletion != null;
     
     return canVerify || canComplete || canDelete || canRequestCompletion;
@@ -306,7 +306,7 @@ class TransactionCard extends StatelessWidget {
     
     final canVerify = TransactionUtils.canUserVerify(transaction, currentUserId) && onVerify != null;
     final canComplete = TransactionUtils.canUserComplete(transaction, currentUserId) && onComplete != null;
-    final canDelete = transaction.isPending && transaction.createdBy == currentUserId && onDelete != null;
+    final canDelete = transaction.createdBy == currentUserId && !transaction.isVerified && onDelete != null;
     final canRequestCompletion = TransactionUtils.canUserRequestCompletion(transaction, currentUserId) && onRequestCompletion != null;
     
     return Row(
