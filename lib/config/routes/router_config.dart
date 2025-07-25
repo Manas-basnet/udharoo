@@ -18,6 +18,7 @@ import 'package:udharoo/features/transactions/presentation/bloc/transaction_form
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_list/transaction_list_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_stats/transaction_stats_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/received_transaction_requests/received_transaction_requests_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/completion_requests/completion_requests_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transactions_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_detail_screen.dart';
@@ -26,6 +27,7 @@ import 'package:udharoo/features/transactions/presentation/pages/qr_generator_sc
 import 'package:udharoo/features/transactions/presentation/pages/finished_transactions_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/contact_transactions_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/received_transaction_requests_screen.dart';
+import 'package:udharoo/features/transactions/presentation/pages/completion_requests_screen.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction_contact.dart';
 import 'package:udharoo/features/contacts/presentation/pages/contacts_screen.dart';
@@ -68,7 +70,7 @@ class AppRouter {
             navigatorKey: _homeNavigatorKey,
             routes: [
               GoRoute(
-                path: '/home',
+                path: Routes.home,
                 name: 'home',
                 builder: (context, state) => const HomeScreen(),
               ),
@@ -89,12 +91,14 @@ class AppRouter {
             navigatorKey: _transactionsNavigatorKey,
             routes: [
               GoRoute(
-                path: '/transactions',
+                path: Routes.transactions,
                 name: 'transactions',
                 builder: (context, state) => MultiBlocProvider(
                   providers: [
                     BlocProvider.value(value: _transactionListCubit),
                     BlocProvider.value(value: _transactionStatsCubit),
+                    BlocProvider(create: (context) => di.sl<ReceivedTransactionRequestsCubit>()),
+                    BlocProvider(create: (context) => di.sl<CompletionRequestsCubit>()),
                   ],
                   child: const TransactionsScreen(),
                 ),
@@ -106,7 +110,7 @@ class AppRouter {
             navigatorKey: _contactsNavigatorKey,
             routes: [
               GoRoute(
-                path: '/contacts',
+                path: Routes.contacts,
                 name: 'contacts',
                 builder: (context, state) => const ContactsScreen(),
               ),
@@ -117,7 +121,7 @@ class AppRouter {
             navigatorKey: _profileNavigatorKey,
             routes: [
               GoRoute(
-                path: '/profile',
+                path: Routes.profile,
                 name: 'profile',
                 builder: (context, state) => const ProfileScreen(),
               ),
@@ -287,6 +291,15 @@ class AppRouter {
         builder: (context, state) => BlocProvider(
           create: (context) => di.sl<ReceivedTransactionRequestsCubit>(),
           child: const ReceivedTransactionRequestsScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.completionRequests,
+        name: 'completionRequests',
+        builder: (context, state) => BlocProvider(
+          create: (context) => di.sl<CompletionRequestsCubit>(),
+          child: const CompletionRequestsScreen(),
         ),
       ),
 
