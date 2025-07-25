@@ -5,6 +5,7 @@ import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction_contact.dart';
+import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_card.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_summary_widget.dart';
@@ -48,7 +49,8 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   }
 
   void _calculateTotals(List<Transaction> transactions) {
-    final summary = TransactionUtils.calculateTransactionSummary(transactions);
+    final activeTransactions = transactions.where((t) => t.status != TransactionStatus.completed).toList();
+    final summary = TransactionUtils.calculateTransactionSummary(activeTransactions);
     
     setState(() {
       _stats = {
@@ -76,7 +78,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
         switch (state) {
           case ContactTransactionsLoaded():
             setState(() {
-              _transactions = state.transactions;
+              _transactions = state.transactions.where((t) => t.status != TransactionStatus.completed).toList();
             });
             _calculateTotals(state.transactions);
           case ContactTransactionUpdated():
@@ -234,7 +236,6 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
         children: [
           TransactionSummaryWidget(
             stats: _stats,
-            showNetAmount: false,
           ),
           Container(
             margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -249,7 +250,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
             child: Column(
               children: [
                 Text(
-                  'Net Amount',
+                  'Net Amount (Active)',
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
@@ -270,6 +271,14 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: netAmount >= 0 ? Colors.green : Colors.red,
                     fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Excludes completed transactions',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
               ],
@@ -301,7 +310,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'No transactions found',
+                  'No active transactions found',
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
@@ -355,10 +364,10 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
                 onVerify: transaction.canBeVerified
                     ? () => _verifyTransaction(transaction)
                     : null,
-                onComplete: transaction.canBeCompleted
+                onComplete: TransactionUtils.canUserComplete(transaction, _getCurrentUserId() ?? '')
                     ? () => _completeTransaction(transaction)
                     : null,
-                onDelete: transaction.isPending
+                onDelete: transaction.isPending && transaction.createdBy == _getCurrentUserId()
                     ? () => _deleteTransaction(transaction)
                     : null,
               );
@@ -386,7 +395,62 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   }
 
   void _completeTransaction(Transaction transaction) {
-    context.read<ContactTransactionsCubit>().completeTransaction(transaction.id);
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Complete Transaction'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Are you sure you want to mark this transaction as completed?'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.blue.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: Colors.blue,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This will move the transaction to completed status and remove it from active transactions.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              context.read<ContactTransactionsCubit>().completeTransaction(transaction.id);
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Complete'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _deleteTransaction(Transaction transaction) {

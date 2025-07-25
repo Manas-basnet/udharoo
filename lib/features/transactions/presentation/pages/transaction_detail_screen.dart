@@ -36,6 +36,14 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     context.read<TransactionDetailCubit>().loadTransaction(widget.transactionId);
   }
 
+  String? _getCurrentUserId() {
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is AuthSessionAuthenticated) {
+      return authState.user.uid;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -59,7 +67,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
               message: 'Transaction completed successfully',
               isSuccess: true,
             );
-            _loadTransaction();
+            context.pop();
           case TransactionDetailUpdated():
             CustomToast.show(
               context,
@@ -387,14 +395,13 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   Widget _buildActionButtons(Transaction transaction) {
-    final authState = context.read<AuthSessionCubit>().state;
-    if (authState is! AuthSessionAuthenticated) {
+    final currentUserId = _getCurrentUserId();
+    if (currentUserId == null) {
       return const SizedBox.shrink();
     }
-
-    final currentUserId = authState.user.uid;
+    
     final canVerify = TransactionUtils.canUserVerify(transaction, currentUserId);
-    final isCreator = transaction.createdBy == currentUserId;
+    final canComplete = TransactionUtils.canUserComplete(transaction, currentUserId);
     
     if (transaction.isCompleted || transaction.status == TransactionStatus.cancelled) {
       return const SizedBox.shrink();
@@ -467,16 +474,50 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           const SizedBox(height: 12),
         ],
         
-        if (transaction.canBeCompleted && isCreator) ...[
+        if (canComplete) ...[
+          if (transaction.verificationRequired && !transaction.isVerified) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.warning_amber,
+                    size: 16,
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This transaction must be verified before it can be completed.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          
           SizedBox(
             width: double.infinity,
             height: 52,
             child: BlocBuilder<TransactionDetailCubit, TransactionDetailState>(
               builder: (context, state) {
                 final isCompleting = state is TransactionDetailCompleting;
+                final isDisabled = transaction.verificationRequired && !transaction.isVerified;
                 
                 return FilledButton.icon(
-                  onPressed: isCompleting ? null : () => _completeTransaction(transaction),
+                  onPressed: (isCompleting || isDisabled) ? null : () => _completeTransaction(transaction),
                   icon: isCompleting 
                       ? const SizedBox(
                           width: 18,
@@ -487,9 +528,13 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                           ),
                         )
                       : const Icon(Icons.check_circle),
-                  label: Text(isCompleting ? 'Completing...' : 'Mark as Completed'),
+                  label: Text(isCompleting 
+                      ? 'Completing...' 
+                      : TransactionUtils.getCompletionButtonText(transaction, currentUserId)),
                   style: FilledButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: isDisabled 
+                        ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3)
+                        : Colors.blue,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -599,11 +644,11 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   void _verifyTransaction(Transaction transaction) {
-    final authState = context.read<AuthSessionCubit>().state;
-    if (authState is AuthSessionAuthenticated) {
+    final currentUserId = _getCurrentUserId();
+    if (currentUserId != null) {
       context.read<TransactionDetailCubit>().verifyTransaction(
         transaction.id,
-        authState.user.uid,
+        currentUserId,
       );
     }
     Navigator.of(context).pop();

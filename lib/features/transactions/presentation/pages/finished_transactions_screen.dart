@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
-import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/transaction_list/transaction_list_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_card.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_summary_widget.dart';
 import 'package:udharoo/features/transactions/presentation/utils/transaction_utils.dart';
-import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class FinishedTransactionsScreen extends StatefulWidget {
   const FinishedTransactionsScreen({super.key});
@@ -18,30 +14,38 @@ class FinishedTransactionsScreen extends StatefulWidget {
 }
 
 class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen> {
-  final ScrollController _scrollController = ScrollController();
-  // ignore: unused_field
-  List<Transaction> _finishedTransactions = []; //TODO: implement logic for filters
+  List<Transaction> _finishedTransactions = [];
   Map<String, dynamic> _stats = {};
+  bool _isLoading = true;
+  String? _errorMessage;
   
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
     _loadFinishedTransactions();
   }
 
-  @override
-  void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
-    super.dispose();
-  }
+  void _loadFinishedTransactions() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-  void _loadFinishedTransactions() {
-    context.read<TransactionListCubit>().loadTransactions(
-      status: TransactionStatus.completed,
-      refresh: true,
-    );
+    try {      
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      setState(() {
+        _finishedTransactions = [];
+        _isLoading = false;
+      });
+      
+      _calculateStats(_finishedTransactions);
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Failed to load finished transactions';
+      });
+    }
   }
 
   void _calculateStats(List<Transaction> transactions) {
@@ -51,84 +55,36 @@ class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen>
       _stats = {
         'totalLending': summary['totalLending'],
         'totalBorrowing': summary['totalBorrowing'],
-        'netAmount': summary['netAmount'],
       };
     });
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >= 
-        _scrollController.position.maxScrollExtent - 200) {
-      final state = context.read<TransactionListCubit>().state;
-      if (state is TransactionListLoaded && state.hasMore) {
-        context.read<TransactionListCubit>().loadTransactions(
-          status: TransactionStatus.completed,
-        );
-      }
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return BlocListener<TransactionListCubit, TransactionListState>(
-      listener: (context, state) {
-        switch (state) {
-          case TransactionListLoaded():
-            setState(() {
-              _finishedTransactions = state.transactions;
-            });
-            _calculateStats(state.transactions);
-          case TransactionListError():
-            CustomToast.show(
-              context,
-              message: state.message,
-              isSuccess: false,
-            );
-          default:
-            break;
-        }
-      },
-      child: Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        appBar: AppBar(
-          title: const Text('Completed Transactions'),
-          leading: IconButton(
-            onPressed: () => context.pop(),
-            icon: const Icon(Icons.arrow_back),
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Completed Transactions'),
+        leading: IconButton(
+          onPressed: () => context.pop(),
+          icon: const Icon(Icons.arrow_back),
+        ),
+        actions: [
+          IconButton(
+            onPressed: _loadFinishedTransactions,
+            icon: const Icon(Icons.refresh),
           ),
-          actions: [
-            IconButton(
-              onPressed: _loadFinishedTransactions,
-              icon: const Icon(Icons.refresh),
-            ),
-          ],
-        ),
-        body: Column(
-          children: [
-            if (_stats.isNotEmpty) _buildSummaryHeader(),
-            Expanded(
-              child: BlocBuilder<TransactionListCubit, TransactionListState>(
-                builder: (context, state) {
-                  if (state is TransactionListLoading && state is! TransactionListLoaded) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (state is TransactionListLoaded) {
-                    if (state.transactions.isEmpty) {
-                      return _buildEmptyState();
-                    }
-
-                    return _buildTransactionsList(state.transactions, state.hasMore);
-                  }
-
-                  return _buildEmptyState();
-                },
-              ),
-            ),
-          ],
-        ),
+        ],
+      ),
+      body: Column(
+        children: [
+          if (_stats.isNotEmpty) _buildSummaryHeader(),
+          Expanded(
+            child: _buildContent(),
+          ),
+        ],
       ),
     );
   }
@@ -162,7 +118,6 @@ class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen>
           ),
           TransactionSummaryWidget(
             stats: _stats,
-            showNetAmount: true,
           ),
           const SizedBox(height: 10),
           Divider(
@@ -174,24 +129,30 @@ class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen>
     );
   }
 
-  Widget _buildTransactionsList(List<Transaction> transactions, bool hasMore) {
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return _buildErrorState();
+    }
+
+    if (_finishedTransactions.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return _buildTransactionsList();
+  }
+
+  Widget _buildTransactionsList() {
     return RefreshIndicator(
       onRefresh: () async => _loadFinishedTransactions(),
       child: ListView.builder(
-        controller: _scrollController,
         padding: const EdgeInsets.all(20),
-        itemCount: transactions.length + (hasMore ? 1 : 0),
+        itemCount: _finishedTransactions.length,
         itemBuilder: (context, index) {
-          if (index >= transactions.length) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
-
-          final transaction = transactions[index];
+          final transaction = _finishedTransactions[index];
           return TransactionCard(
             transaction: transaction,
             onTap: () {
@@ -256,6 +217,81 @@ class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen>
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    final theme = Theme.of(context);
+    
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red.withValues(alpha: 0.6),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Error Loading Transactions',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _errorMessage ?? 'Something went wrong',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => context.pop(),
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Go Back'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: theme.colorScheme.onSurface,
+                    side: BorderSide(color: theme.colorScheme.outline),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                FilledButton.icon(
+                  onPressed: _loadFinishedTransactions,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

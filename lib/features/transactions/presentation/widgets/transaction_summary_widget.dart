@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 
 class TransactionSummaryWidget extends StatelessWidget {
   final Map<String, dynamic> stats;
-  final bool showNetAmount;
   final EdgeInsetsGeometry? padding;
 
   const TransactionSummaryWidget({
     super.key,
     required this.stats,
-    this.showNetAmount = true,
     this.padding,
   });
 
@@ -17,80 +15,30 @@ class TransactionSummaryWidget extends StatelessWidget {
     final theme = Theme.of(context);
     final totalLending = (stats['totalLending'] as double?) ?? 0.0;
     final totalBorrowing = (stats['totalBorrowing'] as double?) ?? 0.0;
-    final netAmount = totalLending - totalBorrowing;
     
     return Container(
       padding: padding ?? const EdgeInsets.all(16),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  'Total Lending',
-                  'NPR ${totalLending.toStringAsFixed(2)}',
-                  Colors.green,
-                  Icons.trending_up,
-                  theme,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  'Total Borrowing',
-                  'NPR ${totalBorrowing.toStringAsFixed(2)}',
-                  Colors.orange,
-                  Icons.trending_down,
-                  theme,
-                ),
-              ),
-            ],
-          ),
-          
-          if (showNetAmount) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: netAmount >= 0 
-                    ? Colors.green.withValues(alpha: 0.1) 
-                    : Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: (netAmount >= 0 ? Colors.green : Colors.red).withValues(alpha: 0.3),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    'Net Amount',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'NPR ${netAmount.abs().toStringAsFixed(2)}',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: netAmount >= 0 ? Colors.green : Colors.red,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    netAmount >= 0 
-                        ? 'You are owed this amount'
-                        : 'You owe this amount',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: netAmount >= 0 ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
+          Expanded(
+            child: _buildStatCard(
+              'Total Lending',
+              'NPR ${totalLending.toStringAsFixed(2)}',
+              Colors.green,
+              Icons.trending_up,
+              theme,
             ),
-          ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatCard(
+              'Total Borrowing',
+              'NPR ${totalBorrowing.toStringAsFixed(2)}',
+              Colors.orange,
+              Icons.trending_down,
+              theme,
+            ),
+          ),
         ],
       ),
     );
@@ -171,7 +119,7 @@ class TransactionQuickStats extends StatelessWidget {
         children: [
           Expanded(
             child: _buildQuickStatItem(
-              'Total',
+              'Active',
               totalTransactions.toString(),
               theme.colorScheme.primary,
               theme,

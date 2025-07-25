@@ -77,7 +77,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
       }
 
       final cached = await _localDatasource.getCachedTransactions(_currentUserId!);
-      List<TransactionModel> filtered = cached;
+      List<TransactionModel> filtered = cached.where((t) => t.status != TransactionStatus.completed).toList();
 
       if (status != null) {
         filtered = filtered.where((t) => t.status == status).toList();
@@ -128,7 +128,8 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
             limit: limit,
             lastSyncTime: lastSyncTime,
           );
-          return ApiResult.success(result.cast<Transaction>());
+          final activeTransactions = result.where((t) => t.status != TransactionStatus.completed).toList();
+          return ApiResult.success(activeTransactions.cast<Transaction>());
         },
         saveLocalData: (data) async {
           if (data != null && data.isNotEmpty) {
@@ -257,23 +258,56 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         return ApiResult.failure('User not authenticated', FailureType.auth);
       }
 
-      final transaction = await _remoteDatasource.getTransactionById(id, _currentUserId!);
-      final updatedTransaction = TransactionModel.fromEntity(
-        transaction.copyWith(
-          status: TransactionStatus.completed,
-          updatedAt: DateTime.now(),
-        ),
-      );
-
       return handleRemoteCallFirst<Transaction>(
         remoteCall: () async {
-          final result = await _remoteDatasource.updateTransaction(updatedTransaction);
+          final transaction = await _remoteDatasource.getTransactionById(id, _currentUserId!);
+          
+          String userRole;
+          if (transaction.createdBy == _currentUserId) {
+            userRole = 'creator';
+          } else if (transaction.recipientUserId == _currentUserId) {
+            userRole = 'recipient';
+          } else {
+            throw Exception('User not authorized to complete this transaction');
+          }
+
+          if (transaction.type == TransactionType.lending && userRole != 'creator') {
+            throw Exception('Only lender can complete lending transactions');
+          }
+
+          if (transaction.type == TransactionType.borrowing && userRole != 'recipient') {
+            throw Exception('Only borrower can complete borrowing transactions');
+          }
+
+          if (transaction.verificationRequired && !transaction.isVerified) {
+            throw Exception('Transaction must be verified before completion');
+          }
+
+          final result = await _remoteDatasource.completeTransaction(id, _currentUserId!, userRole);
           return ApiResult.success(result);
         },
         saveLocalData: (data) async {
           if (data != null) {
-            await _localDatasource.cacheTransaction(_currentUserId!, TransactionModel.fromEntity(data));
+            await _localDatasource.removeCachedTransaction(_currentUserId!, id);
           }
+        },
+      );
+    });
+  }
+
+  @override
+  Future<ApiResult<List<Transaction>>> getFinishedTransactions() async {
+    return ExceptionHandler.handleExceptions(() async {
+      if (_currentUserId == null) {
+        return ApiResult.failure('User not authenticated', FailureType.auth);
+      }
+
+      return handleRemoteCallFirst<List<Transaction>>(
+        remoteCall: () async {
+          final result = await _remoteDatasource.getFinishedTransactions(_currentUserId!);
+          return ApiResult.success(result.cast<Transaction>());
+        },
+        saveLocalData: (data) async {
         },
       );
     });
@@ -402,9 +436,10 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
       }
 
       final cached = await _localDatasource.getCachedTransactions(_currentUserId!);
+      final activeTransactions = cached.where((t) => t.status != TransactionStatus.completed).toList();
       
-      if (cached.isNotEmpty) {
-        final stats = _calculateStatsFromTransactions(cached);
+      if (activeTransactions.isNotEmpty) {
+        final stats = _calculateStatsFromTransactions(activeTransactions);
         return ApiResult.success(stats);
       }
 
@@ -460,6 +495,8 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
     double totalBorrowing = 0;
 
     for (final transaction in transactions) {
+      if (transaction.status == TransactionStatus.completed) continue;
+      
       totalTransactions++;
 
       switch (transaction.status) {
@@ -492,7 +529,6 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
       'completedTransactions': completedTransactions,
       'totalLending': totalLending,
       'totalBorrowing': totalBorrowing,
-      'netAmount': totalLending - totalBorrowing,
     };
   }
 }

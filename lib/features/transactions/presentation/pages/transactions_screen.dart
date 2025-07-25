@@ -12,6 +12,7 @@ import 'package:udharoo/features/transactions/presentation/bloc/transaction_stat
 import 'package:udharoo/features/transactions/presentation/bloc/received_transaction_requests/received_transaction_requests_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_card.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_summary_widget.dart';
+import 'package:udharoo/features/transactions/presentation/utils/transaction_utils.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class TransactionsScreen extends StatefulWidget {
@@ -158,6 +159,17 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     ],
                   ),
                 ),
+              IconButton(
+                onPressed: () => context.push(Routes.finishedTransactions),
+                icon: const Icon(Icons.history),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.green.withValues(alpha: 0.1),
+                  foregroundColor: Colors.green,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
             ],
           ),
           _buildSliverTransactionsList(),
@@ -176,7 +188,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Transactions',
+                'Active Transactions',
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -245,7 +257,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     const SizedBox(height: 20),
                     TransactionSummaryWidget(
                       stats: state.stats,
-                      showNetAmount: true,
                       padding: EdgeInsets.zero,
                     ),
                     const SizedBox(height: 16),
@@ -254,6 +265,35 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       pendingTransactions: state.stats['pendingTransactions'] as int? ?? 0,
                       completedTransactions: state.stats['completedTransactions'] as int? ?? 0,
                       padding: EdgeInsets.zero,
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.blue.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: Colors.blue,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Stats exclude completed transactions. View completed transactions in history.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.blue,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 );
@@ -414,7 +454,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         children: [
           _buildStatusChip(
             null,
-            'All',
+            'All Active',
             _getStatusCount(null),
             theme,
           ),
@@ -430,13 +470,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             TransactionStatus.verified,
             'Verified',
             _getStatusCount(TransactionStatus.verified),
-            theme,
-          ),
-          const SizedBox(width: 12),
-          _buildStatusChip(
-            TransactionStatus.completed,
-            'Completed',
-            _getStatusCount(TransactionStatus.completed),
             theme,
           ),
         ],
@@ -554,10 +587,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     onVerify: transaction.canBeVerified
                         ? () => _verifyTransaction(transaction)
                         : null,
-                    onComplete: transaction.canBeCompleted
+                    onComplete: TransactionUtils.canUserComplete(transaction, _getCurrentUserId() ?? '')
                         ? () => _completeTransaction(transaction)
                         : null,
-                    onDelete: transaction.isPending
+                    onDelete: transaction.isPending && transaction.createdBy == _getCurrentUserId()
                         ? () => _deleteTransaction(transaction)
                         : null,
                   ),
@@ -603,7 +636,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             Text(
               _searchQuery.isNotEmpty || _selectedStatus != null
                   ? 'No matching transactions'
-                  : 'No transactions yet',
+                  : 'No active transactions yet',
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: theme.colorScheme.onSurface,
@@ -729,7 +762,62 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   void _completeTransaction(Transaction transaction) {
-    context.read<TransactionListCubit>().completeTransaction(transaction.id);
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Complete Transaction'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Are you sure you want to mark this transaction as completed?'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.blue.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: Colors.blue,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This will move the transaction to completed status and remove it from active transactions.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              context.read<TransactionListCubit>().completeTransaction(transaction.id);
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Complete'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _deleteTransaction(Transaction transaction) {

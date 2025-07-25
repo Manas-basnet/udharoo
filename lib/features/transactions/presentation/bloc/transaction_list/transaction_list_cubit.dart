@@ -143,7 +143,13 @@ class TransactionListCubit extends Cubit<TransactionListState> {
           emit(TransactionListUpdated(transaction));
           _reloadCurrentTransactions();
         },
-        onFailure: (message, type) => emit(TransactionListError(message, type)),
+        onFailure: (message, type) {
+          if (message.contains('Only transaction recipients can verify')) {
+            emit(TransactionListError('You can only verify transactions where you are the recipient', type));
+          } else {
+            emit(TransactionListError(message, type));
+          }
+        },
       );
     }
   }
@@ -154,13 +160,23 @@ class TransactionListCubit extends Cubit<TransactionListState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (transaction) {
-          _updateTransactionInList(transaction);
+          _allTransactions.removeWhere((t) => t.id == id);
           _notifyTransactionsChanged();
           
           emit(TransactionListUpdated(transaction));
           _reloadCurrentTransactions();
         },
-        onFailure: (message, type) => emit(TransactionListError(message, type)),
+        onFailure: (message, type) {
+          if (message.contains('Only lender can complete lending transactions')) {
+            emit(TransactionListError('Only the lender can complete lending transactions', type));
+          } else if (message.contains('Only borrower can complete borrowing transactions')) {
+            emit(TransactionListError('Only the borrower can complete borrowing transactions', type));
+          } else if (message.contains('Transaction must be verified before completion')) {
+            emit(TransactionListError('This transaction must be verified before it can be completed', type));
+          } else {
+            emit(TransactionListError(message, type));
+          }
+        },
       );
     }
   }

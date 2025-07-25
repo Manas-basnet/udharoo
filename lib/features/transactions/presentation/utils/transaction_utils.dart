@@ -173,7 +173,7 @@ class TransactionUtils {
     double pendingBorrowing = 0;
 
     for (final transaction in transactions) {
-      if (transaction.status != TransactionStatus.cancelled) {
+      if (transaction.status != TransactionStatus.cancelled && transaction.status != TransactionStatus.completed) {
         if (transaction.type == TransactionType.lending) {
           totalLending += transaction.amount;
           if (transaction.status == TransactionStatus.pending) {
@@ -213,5 +213,36 @@ class TransactionUtils {
            transaction.recipientUserId == currentUserId && 
            !transaction.isVerified &&
            transaction.status == TransactionStatus.pending;
+  }
+
+  static bool canUserComplete(Transaction transaction, String currentUserId) {
+    if (transaction.status == TransactionStatus.completed || transaction.status == TransactionStatus.cancelled) {
+      return false;
+    }
+
+    if (transaction.verificationRequired && !transaction.isVerified) {
+      return false;
+    }
+
+    final isCreator = transaction.createdBy == currentUserId;
+    final isRecipient = transaction.recipientUserId == currentUserId;
+
+    if (transaction.type == TransactionType.lending) {
+      return isCreator;
+    } else {
+      return isRecipient;
+    }
+  }
+
+  static String getCompletionButtonText(Transaction transaction, String currentUserId) {
+    final isCreator = transaction.createdBy == currentUserId;
+    
+    if (transaction.type == TransactionType.lending && isCreator) {
+      return 'Mark as Completed';
+    } else if (transaction.type == TransactionType.borrowing && !isCreator) {
+      return 'Mark as Completed';
+    }
+    
+    return 'Complete';
   }
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_status_chip.dart';
 import 'package:udharoo/features/transactions/presentation/utils/transaction_utils.dart';
@@ -19,9 +21,18 @@ class TransactionCard extends StatelessWidget {
     this.onDelete,
   });
 
+  String? _getCurrentUserId(BuildContext context) {
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is AuthSessionAuthenticated) {
+      return authState.user.uid;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final currentUserId = _getCurrentUserId(context);
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -232,57 +243,9 @@ class TransactionCard extends StatelessWidget {
                   ],
                 ),
                 
-                if (_shouldShowActions()) ...[
+                if (_shouldShowActions(currentUserId)) ...[
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      if (transaction.canBeVerified && onVerify != null)
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: onVerify,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.green,
-                              side: const BorderSide(color: Colors.green),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text('Verify'),
-                          ),
-                        ),
-                      
-                      if (transaction.canBeCompleted && onComplete != null) ...[
-                        if (transaction.canBeVerified && onVerify != null)
-                          const SizedBox(width: 8),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: onComplete,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: theme.colorScheme.primary,
-                              foregroundColor: theme.colorScheme.onPrimary,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text('Complete'),
-                          ),
-                        ),
-                      ],
-                      
-                      if (transaction.isPending && onDelete != null) ...[
-                        if ((transaction.canBeVerified && onVerify != null) || 
-                            (transaction.canBeCompleted && onComplete != null))
-                          const SizedBox(width: 8),
-                        IconButton(
-                          onPressed: onDelete,
-                          icon: const Icon(Icons.delete_outline),
-                          style: IconButton.styleFrom(
-                            foregroundColor: Colors.red,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                  _buildActionButtons(context, currentUserId, theme),
                 ],
               ],
             ),
@@ -292,9 +255,85 @@ class TransactionCard extends StatelessWidget {
     );
   }
 
-  bool _shouldShowActions() {
-    return (transaction.canBeVerified && onVerify != null) ||
-           (transaction.canBeCompleted && onComplete != null) ||
-           (transaction.isPending && onDelete != null);
+  bool _shouldShowActions(String? currentUserId) {
+    if (currentUserId == null || transaction.isCompleted) return false;
+    
+    final canVerify = TransactionUtils.canUserVerify(transaction, currentUserId) && onVerify != null;
+    final canComplete = TransactionUtils.canUserComplete(transaction, currentUserId) && onComplete != null;
+    final canDelete = transaction.isPending && transaction.createdBy == currentUserId && onDelete != null;
+    
+    return canVerify || canComplete || canDelete;
+  }
+
+  Widget _buildActionButtons(BuildContext context, String? currentUserId, ThemeData theme) {
+    if (currentUserId == null) return const SizedBox.shrink();
+    
+    final canVerify = TransactionUtils.canUserVerify(transaction, currentUserId) && onVerify != null;
+    final canComplete = TransactionUtils.canUserComplete(transaction, currentUserId) && onComplete != null;
+    final canDelete = transaction.isPending && transaction.createdBy == currentUserId && onDelete != null;
+    
+    return Row(
+      children: [
+        if (canVerify) ...[
+          Expanded(
+            child: OutlinedButton(
+              onPressed: onVerify,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.green,
+                side: const BorderSide(color: Colors.green),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Verify'),
+            ),
+          ),
+          if (canComplete || canDelete) const SizedBox(width: 8),
+        ],
+        
+        if (canComplete) ...[
+          Expanded(
+            child: FilledButton(
+              onPressed: onComplete,
+              style: FilledButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(TransactionUtils.getCompletionButtonText(transaction, currentUserId)),
+            ),
+          ),
+          if (canDelete) const SizedBox(width: 8),
+        ],
+        
+        if (canDelete) ...[
+          if (!canComplete && !canVerify)
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('Delete'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete_outline),
+              style: IconButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+            ),
+        ],
+      ],
+    );
   }
 }

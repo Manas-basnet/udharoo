@@ -13,6 +13,7 @@ import 'package:udharoo/features/transactions/domain/usecases/update_transaction
 import 'package:udharoo/features/transactions/domain/usecases/delete_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/verify_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/complete_transaction_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/get_finished_transactions_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_transaction_contacts_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_contact_transactions_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/generate_qr_usecase.dart';
@@ -37,6 +38,7 @@ Future<void> initTransaction(GetIt sl) async {
   sl.registerLazySingleton(() => DeleteTransactionUseCase(sl()));
   sl.registerLazySingleton(() => VerifyTransactionUseCase(sl()));
   sl.registerLazySingleton(() => CompleteTransactionUseCase(sl()));
+  sl.registerLazySingleton(() => GetFinishedTransactionsUseCase(sl()));
   sl.registerLazySingleton(() => GetTransactionContactsUseCase(sl()));
   sl.registerLazySingleton(() => GetContactTransactionsUseCase(sl()));
   sl.registerLazySingleton(() => GenerateQRUseCase(sl()));

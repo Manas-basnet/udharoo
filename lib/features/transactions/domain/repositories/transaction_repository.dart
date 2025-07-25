@@ -25,6 +25,7 @@ abstract class TransactionRepository {
   Future<ApiResult<void>> deleteTransaction(String id);
   Future<ApiResult<Transaction>> verifyTransaction(String id, String verifiedBy);
   Future<ApiResult<Transaction>> completeTransaction(String id);
+  Future<ApiResult<List<Transaction>>> getFinishedTransactions();
   Future<ApiResult<List<TransactionContact>>> getTransactionContacts();
   Future<ApiResult<List<Transaction>>> getContactTransactions(String contactPhone);
   Future<ApiResult<QRData>> generateQRCode({

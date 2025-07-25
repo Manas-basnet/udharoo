@@ -74,7 +74,13 @@ class TransactionDetailCubit extends Cubit<TransactionDetailState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (transaction) => emit(TransactionDetailVerified(transaction)),
-        onFailure: (message, type) => emit(TransactionDetailError(message, type)),
+        onFailure: (message, type) {
+          if (message.contains('Only transaction recipients can verify')) {
+            emit(TransactionDetailError('You can only verify transactions where you are the recipient', type));
+          } else {
+            emit(TransactionDetailError(message, type));
+          }
+        },
       );
     }
   }
@@ -89,7 +95,17 @@ class TransactionDetailCubit extends Cubit<TransactionDetailState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (transaction) => emit(TransactionDetailCompleted(transaction)),
-        onFailure: (message, type) => emit(TransactionDetailError(message, type)),
+        onFailure: (message, type) {
+          if (message.contains('Only lender can complete lending transactions')) {
+            emit(TransactionDetailError('Only the lender can complete lending transactions', type));
+          } else if (message.contains('Only borrower can complete borrowing transactions')) {
+            emit(TransactionDetailError('Only the borrower can complete borrowing transactions', type));
+          } else if (message.contains('Transaction must be verified before completion')) {
+            emit(TransactionDetailError('This transaction must be verified before it can be completed', type));
+          } else {
+            emit(TransactionDetailError(message, type));
+          }
+        },
       );
     }
   }

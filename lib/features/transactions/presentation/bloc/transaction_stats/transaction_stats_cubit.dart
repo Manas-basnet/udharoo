@@ -54,28 +54,30 @@ class TransactionStatsCubit extends Cubit<TransactionStatsState> {
     double totalBorrowing = 0;
 
     for (final transaction in transactions) {
-      totalTransactions++;
-
       switch (transaction.status) {
         case TransactionStatus.pending:
+          totalTransactions++;
           pendingTransactions++;
+          if (transaction.type == TransactionType.lending) {
+            totalLending += transaction.amount;
+          } else {
+            totalBorrowing += transaction.amount;
+          }
           break;
         case TransactionStatus.verified:
+          totalTransactions++;
           verifiedTransactions++;
+          if (transaction.type == TransactionType.lending) {
+            totalLending += transaction.amount;
+          } else {
+            totalBorrowing += transaction.amount;
+          }
           break;
         case TransactionStatus.completed:
           completedTransactions++;
           break;
         case TransactionStatus.cancelled:
           break;
-      }
-
-      if (transaction.status != TransactionStatus.cancelled) {
-        if (transaction.type == TransactionType.lending) {
-          totalLending += transaction.amount;
-        } else {
-          totalBorrowing += transaction.amount;
-        }
       }
     }
 
@@ -86,7 +88,6 @@ class TransactionStatsCubit extends Cubit<TransactionStatsState> {
       'completedTransactions': completedTransactions,
       'totalLending': totalLending,
       'totalBorrowing': totalBorrowing,
-      'netAmount': totalLending - totalBorrowing,
     };
   }
 }

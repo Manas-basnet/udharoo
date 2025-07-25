@@ -69,6 +69,10 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         .doc(userId)
         .collection('transactions');
 
+    // if(lastSyncTime != null) {
+    //   query = query.where('updatedAt', isGreaterThan: Timestamp.fromDate(lastSyncTime));
+    // }
+
     query = query.orderBy('updatedAt', descending: true);
 
     if (status != null) {
@@ -102,6 +106,7 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
               ...doc.data() as Map<String, dynamic>,
               'id': doc.id,
             }))
+        .where((transaction) => transaction.status != TransactionStatus.completed)
         .toList();
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
@@ -137,6 +142,15 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
           .collection('transactions')
           .doc(id)
           .get();
+      
+      if (!doc.exists) {
+        doc = await _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('finished_transactions')
+            .doc(id)
+            .get();
+      }
     } else {
       doc = await _firestore
           .collection('users')
@@ -144,6 +158,15 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
           .collection('received_transactions')
           .doc(id)
           .get();
+      
+      if (!doc.exists) {
+        doc = await _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('finished_transactions')
+            .doc(id)
+            .get();
+      }
     }
 
     if (!doc.exists) {
@@ -291,6 +314,95 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
   }
 
   @override
+  Future<TransactionModel> completeTransaction(String id, String userId, String userRole) async {
+    final transaction = await getTransactionById(id, userId);
+    
+    final completedTransaction = TransactionModel.fromEntity(
+      transaction.copyWith(
+        status: TransactionStatus.completed,
+        updatedAt: DateTime.now(),
+      ),
+    );
+
+    await moveTransactionToFinished(completedTransaction);
+
+    final batch = _firestore.batch();
+
+    final creatorDocRef = _firestore
+        .collection('users')
+        .doc(transaction.createdBy)
+        .collection('transactions')
+        .doc(id);
+
+    batch.delete(creatorDocRef);
+
+    if (transaction.recipientUserId != null) {
+      final recipientDocRef = _firestore
+          .collection('users')
+          .doc(transaction.recipientUserId)
+          .collection('received_transactions')
+          .doc(id);
+
+      batch.delete(recipientDocRef);
+
+      final recipientTransactionDocRef = _firestore
+          .collection('users')
+          .doc(transaction.recipientUserId)
+          .collection('transactions')
+          .doc(id);
+
+      batch.delete(recipientTransactionDocRef);
+    }
+
+    await batch.commit();
+
+    return completedTransaction;
+  }
+
+  @override
+  Future<void> moveTransactionToFinished(TransactionModel transaction) async {
+    final batch = _firestore.batch();
+
+    final creatorFinishedDocRef = _firestore
+        .collection('users')
+        .doc(transaction.createdBy)
+        .collection('finished_transactions')
+        .doc(transaction.id);
+
+    batch.set(creatorFinishedDocRef, transaction.toJson());
+
+    if (transaction.recipientUserId != null) {
+      final recipientFinishedDocRef = _firestore
+          .collection('users')
+          .doc(transaction.recipientUserId)
+          .collection('finished_transactions')
+          .doc(transaction.id);
+
+      final flippedTransaction = await _createFlippedTransaction(transaction, transaction.recipientUserId!);
+      batch.set(recipientFinishedDocRef, flippedTransaction.toJson());
+    }
+
+    await batch.commit();
+  }
+
+  @override
+  Future<List<TransactionModel>> getFinishedTransactions(String userId) async {
+    final querySnapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('finished_transactions')
+        .orderBy('updatedAt', descending: true)
+        .get();
+
+    return querySnapshot.docs
+        .map((doc) => TransactionModel.fromJson({
+              ...doc.data(),
+              'id': doc.id,
+            }))
+        .toList();
+  }
+
+  @override
   Future<List<TransactionContactModel>> getTransactionContacts(String userId) async {
     final querySnapshot = await _firestore
         .collection('users')
@@ -383,12 +495,15 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         .collection('transactions')
         .get();
 
-    return _calculateStatsFromTransactions(querySnapshot.docs.map((doc) => 
-      TransactionModel.fromJson({
-        ...doc.data(),
-        'id': doc.id,
-      })
-    ).toList());
+    final activeTransactions = querySnapshot.docs
+        .map((doc) => TransactionModel.fromJson({
+              ...doc.data(),
+              'id': doc.id,
+            }))
+        .where((transaction) => transaction.status != TransactionStatus.completed)
+        .toList();
+
+    return _calculateStatsFromTransactions(activeTransactions);
   }
 
   @override
@@ -427,16 +542,6 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
   }
 
   Future<UserTransactionRole?> _getUserRoleForTransaction(String transactionId, String userId) async {
-    // final creatorDoc = await _firestore
-    //     .collection('users')
-    //     .doc(userId)
-    //     .collection('transactions')
-    //     .doc(transactionId)
-    //     .get();
-
-    // if (creatorDoc.exists) {
-    //   return UserTransactionRole.creator;
-    // }
 
     final recipientDoc = await _firestore
         .collection('users')
@@ -447,6 +552,22 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
 
     if (recipientDoc.exists && recipientDoc.data()?['recipientUserId'] == userId) {
       return UserTransactionRole.recipient;
+    }
+
+    final finishedDoc = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('finished_transactions')
+        .doc(transactionId)
+        .get();
+
+    if (finishedDoc.exists) {
+      final data = finishedDoc.data();
+      if (data?['createdBy'] == userId) {
+        return UserTransactionRole.creator;
+      } else if (data?['recipientUserId'] == userId) {
+        return UserTransactionRole.recipient;
+      }
     }
 
     return null;
@@ -497,6 +618,8 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
     double totalBorrowing = 0;
 
     for (final transaction in transactions) {
+      if (transaction.status == TransactionStatus.completed) continue;
+      
       totalTransactions++;
 
       switch (transaction.status) {
@@ -529,7 +652,6 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
       'completedTransactions': completedTransactions,
       'totalLending': totalLending,
       'totalBorrowing': totalBorrowing,
-      'netAmount': totalLending - totalBorrowing,
     };
   }
 }
