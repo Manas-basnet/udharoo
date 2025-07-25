@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_detail/transaction_detail_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_status_chip.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/verification_dialog.dart';
 import 'package:udharoo/features/transactions/presentation/utils/transaction_utils.dart';
@@ -32,17 +32,17 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   void _loadTransaction() {
-    context.read<TransactionCubit>().getTransactionById(widget.transactionId);
+    context.read<TransactionDetailCubit>().loadTransaction(widget.transactionId);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return BlocListener<TransactionCubit, TransactionState>(
+    return BlocListener<TransactionDetailCubit, TransactionDetailState>(
       listener: (context, state) {
         switch (state) {
-          case TransactionVerified():
+          case TransactionDetailVerified():
             setState(() {
               _isVerifying = false;
             });
@@ -52,28 +52,28 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
               isSuccess: true,
             );
             _loadTransaction();
-          case TransactionCompleted():
+          case TransactionDetailCompleted():
             CustomToast.show(
               context,
               message: 'Transaction completed successfully',
               isSuccess: true,
             );
             _loadTransaction();
-          case TransactionUpdated():
+          case TransactionDetailUpdated():
             CustomToast.show(
               context,
               message: 'Transaction updated successfully',
               isSuccess: true,
             );
             _loadTransaction();
-          case TransactionDeleted():
+          case TransactionDetailDeleted():
             CustomToast.show(
               context,
               message: 'Transaction deleted successfully',
               isSuccess: true,
             );
             context.pop();
-          case TransactionError():
+          case TransactionDetailError():
             setState(() {
               _isVerifying = false;
             });
@@ -95,7 +95,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             icon: const Icon(Icons.arrow_back),
           ),
           actions: [
-            BlocBuilder<TransactionCubit, TransactionState>(
+            BlocBuilder<TransactionDetailCubit, TransactionDetailState>(
               builder: (context, state) {
                 if (state is TransactionDetailLoaded) {
                   return PopupMenuButton<String>(
@@ -141,9 +141,9 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             ),
           ],
         ),
-        body: BlocBuilder<TransactionCubit, TransactionState>(
+        body: BlocBuilder<TransactionDetailCubit, TransactionDetailState>(
           builder: (context, state) {
-            if (state is TransactionLoading) {
+            if (state is TransactionDetailLoading) {
               return const Center(child: CircularProgressIndicator());
             }
 
@@ -361,17 +361,32 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           SizedBox(
             width: double.infinity,
             height: 52,
-            child: FilledButton.icon(
-              onPressed: () => _showVerificationDialog(transaction),
-              icon: const Icon(Icons.verified_user),
-              label: const Text('Verify Transaction'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+            child: BlocBuilder<TransactionDetailCubit, TransactionDetailState>(
+              builder: (context, state) {
+                final isVerifying = state is TransactionDetailVerifying;
+                
+                return FilledButton.icon(
+                  onPressed: isVerifying ? null : () => _showVerificationDialog(transaction),
+                  icon: isVerifying 
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.verified_user),
+                  label: Text(isVerifying ? 'Verifying...' : 'Verify Transaction'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
           const SizedBox(height: 12),
@@ -381,17 +396,32 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           SizedBox(
             width: double.infinity,
             height: 52,
-            child: FilledButton.icon(
-              onPressed: () => _completeTransaction(transaction),
-              icon: const Icon(Icons.check_circle),
-              label: const Text('Mark as Completed'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+            child: BlocBuilder<TransactionDetailCubit, TransactionDetailState>(
+              builder: (context, state) {
+                final isCompleting = state is TransactionDetailCompleting;
+                
+                return FilledButton.icon(
+                  onPressed: isCompleting ? null : () => _completeTransaction(transaction),
+                  icon: isCompleting 
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.check_circle),
+                  label: Text(isCompleting ? 'Completing...' : 'Mark as Completed'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -431,7 +461,11 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   void _handleMenuAction(String action, Transaction transaction) {
     switch (action) {
       case 'edit':
-        context.push(Routes.transactionForm, extra: transaction);
+        context.push(Routes.transactionForm, extra: transaction).then((result) {
+          if (result is Transaction) {
+            _loadTransaction();
+          }
+        });
         break;
       case 'delete':
         _showDeleteDialog(transaction);
@@ -456,7 +490,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
-              context.read<TransactionCubit>().deleteTransaction(transaction.id);
+              context.read<TransactionDetailCubit>().deleteTransaction(transaction.id);
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Delete'),
@@ -486,15 +520,15 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   void _verifyTransaction(Transaction transaction) {
-    context.read<TransactionCubit>().verifyTransaction(
+    context.read<TransactionDetailCubit>().verifyTransaction(
       transaction.id,
-      'current-user-id', //TODO : replace with actual user ID
+      'current-user-id',
     );
     Navigator.of(context).pop();
   }
 
   void _completeTransaction(Transaction transaction) {
-    context.read<TransactionCubit>().completeTransaction(transaction.id);
+    context.read<TransactionDetailCubit>().completeTransaction(transaction.id);
   }
 
   void _shareTransaction(Transaction transaction) {

@@ -46,9 +46,9 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         .doc(userId)
         .collection('transactions');
 
-    if (lastSyncTime != null) {
-      query = query.where('updatedAt', isGreaterThan: Timestamp.fromDate(lastSyncTime));
-    }
+    // if (lastSyncTime != null) {
+    //   query = query.where('updatedAt', isGreaterThan: Timestamp.fromDate(lastSyncTime));
+    // }
 
     query = query.orderBy('updatedAt', descending: true);
 

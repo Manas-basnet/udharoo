@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/qr_code/qr_code_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class QRScannerScreen extends StatefulWidget {
@@ -102,7 +102,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     });
     
     controller?.pauseCamera();
-    context.read<TransactionCubit>().parseQRCode(qrCode);
+    context.read<QRCodeCubit>().parseQRCode(qrCode);
   }
 
   void _toggleFlash() async {
@@ -115,10 +115,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   }
 
   @override
-
   Widget build(BuildContext context) {
     
-    return BlocListener<TransactionCubit, TransactionState>(
+    return BlocListener<QRCodeCubit, QRCodeState>(
       listener: (context, state) {
         switch (state) {
           case QRCodeParsed():
@@ -129,7 +128,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               'scannedContactEmail': state.qrData.userEmail,
               'scannedVerificationRequired': state.qrData.verificationRequired,
             });
-          case TransactionError():
+          case QRCodeError():
             controller?.resumeCamera();
             setState(() {
               _isProcessing = false;
@@ -269,34 +268,40 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           ),
         ),
         
-        if (_isProcessing)
-          Container(
-            color: Colors.black.withValues(alpha: 0.5),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(
-                      color: theme.colorScheme.primary,
+        BlocBuilder<QRCodeCubit, QRCodeState>(
+          builder: (context, state) {
+            if (state is QRCodeParsing || _isProcessing) {
+              return Container(
+                color: Colors.black.withValues(alpha: 0.5),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Processing QR code...',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Processing QR code...',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          ),
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
       ],
     );
   }

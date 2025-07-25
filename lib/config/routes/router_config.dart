@@ -9,6 +9,12 @@ import 'package:udharoo/features/phone_verification/presentation/pages/phone_ver
 import 'package:udharoo/features/phone_verification/presentation/pages/change_phone_setup_screen.dart';
 import 'package:udharoo/features/phone_verification/presentation/pages/change_phone_verification_screen.dart';
 import 'package:udharoo/features/home/presentation/pages/home_screen.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/qr_code/qr_code_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_detail/transaction_detail_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_list/transaction_list_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_stats/transaction_stats_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transactions_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_detail_screen.dart';
@@ -16,7 +22,6 @@ import 'package:udharoo/features/transactions/presentation/pages/qr_scanner_scre
 import 'package:udharoo/features/transactions/presentation/pages/qr_generator_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/finished_transactions_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/contact_transactions_screen.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction_contact.dart';
 import 'package:udharoo/features/contacts/presentation/pages/contacts_screen.dart';
@@ -24,45 +29,6 @@ import 'package:udharoo/features/profile/presentation/pages/profile_screen.dart'
 import 'package:udharoo/features/profile/presentation/pages/edit_profile_screen.dart';
 import 'package:udharoo/shared/presentation/layouts/scaffold_with_bottom_nav_bar.dart';
 import 'package:udharoo/shared/presentation/widgets/auth_wrapper.dart';
-
-class TransactionFormScreenArguments {
-  final String? qrData;
-  final String? initialType;
-
-  const TransactionFormScreenArguments({this.qrData, this.initialType});
-}
-
-class ContactTransactionsScreenArguments {
-  final String contactName;
-  final String contactPhone;
-
-  const ContactTransactionsScreenArguments({
-    required this.contactName,
-    required this.contactPhone,
-  });
-}
-
-class PhoneVerificationExtra {
-  final String phoneNumber;
-  final String verificationId;
-
-  const PhoneVerificationExtra({
-    required this.phoneNumber,
-    required this.verificationId,
-  });
-}
-
-class ChangePhoneVerificationExtra {
-  final String currentPhoneNumber;
-  final String newPhoneNumber;
-  final String verificationId;
-
-  const ChangePhoneVerificationExtra({
-    required this.currentPhoneNumber,
-    required this.newPhoneNumber,
-    required this.verificationId,
-  });
-}
 
 class AppRouter {
   static final AppRouter _instance = AppRouter._internal();
@@ -74,7 +40,8 @@ class AppRouter {
   }
 
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
-  static final _transactionCubit = di.sl<TransactionCubit>();
+  static final _transactionListCubit = di.sl<TransactionListCubit>();
+  static final _transactionStatsCubit = di.sl<TransactionStatsCubit>();
 
   static final _homeNavigatorKey = GlobalKey<NavigatorState>();
   static final _transactionsNavigatorKey = GlobalKey<NavigatorState>();
@@ -110,8 +77,11 @@ class AppRouter {
               GoRoute(
                 path: '/transactions',
                 name: 'transactions',
-                builder: (context, state) => BlocProvider.value(
-                  value: _transactionCubit,
+                builder: (context, state) => MultiBlocProvider(
+                  providers: [
+                    BlocProvider.value(value: _transactionListCubit),
+                    BlocProvider.value(value: _transactionStatsCubit),
+                  ],
                   child: const TransactionsScreen(),
                 ),
               ),
@@ -206,8 +176,8 @@ class AppRouter {
       GoRoute(
         path: Routes.qrScanner,
         name: 'qrScanner',
-        builder: (context, state) => BlocProvider.value(
-          value: _transactionCubit,
+        builder: (context, state) => BlocProvider(
+          create: (context) => di.sl<QRCodeCubit>(),
           child: const QRScannerScreen(),
         ),
       ),
@@ -215,8 +185,8 @@ class AppRouter {
       GoRoute(
         path: Routes.qrGenerator,
         name: 'qrGenerator',
-        builder: (context, state) => BlocProvider.value(
-          value: _transactionCubit,
+        builder: (context, state) => BlocProvider(
+          create: (context) => di.sl<QRCodeCubit>(),
           child: const QRGeneratorScreen(),
         ),
       ),
@@ -243,8 +213,8 @@ class AppRouter {
             transaction = extra;
           }
 
-          return BlocProvider.value(
-            value: _transactionCubit,
+          return BlocProvider(
+            create: (context) => di.sl<TransactionFormCubit>(),
             child: TransactionFormScreen(
               transaction: transaction,
               scannedContactPhone: scannedContactPhone,
@@ -261,8 +231,8 @@ class AppRouter {
         name: 'transactionDetail',
         builder: (context, state) {
           final transactionId = state.pathParameters['id']!;
-          return BlocProvider.value(
-            value: _transactionCubit,
+          return BlocProvider(
+            create: (context) => di.sl<TransactionDetailCubit>(),
             child: TransactionDetailScreen(transactionId: transactionId),
           );
         },
@@ -271,8 +241,8 @@ class AppRouter {
       GoRoute(
         path: Routes.finishedTransactions,
         name: 'finishedTransactions',
-        builder: (context, state) => BlocProvider.value(
-          value: _transactionCubit,
+        builder: (context, state) => BlocProvider(
+          create: (context) => di.sl<TransactionListCubit>(),
           child: const FinishedTransactionsScreen(),
         ),
       ),
@@ -290,8 +260,8 @@ class AppRouter {
             lastTransactionDate: DateTime.now(),
           );
 
-          return BlocProvider.value(
-            value: _transactionCubit,
+          return BlocProvider(
+            create: (context) => di.sl<ContactTransactionsCubit>(),
             child: ContactTransactionsScreen(contact: contact),
           );
         },

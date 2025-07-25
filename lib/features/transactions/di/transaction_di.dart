@@ -18,7 +18,12 @@ import 'package:udharoo/features/transactions/domain/usecases/get_contact_transa
 import 'package:udharoo/features/transactions/domain/usecases/generate_qr_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/parse_qr_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_transaction_stats_usecase.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/qr_code/qr_code_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_detail/transaction_detail_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_list/transaction_list_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_stats/transaction_stats_cubit.dart';
 
 Future<void> initTransaction(GetIt sl) async {
   sl.registerLazySingleton(() => CreateTransactionUseCase(sl()));
@@ -55,20 +60,53 @@ Future<void> initTransaction(GetIt sl) async {
   );
 
   sl.registerFactory(
-    () => TransactionCubit(
-      createTransactionUseCase: sl(),
+    () => TransactionListCubit(
       getTransactionsUseCase: sl(),
       refreshTransactionsUseCase: sl(),
+      deleteTransactionUseCase: sl(),
+      verifyTransactionUseCase: sl(),
+      completeTransactionUseCase: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => TransactionDetailCubit(
       getTransactionByIdUseCase: sl(),
       updateTransactionUseCase: sl(),
       deleteTransactionUseCase: sl(),
       verifyTransactionUseCase: sl(),
       completeTransactionUseCase: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => TransactionFormCubit(
+      createTransactionUseCase: sl(),
+      updateTransactionUseCase: sl(),
       getTransactionContactsUseCase: sl(),
-      getContactTransactionsUseCase: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => QRCodeCubit(
       generateQRUseCase: sl(),
       parseQRUseCase: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => TransactionStatsCubit(
       getTransactionStatsUseCase: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => ContactTransactionsCubit(
+      getTransactionContactsUseCase: sl(),
+      getContactTransactionsUseCase: sl(),
+      verifyTransactionUseCase: sl(),
+      completeTransactionUseCase: sl(),
+      deleteTransactionUseCase: sl(),
     ),
   );
 }

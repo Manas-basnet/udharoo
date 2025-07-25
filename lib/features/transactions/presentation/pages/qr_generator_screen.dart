@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/qr_code/qr_code_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/qr_generator_widget.dart';
 import 'package:udharoo/features/transactions/presentation/services/qr_service.dart';
 import 'package:udharoo/core/di/di.dart' as di;
@@ -33,7 +33,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
   }
 
   void _loadUserSettings() {
-    //TODO:
+    //TODO
     // Load global verification setting
     // This would typically come from user preferences
   }
@@ -59,7 +59,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
       return;
     }
 
-    context.read<TransactionCubit>().generateQRCode(
+    context.read<QRCodeCubit>().generateQRCode(
       userPhone: user.phoneNumber!,
       userName: user.displayName ?? user.email ?? 'Unknown User',
       userEmail: user.email,
@@ -72,10 +72,10 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return BlocListener<TransactionCubit, TransactionState>(
+    return BlocListener<QRCodeCubit, QRCodeState>(
       listener: (context, state) {
         switch (state) {
-          case TransactionError():
+          case QRCodeError():
             CustomToast.show(
               context,
               message: state.message,
@@ -434,9 +434,9 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                     SizedBox(
                       width: double.infinity,
                       height: 52,
-                      child: BlocBuilder<TransactionCubit, TransactionState>(
+                      child: BlocBuilder<QRCodeCubit, QRCodeState>(
                         builder: (context, state) {
-                          final isLoading = state is TransactionLoading;
+                          final isLoading = state is QRCodeGenerating;
                           
                           return FilledButton.icon(
                             onPressed: isLoading ? null : _generateQR,
@@ -470,7 +470,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                     
                     const SizedBox(height: 24),
                     
-                    BlocBuilder<TransactionCubit, TransactionState>(
+                    BlocBuilder<QRCodeCubit, QRCodeState>(
                       builder: (context, state) {
                         if (state is QRCodeGenerated) {
                           return QRGeneratorWidget(

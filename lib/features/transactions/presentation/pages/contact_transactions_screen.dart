@@ -4,11 +4,21 @@ import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction_contact.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_card.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_summary_widget.dart';
 import 'package:udharoo/features/transactions/presentation/utils/transaction_utils.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
+
+class ContactTransactionsScreenArguments {
+  final String contactName;
+  final String contactPhone;
+
+  const ContactTransactionsScreenArguments({
+    required this.contactName,
+    required this.contactPhone,
+  });
+}
 
 class ContactTransactionsScreen extends StatefulWidget {
   final TransactionContact contact;
@@ -33,7 +43,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   }
 
   void _loadContactTransactions() {
-    context.read<TransactionCubit>().getContactTransactions(widget.contact.phone);
+    context.read<ContactTransactionsCubit>().loadContactTransactions(widget.contact.phone);
   }
 
   void _calculateTotals(List<Transaction> transactions) {
@@ -52,7 +62,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return BlocListener<TransactionCubit, TransactionState>(
+    return BlocListener<ContactTransactionsCubit, ContactTransactionsState>(
       listener: (context, state) {
         switch (state) {
           case ContactTransactionsLoaded():
@@ -60,28 +70,21 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
               _transactions = state.transactions;
             });
             _calculateTotals(state.transactions);
-          case TransactionVerified():
+          case ContactTransactionUpdated():
             CustomToast.show(
               context,
-              message: 'Transaction verified successfully',
+              message: 'Transaction updated successfully',
               isSuccess: true,
             );
             _loadContactTransactions();
-          case TransactionCompleted():
-            CustomToast.show(
-              context,
-              message: 'Transaction completed successfully',
-              isSuccess: true,
-            );
-            _loadContactTransactions();
-          case TransactionDeleted():
+          case ContactTransactionDeleted():
             CustomToast.show(
               context,
               message: 'Transaction deleted successfully',
               isSuccess: true,
             );
             _loadContactTransactions();
-          case TransactionError():
+          case ContactTransactionsError():
             CustomToast.show(
               context,
               message: state.message,
@@ -106,6 +109,8 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
                   'scannedContactPhone': widget.contact.phone,
                   'scannedContactName': widget.contact.name,
                   'scannedContactEmail': widget.contact.email,
+                }).then((_) {
+                  _loadContactTransactions();
                 });
               },
               icon: const Icon(Icons.add),
@@ -269,9 +274,9 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   Widget _buildTransactionsList() {
     final theme = Theme.of(context);
     
-    return BlocBuilder<TransactionCubit, TransactionState>(
+    return BlocBuilder<ContactTransactionsCubit, ContactTransactionsState>(
       builder: (context, state) {
-        if (state is TransactionLoading) {
+        if (state is ContactTransactionsLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -307,6 +312,8 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
                       'scannedContactPhone': widget.contact.phone,
                       'scannedContactName': widget.contact.name,
                       'scannedContactEmail': widget.contact.email,
+                    }).then((_) {
+                      _loadContactTransactions();
                     });
                   },
                   icon: const Icon(Icons.add),
@@ -354,14 +361,14 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   }
 
   void _verifyTransaction(Transaction transaction) {
-    context.read<TransactionCubit>().verifyTransaction(
+    context.read<ContactTransactionsCubit>().verifyTransaction(
       transaction.id,
-      'current-user-id', //TODO : replace with actual user ID
+      'current-user-id',
     );
   }
 
   void _completeTransaction(Transaction transaction) {
-    context.read<TransactionCubit>().completeTransaction(transaction.id);
+    context.read<ContactTransactionsCubit>().completeTransaction(transaction.id);
   }
 
   void _deleteTransaction(Transaction transaction) {
@@ -378,7 +385,7 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
-              context.read<TransactionCubit>().deleteTransaction(transaction.id);
+              context.read<ContactTransactionsCubit>().deleteTransaction(transaction.id);
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Delete'),

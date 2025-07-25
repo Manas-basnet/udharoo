@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_list/transaction_list_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_card.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_summary_widget.dart';
 import 'package:udharoo/features/transactions/presentation/utils/transaction_utils.dart';
@@ -38,7 +38,7 @@ class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen>
   }
 
   void _loadFinishedTransactions() {
-    context.read<TransactionCubit>().getTransactions(
+    context.read<TransactionListCubit>().loadTransactions(
       status: TransactionStatus.completed,
       refresh: true,
     );
@@ -59,9 +59,9 @@ class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen>
   void _onScroll() {
     if (_scrollController.position.pixels >= 
         _scrollController.position.maxScrollExtent - 200) {
-      final state = context.read<TransactionCubit>().state;
-      if (state is TransactionsLoaded && state.hasMore) {
-        context.read<TransactionCubit>().getTransactions(
+      final state = context.read<TransactionListCubit>().state;
+      if (state is TransactionListLoaded && state.hasMore) {
+        context.read<TransactionListCubit>().loadTransactions(
           status: TransactionStatus.completed,
         );
       }
@@ -72,15 +72,15 @@ class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return BlocListener<TransactionCubit, TransactionState>(
+    return BlocListener<TransactionListCubit, TransactionListState>(
       listener: (context, state) {
         switch (state) {
-          case TransactionsLoaded():
+          case TransactionListLoaded():
             setState(() {
               _finishedTransactions = state.transactions;
             });
             _calculateStats(state.transactions);
-          case TransactionError():
+          case TransactionListError():
             CustomToast.show(
               context,
               message: state.message,
@@ -109,13 +109,13 @@ class _FinishedTransactionsScreenState extends State<FinishedTransactionsScreen>
           children: [
             if (_stats.isNotEmpty) _buildSummaryHeader(),
             Expanded(
-              child: BlocBuilder<TransactionCubit, TransactionState>(
+              child: BlocBuilder<TransactionListCubit, TransactionListState>(
                 builder: (context, state) {
-                  if (state is TransactionLoading && state is! TransactionsLoaded) {
+                  if (state is TransactionListLoading && state is! TransactionListLoaded) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  if (state is TransactionsLoaded) {
+                  if (state is TransactionListLoaded) {
                     if (state.transactions.isEmpty) {
                       return _buildEmptyState();
                     }

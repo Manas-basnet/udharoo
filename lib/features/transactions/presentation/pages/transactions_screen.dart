@@ -5,7 +5,8 @@ import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_list/transaction_list_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_stats/transaction_stats_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_card.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_summary_widget.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
@@ -40,11 +41,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   void _loadInitialData() {
-    final cubit = context.read<TransactionCubit>();
-    // Load local data first, then refresh in background
-    cubit.getTransactions();
-    cubit.getTransactionStats();
-    // Refresh to get latest data from server
+    final listCubit = context.read<TransactionListCubit>();
+    final statsCubit = context.read<TransactionStatsCubit>();
+    
+    listCubit.loadTransactions();
+    statsCubit.loadTransactionStats();
+    
     _refreshTransactions();
   }
 
@@ -56,10 +58,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverAppBar(
-            expandedHeight: _stats != null ? 510.0 : 200.0,
+            expandedHeight: 510,
             floating: true,
             pinned: true,
-            snap: true,
+            snap: false,
             stretch: true,
             backgroundColor: theme.colorScheme.surface,
             surfaceTintColor: theme.colorScheme.surface,
@@ -163,21 +165,31 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ],
           ),
           
-          if (_stats != null) ...[
-            const SizedBox(height: 20),
-            TransactionSummaryWidget(
-              stats: _stats!,
-              showNetAmount: true,
-              padding: EdgeInsets.zero,
-            ),
-            const SizedBox(height: 16),
-            TransactionQuickStats(
-              totalTransactions: _stats!['totalTransactions'] as int? ?? 0,
-              pendingTransactions: _stats!['pendingTransactions'] as int? ?? 0,
-              completedTransactions: _stats!['completedTransactions'] as int? ?? 0,
-              padding: EdgeInsets.zero,
-            ),
-          ],
+          BlocBuilder<TransactionStatsCubit, TransactionStatsState>(
+            builder: (context, state) {
+              if (state is TransactionStatsLoaded) {
+                _stats = state.stats;
+                return Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    TransactionSummaryWidget(
+                      stats: state.stats,
+                      showNetAmount: true,
+                      padding: EdgeInsets.zero,
+                    ),
+                    const SizedBox(height: 16),
+                    TransactionQuickStats(
+                      totalTransactions: state.stats['totalTransactions'] as int? ?? 0,
+                      pendingTransactions: state.stats['pendingTransactions'] as int? ?? 0,
+                      completedTransactions: state.stats['completedTransactions'] as int? ?? 0,
+                      padding: EdgeInsets.zero,
+                    ),
+                  ],
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           
           const SizedBox(height: 20),
           
@@ -219,11 +231,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   void _refreshTransactions() {
-    context.read<TransactionCubit>().refreshTransactions(
+    context.read<TransactionListCubit>().refreshTransactions(
       status: _selectedStatus,
       type: _selectedType,
       searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
     );
+    context.read<TransactionStatsCubit>().loadTransactionStats();
   }
 
   void _onSearchChanged(String query) {
@@ -233,7 +246,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     
     Future.delayed(const Duration(milliseconds: 500), () {
       if (_searchQuery == query) {
-        context.read<TransactionCubit>().getTransactions(
+        context.read<TransactionListCubit>().loadTransactions(
           status: _selectedStatus,
           type: _selectedType,
           searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
@@ -246,7 +259,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     setState(() {
       _selectedStatus = status;
     });
-    context.read<TransactionCubit>().getTransactions(
+    context.read<TransactionListCubit>().loadTransactions(
       status: _selectedStatus,
       type: _selectedType,
       searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
@@ -257,44 +270,46 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return BlocListener<TransactionCubit, TransactionState>(
-      listener: (context, state) {
-        switch (state) {
-          case TransactionStatsLoaded():
-            setState(() {
-              _stats = state.stats;
-            });
-          case TransactionVerified():
-            CustomToast.show(
-              context,
-              message: 'Transaction verified successfully',
-              isSuccess: true,
-            );
-            _refreshTransactions();
-          case TransactionCompleted():
-            CustomToast.show(
-              context,
-              message: 'Transaction completed successfully',
-              isSuccess: true,
-            );
-            _refreshTransactions();
-          case TransactionDeleted():
-            CustomToast.show(
-              context,
-              message: 'Transaction deleted successfully',
-              isSuccess: true,
-            );
-            _refreshTransactions();
-          case TransactionError():
-            CustomToast.show(
-              context,
-              message: state.message,
-              isSuccess: false,
-            );
-          default:
-            break;
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<TransactionListCubit, TransactionListState>(
+          listener: (context, state) {
+            switch (state) {
+              case TransactionListUpdated():
+                CustomToast.show(
+                  context,
+                  message: 'Transaction updated successfully',
+                  isSuccess: true,
+                );
+              case TransactionListDeleted():
+                CustomToast.show(
+                  context,
+                  message: 'Transaction deleted successfully',
+                  isSuccess: true,
+                );
+              case TransactionListError():
+                CustomToast.show(
+                  context,
+                  message: state.message,
+                  isSuccess: false,
+                );
+              default:
+                break;
+            }
+          },
+        ),
+        BlocListener<TransactionStatsCubit, TransactionStatsState>(
+          listener: (context, state) {
+            if (state is TransactionStatsError) {
+              CustomToast.show(
+                context,
+                message: state.message,
+                isSuccess: false,
+              );
+            }
+          },
+        ),
+      ],
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         body: SafeArea(
@@ -303,7 +318,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         floatingActionButton: FloatingActionButton(
           heroTag: "transactions_fab",
           onPressed: () {
-            context.push(Routes.transactionForm);
+            context.push(Routes.transactionForm).then((_) {
+              _refreshTransactions();
+            });
           },
           backgroundColor: theme.colorScheme.primary,
           foregroundColor: theme.colorScheme.onPrimary,
@@ -427,15 +444,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   Widget _buildSliverTransactionsList() {
-    return BlocBuilder<TransactionCubit, TransactionState>(
+    return BlocBuilder<TransactionListCubit, TransactionListState>(
       builder: (context, state) {
-        if (state is TransactionLoading && state is! TransactionsLoaded) {
+        if (state is TransactionListLoading) {
           return const SliverFillRemaining(
             child: Center(child: CircularProgressIndicator()),
           );
         }
 
-        if (state is TransactionsLoaded) {
+        if (state is TransactionListLoaded) {
           if (state.transactions.isEmpty) {
             return SliverFillRemaining(
               child: _buildEmptyStateContent(),
@@ -530,7 +547,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               const SizedBox(height: 32),
               FilledButton.icon(
                 onPressed: () {
-                  context.push(Routes.transactionForm);
+                  context.push(Routes.transactionForm).then((_) {
+                    _refreshTransactions();
+                  });
                 },
                 icon: const Icon(Icons.add),
                 label: const Text('Create Transaction'),
@@ -556,7 +575,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   void _showFilterDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Filter Transactions'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -592,8 +611,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               setState(() {
                 _selectedType = null;
               });
-              Navigator.of(context).pop();
-              context.read<TransactionCubit>().getTransactions(
+              Navigator.of(dialogContext).pop();
+              context.read<TransactionListCubit>().loadTransactions(
                 status: _selectedStatus,
                 type: _selectedType,
                 searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
@@ -603,8 +622,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ),
           FilledButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              context.read<TransactionCubit>().getTransactions(
+              Navigator.of(dialogContext).pop();
+              context.read<TransactionListCubit>().loadTransactions(
                 status: _selectedStatus,
                 type: _selectedType,
                 searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
@@ -618,14 +637,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   void _verifyTransaction(Transaction transaction) {
-    context.read<TransactionCubit>().verifyTransaction(
+    context.read<TransactionListCubit>().verifyTransaction(
       transaction.id,
       'current-user-id',
     );
   }
 
   void _completeTransaction(Transaction transaction) {
-    context.read<TransactionCubit>().completeTransaction(transaction.id);
+    context.read<TransactionListCubit>().completeTransaction(transaction.id);
   }
 
   void _deleteTransaction(Transaction transaction) {
@@ -642,7 +661,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
-              context.read<TransactionCubit>().deleteTransaction(transaction.id);
+              context.read<TransactionListCubit>().deleteTransaction(transaction.id);
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Delete'),

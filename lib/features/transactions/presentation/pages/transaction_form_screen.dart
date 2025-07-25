@@ -7,7 +7,7 @@ import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction_contact.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/amount_input_widget.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/contact_selector_widget.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_type_selector.dart';
@@ -85,7 +85,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   }
 
   void _loadRecentContacts() {
-    context.read<TransactionCubit>().getTransactionContacts();
+    context.read<TransactionFormCubit>().loadTransactionContacts();
   }
 
   bool _validateForm() {
@@ -170,9 +170,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     );
 
     if (widget.transaction != null) {
-      context.read<TransactionCubit>().updateTransaction(transaction);
+      context.read<TransactionFormCubit>().updateTransaction(transaction);
     } else {
-      context.read<TransactionCubit>().createTransaction(transaction);
+      context.read<TransactionFormCubit>().createTransaction(transaction);
     }
   }
 
@@ -181,28 +181,28 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final theme = Theme.of(context);
     final isEditing = widget.transaction != null;
     
-    return BlocListener<TransactionCubit, TransactionState>(
+    return BlocListener<TransactionFormCubit, TransactionFormState>(
       listener: (context, state) {
         switch (state) {
-          case TransactionCreated():
+          case TransactionFormCreated():
             CustomToast.show(
               context,
               message: 'Transaction created successfully',
               isSuccess: true,
             );
-            context.pop();
-          case TransactionUpdated():
+            context.pop(state.transaction);
+          case TransactionFormUpdated():
             CustomToast.show(
               context,
               message: 'Transaction updated successfully',
               isSuccess: true,
             );
-            context.pop();
-          case TransactionContactsLoaded():
+            context.pop(state.transaction);
+          case TransactionFormContactsLoaded():
             setState(() {
               _recentContacts = state.contacts;
             });
-          case TransactionError():
+          case TransactionFormError():
             CustomToast.show(
               context,
               message: state.message,
@@ -221,9 +221,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             icon: const Icon(Icons.arrow_back),
           ),
           actions: [
-            BlocBuilder<TransactionCubit, TransactionState>(
+            BlocBuilder<TransactionFormCubit, TransactionFormState>(
               builder: (context, state) {
-                final isLoading = state is TransactionLoading;
+                final isLoading = state is TransactionFormLoading;
                 
                 return TextButton(
                   onPressed: isLoading ? null : _handleSubmit,
