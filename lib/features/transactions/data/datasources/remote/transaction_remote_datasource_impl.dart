@@ -36,6 +36,15 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
           .doc(docRef.id);
 
       batch.set(recipientDocRef, transactionWithId.toJson());
+
+      final recipientTransactionDocRef = _firestore
+          .collection('users')
+          .doc(transaction.recipientUserId)
+          .collection('transactions')
+          .doc(docRef.id);
+
+      final flippedTransaction = await _createFlippedTransaction(transactionWithId, transaction.recipientUserId!);
+      batch.set(recipientTransactionDocRef, flippedTransaction.toJson());
     }
 
     await batch.commit();
@@ -171,6 +180,15 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
           .doc(transaction.id);
 
       batch.update(recipientDocRef, updatedTransaction.toJson());
+
+      final recipientTransactionDocRef = _firestore
+          .collection('users')
+          .doc(transaction.recipientUserId)
+          .collection('transactions')
+          .doc(transaction.id);
+
+      final flippedTransaction = await _createFlippedTransaction(updatedTransaction, transaction.recipientUserId!);
+      batch.update(recipientTransactionDocRef, flippedTransaction.toJson());
     }
 
     await batch.commit();
@@ -200,6 +218,14 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
           .doc(id);
 
       batch.delete(recipientDocRef);
+
+      final recipientTransactionDocRef = _firestore
+          .collection('users')
+          .doc(transaction.recipientUserId)
+          .collection('transactions')
+          .doc(id);
+
+      batch.delete(recipientTransactionDocRef);
     }
 
     await batch.commit();
@@ -249,6 +275,15 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         .doc(id);
 
     batch.update(recipientDocRef, updatedTransaction.toJson());
+
+    final recipientTransactionDocRef = _firestore
+        .collection('users')
+        .doc(verifiedBy)
+        .collection('transactions')
+        .doc(id);
+
+    final flippedTransaction = await _createFlippedTransaction(updatedTransaction, verifiedBy);
+    batch.update(recipientTransactionDocRef, flippedTransaction.toJson());
 
     await batch.commit();
 
@@ -348,53 +383,12 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         .collection('transactions')
         .get();
 
-    int totalTransactions = 0;
-    int pendingTransactions = 0;
-    int verifiedTransactions = 0;
-    int completedTransactions = 0;
-    double totalLending = 0;
-    double totalBorrowing = 0;
-
-    for (final doc in querySnapshot.docs) {
-      final transaction = TransactionModel.fromJson({
+    return _calculateStatsFromTransactions(querySnapshot.docs.map((doc) => 
+      TransactionModel.fromJson({
         ...doc.data(),
         'id': doc.id,
-      });
-
-      totalTransactions++;
-
-      switch (transaction.status) {
-        case TransactionStatus.pending:
-          pendingTransactions++;
-          break;
-        case TransactionStatus.verified:
-          verifiedTransactions++;
-          break;
-        case TransactionStatus.completed:
-          completedTransactions++;
-          break;
-        case TransactionStatus.cancelled:
-          break;
-      }
-
-      if (transaction.status != TransactionStatus.cancelled) {
-        if (transaction.type == TransactionType.lending) {
-          totalLending += transaction.amount;
-        } else {
-          totalBorrowing += transaction.amount;
-        }
-      }
-    }
-
-    return {
-      'totalTransactions': totalTransactions,
-      'pendingTransactions': pendingTransactions,
-      'verifiedTransactions': verifiedTransactions,
-      'completedTransactions': completedTransactions,
-      'totalLending': totalLending,
-      'totalBorrowing': totalBorrowing,
-      'netAmount': totalLending - totalBorrowing,
-    };
+      })
+    ).toList());
   }
 
   @override
@@ -433,16 +427,16 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
   }
 
   Future<UserTransactionRole?> _getUserRoleForTransaction(String transactionId, String userId) async {
-    final creatorDoc = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .doc(transactionId)
-        .get();
+    // final creatorDoc = await _firestore
+    //     .collection('users')
+    //     .doc(userId)
+    //     .collection('transactions')
+    //     .doc(transactionId)
+    //     .get();
 
-    if (creatorDoc.exists) {
-      return UserTransactionRole.creator;
-    }
+    // if (creatorDoc.exists) {
+    //   return UserTransactionRole.creator;
+    // }
 
     final recipientDoc = await _firestore
         .collection('users')
@@ -451,11 +445,92 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         .doc(transactionId)
         .get();
 
-    if (recipientDoc.exists) {
+    if (recipientDoc.exists && recipientDoc.data()?['recipientUserId'] == userId) {
       return UserTransactionRole.recipient;
     }
 
     return null;
+  }
+
+  Future<TransactionModel> _createFlippedTransaction(TransactionModel originalTransaction, String recipientUserId) async {
+    final flippedType = originalTransaction.type == TransactionType.lending 
+        ? TransactionType.borrowing 
+        : TransactionType.lending;
+
+    final creatorName = await _getOriginalCreatorName(originalTransaction);
+
+    return TransactionModel.fromEntity(
+      originalTransaction.copyWith(
+        type: flippedType,
+        createdBy: recipientUserId,
+        contactPhone: null,
+        contactName: creatorName,
+        contactEmail: null,
+        recipientUserId: originalTransaction.createdBy,
+      ),
+    );
+  }
+
+  Future<String> _getOriginalCreatorName(TransactionModel transaction) async {
+    try {
+      final userDoc = await _firestore
+          .collection('users')
+          .doc(transaction.createdBy)
+          .get();
+      
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        return userData['displayName'] as String? ?? userData['email'] as String? ?? 'Transaction Partner';
+      }
+    } catch (e) {
+      // Fallback to default name if unable to fetch user data
+    }
+    return 'Transaction Partner';
+  }
+
+  Map<String, dynamic> _calculateStatsFromTransactions(List<TransactionModel> transactions) {
+    int totalTransactions = 0;
+    int pendingTransactions = 0;
+    int verifiedTransactions = 0;
+    int completedTransactions = 0;
+    double totalLending = 0;
+    double totalBorrowing = 0;
+
+    for (final transaction in transactions) {
+      totalTransactions++;
+
+      switch (transaction.status) {
+        case TransactionStatus.pending:
+          pendingTransactions++;
+          break;
+        case TransactionStatus.verified:
+          verifiedTransactions++;
+          break;
+        case TransactionStatus.completed:
+          completedTransactions++;
+          break;
+        case TransactionStatus.cancelled:
+          break;
+      }
+
+      if (transaction.status != TransactionStatus.cancelled) {
+        if (transaction.type == TransactionType.lending) {
+          totalLending += transaction.amount;
+        } else {
+          totalBorrowing += transaction.amount;
+        }
+      }
+    }
+
+    return {
+      'totalTransactions': totalTransactions,
+      'pendingTransactions': pendingTransactions,
+      'verifiedTransactions': verifiedTransactions,
+      'completedTransactions': completedTransactions,
+      'totalLending': totalLending,
+      'totalBorrowing': totalBorrowing,
+      'netAmount': totalLending - totalBorrowing,
+    };
   }
 }
 

@@ -19,6 +19,9 @@ class TransactionListCubit extends Cubit<TransactionListState> {
   final VerifyTransactionUseCase verifyTransactionUseCase;
   final CompleteTransactionUseCase completeTransactionUseCase;
 
+  List<Transaction> _allTransactions = [];
+  Function(List<Transaction>)? _onTransactionsChanged;
+
   TransactionListCubit({
     required this.getTransactionsUseCase,
     required this.refreshTransactionsUseCase,
@@ -26,6 +29,14 @@ class TransactionListCubit extends Cubit<TransactionListState> {
     required this.verifyTransactionUseCase,
     required this.completeTransactionUseCase,
   }) : super(const TransactionListInitial());
+
+  void setTransactionsChangeListener(Function(List<Transaction>) listener) {
+    _onTransactionsChanged = listener;
+  }
+
+  void removeTransactionsChangeListener() {
+    _onTransactionsChanged = null;
+  }
 
   Future<void> loadTransactions({
     TransactionStatus? status,
@@ -58,6 +69,9 @@ class TransactionListCubit extends Cubit<TransactionListState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (transactions) {
+          _allTransactions = List.from(transactions);
+          _notifyTransactionsChanged();
+          
           emit(TransactionListLoaded(
             transactions: transactions,
             hasMore: false,
@@ -85,6 +99,9 @@ class TransactionListCubit extends Cubit<TransactionListState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (transactions) {
+          _allTransactions = List.from(transactions);
+          _notifyTransactionsChanged();
+          
           loadTransactions(
             status: status,
             type: type,
@@ -103,6 +120,9 @@ class TransactionListCubit extends Cubit<TransactionListState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (_) {
+          _allTransactions.removeWhere((t) => t.id == id);
+          _notifyTransactionsChanged();
+          
           emit(TransactionListDeleted(id));
           _reloadCurrentTransactions();
         },
@@ -117,6 +137,9 @@ class TransactionListCubit extends Cubit<TransactionListState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (transaction) {
+          _updateTransactionInList(transaction);
+          _notifyTransactionsChanged();
+          
           emit(TransactionListUpdated(transaction));
           _reloadCurrentTransactions();
         },
@@ -131,6 +154,9 @@ class TransactionListCubit extends Cubit<TransactionListState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (transaction) {
+          _updateTransactionInList(transaction);
+          _notifyTransactionsChanged();
+          
           emit(TransactionListUpdated(transaction));
           _reloadCurrentTransactions();
         },
@@ -148,6 +174,9 @@ class TransactionListCubit extends Cubit<TransactionListState> {
   }
 
   void updateFromCreation(Transaction transaction) {
+    _allTransactions.insert(0, transaction);
+    _notifyTransactionsChanged();
+    
     if (state is TransactionListLoaded) {
       final currentState = state as TransactionListLoaded;
       final updatedTransactions = [transaction, ...currentState.transactions];
@@ -158,6 +187,9 @@ class TransactionListCubit extends Cubit<TransactionListState> {
   }
 
   void updateFromEdit(Transaction transaction) {
+    _updateTransactionInList(transaction);
+    _notifyTransactionsChanged();
+    
     if (state is TransactionListLoaded) {
       final currentState = state as TransactionListLoaded;
       final updatedTransactions = currentState.transactions.map((t) {
@@ -168,4 +200,17 @@ class TransactionListCubit extends Cubit<TransactionListState> {
       loadTransactions();
     }
   }
+
+  void _updateTransactionInList(Transaction updatedTransaction) {
+    final index = _allTransactions.indexWhere((t) => t.id == updatedTransaction.id);
+    if (index != -1) {
+      _allTransactions[index] = updatedTransaction;
+    }
+  }
+
+  void _notifyTransactionsChanged() {
+    _onTransactionsChanged?.call(_allTransactions);
+  }
+
+  List<Transaction> get allTransactions => List.unmodifiable(_allTransactions);
 }

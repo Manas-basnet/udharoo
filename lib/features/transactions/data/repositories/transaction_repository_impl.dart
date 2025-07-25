@@ -401,6 +401,13 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         return ApiResult.failure('User not authenticated', FailureType.auth);
       }
 
+      final cached = await _localDatasource.getCachedTransactions(_currentUserId!);
+      
+      if (cached.isNotEmpty) {
+        final stats = _calculateStatsFromTransactions(cached);
+        return ApiResult.success(stats);
+      }
+
       return handleRemoteCallFirst<Map<String, dynamic>>(
         remoteCall: () async {
           final result = await _remoteDatasource.getTransactionStats(_currentUserId!);
@@ -442,5 +449,50 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         },
       );
     });
+  }
+
+  Map<String, dynamic> _calculateStatsFromTransactions(List<TransactionModel> transactions) {
+    int totalTransactions = 0;
+    int pendingTransactions = 0;
+    int verifiedTransactions = 0;
+    int completedTransactions = 0;
+    double totalLending = 0;
+    double totalBorrowing = 0;
+
+    for (final transaction in transactions) {
+      totalTransactions++;
+
+      switch (transaction.status) {
+        case TransactionStatus.pending:
+          pendingTransactions++;
+          break;
+        case TransactionStatus.verified:
+          verifiedTransactions++;
+          break;
+        case TransactionStatus.completed:
+          completedTransactions++;
+          break;
+        case TransactionStatus.cancelled:
+          break;
+      }
+
+      if (transaction.status != TransactionStatus.cancelled) {
+        if (transaction.type == TransactionType.lending) {
+          totalLending += transaction.amount;
+        } else {
+          totalBorrowing += transaction.amount;
+        }
+      }
+    }
+
+    return {
+      'totalTransactions': totalTransactions,
+      'pendingTransactions': pendingTransactions,
+      'verifiedTransactions': verifiedTransactions,
+      'completedTransactions': completedTransactions,
+      'totalLending': totalLending,
+      'totalBorrowing': totalBorrowing,
+      'netAmount': totalLending - totalBorrowing,
+    };
   }
 }

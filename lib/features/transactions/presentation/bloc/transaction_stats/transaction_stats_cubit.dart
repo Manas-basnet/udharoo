@@ -1,6 +1,9 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/core/network/api_result.dart';
+import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
+import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_transaction_stats_usecase.dart';
 
 part 'transaction_stats_state.dart';
@@ -12,8 +15,14 @@ class TransactionStatsCubit extends Cubit<TransactionStatsState> {
     required this.getTransactionStatsUseCase,
   }) : super(const TransactionStatsInitial());
 
-  Future<void> loadTransactionStats() async {
+  Future<void> loadTransactionStats([List<Transaction>? transactionData]) async {
     emit(const TransactionStatsLoading());
+
+    if (transactionData != null && transactionData.isNotEmpty) {
+      final stats = _calculateStatsFromTransactions(transactionData);
+      emit(TransactionStatsLoaded(stats));
+      return;
+    }
 
     final result = await getTransactionStatsUseCase();
 
@@ -25,9 +34,59 @@ class TransactionStatsCubit extends Cubit<TransactionStatsState> {
     }
   }
 
+  void updateStatsFromTransactions(List<Transaction> transactions) {
+    final stats = _calculateStatsFromTransactions(transactions);
+    emit(TransactionStatsLoaded(stats));
+  }
+
   void resetState() {
     if (!isClosed) {
       emit(const TransactionStatsInitial());
     }
+  }
+
+  Map<String, dynamic> _calculateStatsFromTransactions(List<Transaction> transactions) {
+    int totalTransactions = 0;
+    int pendingTransactions = 0;
+    int verifiedTransactions = 0;
+    int completedTransactions = 0;
+    double totalLending = 0;
+    double totalBorrowing = 0;
+
+    for (final transaction in transactions) {
+      totalTransactions++;
+
+      switch (transaction.status) {
+        case TransactionStatus.pending:
+          pendingTransactions++;
+          break;
+        case TransactionStatus.verified:
+          verifiedTransactions++;
+          break;
+        case TransactionStatus.completed:
+          completedTransactions++;
+          break;
+        case TransactionStatus.cancelled:
+          break;
+      }
+
+      if (transaction.status != TransactionStatus.cancelled) {
+        if (transaction.type == TransactionType.lending) {
+          totalLending += transaction.amount;
+        } else {
+          totalBorrowing += transaction.amount;
+        }
+      }
+    }
+
+    return {
+      'totalTransactions': totalTransactions,
+      'pendingTransactions': pendingTransactions,
+      'verifiedTransactions': verifiedTransactions,
+      'completedTransactions': completedTransactions,
+      'totalLending': totalLending,
+      'totalBorrowing': totalBorrowing,
+      'netAmount': totalLending - totalBorrowing,
+    };
   }
 }
