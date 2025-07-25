@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/received_transaction_requests/received_transaction_requests_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_card.dart';
@@ -23,6 +24,14 @@ class _ReceivedTransactionRequestsScreenState extends State<ReceivedTransactionR
 
   void _loadReceivedRequests() {
     context.read<ReceivedTransactionRequestsCubit>().loadReceivedTransactionRequests();
+  }
+
+  String? _getCurrentUserId() {
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is AuthSessionAuthenticated) {
+      return authState.user.uid;
+    }
+    return null;
   }
 
   @override
@@ -249,6 +258,16 @@ class _ReceivedTransactionRequestsScreenState extends State<ReceivedTransactionR
   }
 
   void _verifyTransaction(Transaction transaction) {
+    final currentUserId = _getCurrentUserId();
+    if (currentUserId == null) {
+      CustomToast.show(
+        context,
+        message: 'Please sign in to verify transactions',
+        isSuccess: false,
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -257,7 +276,7 @@ class _ReceivedTransactionRequestsScreenState extends State<ReceivedTransactionR
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Do you want to verify this transaction?'),
+            const Text('Do you want to verify this transaction?'),
             const SizedBox(height: 16),
             Text(
               'Amount: ${transaction.formattedAmount}',
@@ -286,7 +305,10 @@ class _ReceivedTransactionRequestsScreenState extends State<ReceivedTransactionR
           FilledButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              context.read<ReceivedTransactionRequestsCubit>().verifyTransaction(transaction.id, 'current-user-id');
+              context.read<ReceivedTransactionRequestsCubit>().verifyTransaction(
+                transaction.id, 
+                currentUserId,
+              );
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.green),
             child: const Text('Verify'),

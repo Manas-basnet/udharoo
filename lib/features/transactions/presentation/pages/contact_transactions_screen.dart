@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction_contact.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
@@ -56,6 +57,14 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
         'netAmount': summary['netAmount'],
       };
     });
+  }
+
+  String? _getCurrentUserId() {
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is AuthSessionAuthenticated) {
+      return authState.user.uid;
+    }
+    return null;
   }
 
   @override
@@ -361,10 +370,19 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   }
 
   void _verifyTransaction(Transaction transaction) {
-    context.read<ContactTransactionsCubit>().verifyTransaction(
-      transaction.id,
-      'current-user-id',
-    );
+    final currentUserId = _getCurrentUserId();
+    if (currentUserId != null) {
+      context.read<ContactTransactionsCubit>().verifyTransaction(
+        transaction.id,
+        currentUserId,
+      );
+    } else {
+      CustomToast.show(
+        context,
+        message: 'Please sign in to verify transactions',
+        isSuccess: false,
+      );
+    }
   }
 
   void _completeTransaction(Transaction transaction) {
@@ -374,17 +392,17 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
   void _deleteTransaction(Transaction transaction) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Transaction'),
         content: const Text('Are you sure you want to delete this transaction?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () {
-              Navigator.of(context).pop();
+              Navigator.of(dialogContext).pop();
               context.read<ContactTransactionsCubit>().deleteTransaction(transaction.id);
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),

@@ -211,6 +211,7 @@ class TransactionUtils {
   static bool canUserVerify(Transaction transaction, String currentUserId) {
     return transaction.verificationRequired && 
            transaction.recipientUserId == currentUserId && 
-           !transaction.isVerified;
+           !transaction.isVerified &&
+           transaction.status == TransactionStatus.pending;
   }
 }

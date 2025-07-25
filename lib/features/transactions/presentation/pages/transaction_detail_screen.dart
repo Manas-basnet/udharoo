@@ -99,43 +99,50 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             BlocBuilder<TransactionDetailCubit, TransactionDetailState>(
               builder: (context, state) {
                 if (state is TransactionDetailLoaded) {
-                  return PopupMenuButton<String>(
-                    onSelected: (value) => _handleMenuAction(value, state.transaction),
-                    itemBuilder: (context) => [
-                      if (state.transaction.isPending) ...[
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit),
-                              SizedBox(width: 8),
-                              Text('Edit'),
-                            ],
+                  final authState = context.read<AuthSessionCubit>().state;
+                  if (authState is AuthSessionAuthenticated) {
+                    final currentUserId = authState.user.uid;
+                    final transaction = state.transaction;
+                    final isCreator = transaction.createdBy == currentUserId;
+                    
+                    return PopupMenuButton<String>(
+                      onSelected: (value) => _handleMenuAction(value, transaction, isCreator),
+                      itemBuilder: (context) => [
+                        if (isCreator && transaction.isPending) ...[
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit),
+                                SizedBox(width: 8),
+                                Text('Edit'),
+                              ],
+                            ),
                           ),
-                        ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Delete', style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ],
                         const PopupMenuItem(
-                          value: 'delete',
+                          value: 'share',
                           child: Row(
                             children: [
-                              Icon(Icons.delete, color: Colors.red),
+                              Icon(Icons.share),
                               SizedBox(width: 8),
-                              Text('Delete', style: TextStyle(color: Colors.red)),
+                              Text('Share'),
                             ],
                           ),
                         ),
                       ],
-                      const PopupMenuItem(
-                        value: 'share',
-                        child: Row(
-                          children: [
-                            Icon(Icons.share),
-                            SizedBox(width: 8),
-                            Text('Share'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
+                    );
+                  }
                 }
                 return const SizedBox.shrink();
               },
@@ -387,6 +394,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
     final currentUserId = authState.user.uid;
     final canVerify = TransactionUtils.canUserVerify(transaction, currentUserId);
+    final isCreator = transaction.createdBy == currentUserId;
     
     if (transaction.isCompleted || transaction.status == TransactionStatus.cancelled) {
       return const SizedBox.shrink();
@@ -395,6 +403,36 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     return Column(
       children: [
         if (canVerify) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.blue.withValues(alpha: 0.1),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: Colors.blue,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'This transaction requires your verification as the recipient.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.blue,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -429,7 +467,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           const SizedBox(height: 12),
         ],
         
-        if (transaction.canBeCompleted && transaction.createdBy == currentUserId) ...[
+        if (transaction.canBeCompleted && isCreator) ...[
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -495,17 +533,21 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     );
   }
 
-  void _handleMenuAction(String action, Transaction transaction) {
+  void _handleMenuAction(String action, Transaction transaction, bool isCreator) {
     switch (action) {
       case 'edit':
-        context.push(Routes.transactionForm, extra: transaction).then((result) {
-          if (result is Transaction) {
-            _loadTransaction();
-          }
-        });
+        if (isCreator) {
+          context.push(Routes.transactionForm, extra: transaction).then((result) {
+            if (result is Transaction) {
+              _loadTransaction();
+            }
+          });
+        }
         break;
       case 'delete':
-        _showDeleteDialog(transaction);
+        if (isCreator) {
+          _showDeleteDialog(transaction);
+        }
         break;
       case 'share':
         _shareTransaction(transaction);
@@ -516,17 +558,17 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   void _showDeleteDialog(Transaction transaction) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Transaction'),
         content: const Text('Are you sure you want to delete this transaction? This action cannot be undone.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () {
-              Navigator.of(context).pop();
+              Navigator.of(dialogContext).pop();
               context.read<TransactionDetailCubit>().deleteTransaction(transaction.id);
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),

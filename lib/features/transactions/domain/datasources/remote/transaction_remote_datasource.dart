@@ -17,6 +17,7 @@ abstract class TransactionRemoteDatasource {
   Future<TransactionModel> getTransactionById(String id, String userId);
   Future<TransactionModel> updateTransaction(TransactionModel transaction);
   Future<void> deleteTransaction(String id, String userId);
+  Future<TransactionModel> verifyTransaction(String id, String verifiedBy);
   Future<List<TransactionContactModel>> getTransactionContacts(String userId);
   Future<List<TransactionModel>> getContactTransactions(String userId, String contactPhone);
   Future<bool> getGlobalVerificationSetting(String userId);

@@ -24,16 +24,21 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
       transaction.copyWith(id: docRef.id),
     );
 
-    await docRef.set(transactionWithId.toJson());
+    final batch = _firestore.batch();
+
+    batch.set(docRef, transactionWithId.toJson());
 
     if (transaction.recipientUserId != null) {
-      await _firestore
+      final recipientDocRef = _firestore
           .collection('users')
           .doc(transaction.recipientUserId)
           .collection('received_transactions')
-          .doc(docRef.id)
-          .set(transactionWithId.toJson());
+          .doc(docRef.id);
+
+      batch.set(recipientDocRef, transactionWithId.toJson());
     }
+
+    await batch.commit();
 
     return transactionWithId;
   }
@@ -54,10 +59,6 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         .collection('users')
         .doc(userId)
         .collection('transactions');
-
-    // if (lastSyncTime != null) {
-    //   query = query.where('updatedAt', isGreaterThan: Timestamp.fromDate(lastSyncTime));
-    // }
 
     query = query.orderBy('updatedAt', descending: true);
 
@@ -112,19 +113,36 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
 
   @override
   Future<TransactionModel> getTransactionById(String id, String userId) async {
-    final doc = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .doc(id)
-        .get();
+    final userRole = await _getUserRoleForTransaction(id, userId);
+    
+    if (userRole == null) {
+      throw Exception('Transaction not found or access denied');
+    }
+
+    late DocumentSnapshot doc;
+    
+    if (userRole == UserTransactionRole.creator) {
+      doc = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('transactions')
+          .doc(id)
+          .get();
+    } else {
+      doc = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('received_transactions')
+          .doc(id)
+          .get();
+    }
 
     if (!doc.exists) {
       throw Exception('Transaction not found');
     }
 
     return TransactionModel.fromJson({
-      ...doc.data()!,
+      ...doc.data()! as Map<String, dynamic>,
       'id': doc.id,
     });
   }
@@ -135,21 +153,27 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
       transaction.copyWith(updatedAt: DateTime.now()),
     );
 
-    await _firestore
+    final batch = _firestore.batch();
+
+    final creatorDocRef = _firestore
         .collection('users')
         .doc(transaction.createdBy)
         .collection('transactions')
-        .doc(transaction.id)
-        .update(updatedTransaction.toJson());
+        .doc(transaction.id);
+
+    batch.update(creatorDocRef, updatedTransaction.toJson());
 
     if (transaction.recipientUserId != null) {
-      await _firestore
+      final recipientDocRef = _firestore
           .collection('users')
           .doc(transaction.recipientUserId)
           .collection('received_transactions')
-          .doc(transaction.id)
-          .update(updatedTransaction.toJson());
+          .doc(transaction.id);
+
+      batch.update(recipientDocRef, updatedTransaction.toJson());
     }
+
+    await batch.commit();
 
     return updatedTransaction;
   }
@@ -158,21 +182,77 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
   Future<void> deleteTransaction(String id, String userId) async {
     final transaction = await getTransactionById(id, userId);
     
-    await _firestore
+    final batch = _firestore.batch();
+
+    final creatorDocRef = _firestore
         .collection('users')
-        .doc(userId)
+        .doc(transaction.createdBy)
         .collection('transactions')
-        .doc(id)
-        .delete();
+        .doc(id);
+
+    batch.delete(creatorDocRef);
 
     if (transaction.recipientUserId != null) {
-      await _firestore
+      final recipientDocRef = _firestore
           .collection('users')
           .doc(transaction.recipientUserId)
           .collection('received_transactions')
-          .doc(id)
-          .delete();
+          .doc(id);
+
+      batch.delete(recipientDocRef);
     }
+
+    await batch.commit();
+  }
+
+  @override
+  Future<TransactionModel> verifyTransaction(String id, String verifiedBy) async {
+    final userRole = await _getUserRoleForTransaction(id, verifiedBy);
+    
+    if (userRole != UserTransactionRole.recipient) {
+      throw Exception('Only transaction recipients can verify transactions');
+    }
+
+    final transaction = await getTransactionById(id, verifiedBy);
+    
+    if (transaction.isVerified) {
+      throw Exception('Transaction is already verified');
+    }
+
+    if (!transaction.verificationRequired) {
+      throw Exception('This transaction does not require verification');
+    }
+
+    final updatedTransaction = TransactionModel.fromEntity(
+      transaction.copyWith(
+        isVerified: true,
+        verifiedBy: verifiedBy,
+        status: TransactionStatus.verified,
+        updatedAt: DateTime.now(),
+      ),
+    );
+
+    final batch = _firestore.batch();
+
+    final creatorDocRef = _firestore
+        .collection('users')
+        .doc(transaction.createdBy)
+        .collection('transactions')
+        .doc(id);
+
+    batch.update(creatorDocRef, updatedTransaction.toJson());
+
+    final recipientDocRef = _firestore
+        .collection('users')
+        .doc(verifiedBy)
+        .collection('received_transactions')
+        .doc(id);
+
+    batch.update(recipientDocRef, updatedTransaction.toJson());
+
+    await batch.commit();
+
+    return updatedTransaction;
   }
 
   @override
@@ -340,6 +420,7 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         .collection('received_transactions')
         .where('status', isEqualTo: TransactionStatus.pending.name)
         .where('verificationRequired', isEqualTo: true)
+        .where('isVerified', isEqualTo: false)
         .orderBy('createdAt', descending: true)
         .get();
 
@@ -350,4 +431,35 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
             }))
         .toList();
   }
+
+  Future<UserTransactionRole?> _getUserRoleForTransaction(String transactionId, String userId) async {
+    final creatorDoc = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('transactions')
+        .doc(transactionId)
+        .get();
+
+    if (creatorDoc.exists) {
+      return UserTransactionRole.creator;
+    }
+
+    final recipientDoc = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('received_transactions')
+        .doc(transactionId)
+        .get();
+
+    if (recipientDoc.exists) {
+      return UserTransactionRole.recipient;
+    }
+
+    return null;
+  }
+}
+
+enum UserTransactionRole {
+  creator,
+  recipient,
 }

@@ -236,19 +236,9 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         return ApiResult.failure('User not authenticated', FailureType.auth);
       }
 
-      final transaction = await _remoteDatasource.getTransactionById(id, _currentUserId!);
-      final updatedTransaction = TransactionModel.fromEntity(
-        transaction.copyWith(
-          isVerified: true,
-          verifiedBy: verifiedBy,
-          status: TransactionStatus.verified,
-          updatedAt: DateTime.now(),
-        ),
-      );
-
       return handleRemoteCallFirst<Transaction>(
         remoteCall: () async {
-          final result = await _remoteDatasource.updateTransaction(updatedTransaction);
+          final result = await _remoteDatasource.verifyTransaction(id, verifiedBy);
           return ApiResult.success(result);
         },
         saveLocalData: (data) async {

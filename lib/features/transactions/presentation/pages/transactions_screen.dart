@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/core/di/di.dart' as di;
+import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
@@ -64,6 +65,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         _pendingVerificationCount = state.requests.length;
       });
     }
+  }
+
+  String? _getCurrentUserId() {
+    final authState = context.read<AuthSessionCubit>().state;
+    if (authState is AuthSessionAuthenticated) {
+      return authState.user.uid;
+    }
+    return null;
   }
 
   Widget _buildSliverContent(ThemeData theme) {
@@ -704,10 +713,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   void _verifyTransaction(Transaction transaction) {
-    context.read<TransactionListCubit>().verifyTransaction(
-      transaction.id,
-      'current-user-id',
-    );
+    final currentUserId = _getCurrentUserId();
+    if (currentUserId != null) {
+      context.read<TransactionListCubit>().verifyTransaction(
+        transaction.id,
+        currentUserId,
+      );
+    } else {
+      CustomToast.show(
+        context,
+        message: 'Please sign in to verify transactions',
+        isSuccess: false,
+      );
+    }
   }
 
   void _completeTransaction(Transaction transaction) {
@@ -717,17 +735,17 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   void _deleteTransaction(Transaction transaction) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Transaction'),
         content: const Text('Are you sure you want to delete this transaction?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () {
-              Navigator.of(context).pop();
+              Navigator.of(dialogContext).pop();
               context.read<TransactionListCubit>().deleteTransaction(transaction.id);
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
