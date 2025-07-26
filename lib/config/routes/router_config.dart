@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
+import 'package:udharoo/core/di/di.dart' as di;
 import 'package:udharoo/features/auth/presentation/pages/login_screen.dart';
 import 'package:udharoo/features/auth/presentation/pages/profile_completion_screen.dart';
 import 'package:udharoo/features/auth/presentation/pages/sign_up_screen.dart';
@@ -12,6 +14,8 @@ import 'package:udharoo/features/home/presentation/pages/home_screen.dart';
 import 'package:udharoo/features/contacts/presentation/pages/contacts_screen.dart';
 import 'package:udharoo/features/profile/presentation/pages/profile_screen.dart';
 import 'package:udharoo/features/profile/presentation/pages/edit_profile_screen.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/pages/transactions_page.dart';
 import 'package:udharoo/shared/presentation/layouts/scaffold_with_bottom_nav_bar.dart';
 import 'package:udharoo/shared/presentation/widgets/auth_wrapper.dart';
 
@@ -67,7 +71,14 @@ class AppRouter {
           StatefulShellBranch(
             navigatorKey: _transactionsNavigatorKey,
             routes: [
-              //TODO: transactions
+              GoRoute(
+                path: Routes.transactions,
+                name: 'transactions',
+                builder: (context, state) => BlocProvider(
+                  create: (_) => di.sl<TransactionCubit>(),
+                  child: const TransactionsPage(),
+                ),
+              ),
             ],
           ),
 
