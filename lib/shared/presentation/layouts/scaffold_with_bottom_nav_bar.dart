@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/shared/presentation/bloc/shorebird_update/shorebird_update_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/shorebird_update_bottomsheet.dart';
 
@@ -56,7 +55,6 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                     index: 1,
                     isSelected: navigationShell.currentIndex == 1,
                   ),
-                  _buildScannerButton(context),
                   _buildNavItem(
                     context,
                     icon: Icons.people_outline,
@@ -76,32 +74,6 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildScannerButton(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () => _showScannerBottomSheet(context),
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: colorScheme.primary,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Icon(
-            Icons.qr_code_scanner,
-            color: colorScheme.onPrimary,
-            size: 24,
           ),
         ),
       ),
@@ -173,131 +145,6 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
     navigationShell.goBranch(
       index,
       initialLocation: index == navigationShell.currentIndex,
-    );
-  }
-
-  void _showScannerBottomSheet(BuildContext context) {
-    final theme = Theme.of(context);
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Quick Actions',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildQuickAction(
-                    context,
-                    icon: Icons.qr_code_scanner,
-                    label: 'Scan QR',
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push(Routes.qrScanner);
-                    },
-                  ),
-                  _buildQuickAction(
-                    context,
-                    icon: Icons.qr_code,
-                    label: 'Generate QR',
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push(Routes.qrGenerator);
-                    },
-                  ),
-                  _buildQuickAction(
-                    context,
-                    icon: Icons.trending_up,
-                    label: 'Lend Money',
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push(Routes.transactionForm);
-                    },
-                  ),
-                  _buildQuickAction(
-                    context,
-                    icon: Icons.trending_down,
-                    label: 'Borrow Money',
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push(Routes.transactionForm);
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickAction(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    final theme = Theme.of(context);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 70,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: theme.colorScheme.primary, size: 24),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
