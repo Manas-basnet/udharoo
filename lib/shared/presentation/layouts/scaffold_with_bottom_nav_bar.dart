@@ -1,73 +1,80 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
+import 'package:udharoo/shared/presentation/bloc/shorebird_update/shorebird_update_cubit.dart';
+import 'package:udharoo/shared/presentation/widgets/shorebird_update_bottomsheet.dart';
 
 class ScaffoldWithBottomNavBar extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
-  const ScaffoldWithBottomNavBar({
-    super.key,
-    required this.navigationShell,
-  });
+  const ScaffoldWithBottomNavBar({super.key, required this.navigationShell});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          border: Border(
-            top: BorderSide(
-              color: colorScheme.outline.withValues(alpha: 0.2),
-              width: 1,
+    return BlocListener<ShorebirdUpdateCubit, ShorebirdUpdateState>(
+      listener: (context, state) {
+        if (state.status == AppUpdateStatus.available) {
+          showUpdateBottomSheet(context);
+        }
+      },
+      child: Scaffold(
+        body: navigationShell,
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            border: Border(
+              top: BorderSide(
+                color: colorScheme.outline.withValues(alpha: 0.2),
+                width: 1,
+              ),
             ),
           ),
-        ),
-        child: SafeArea(
-          child: Container(
-            height: 72,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(
-                  context,
-                  icon: Icons.home_outlined,
-                  selectedIcon: Icons.home,
-                  label: 'Home',
-                  index: 0,
-                  isSelected: navigationShell.currentIndex == 0,
-                ),
-                _buildNavItem(
-                  context,
-                  icon: Icons.receipt_long_outlined,
-                  selectedIcon: Icons.receipt_long,
-                  label: 'Transactions',
-                  index: 1,
-                  isSelected: navigationShell.currentIndex == 1,
-                ),
-                _buildScannerButton(context),
-                _buildNavItem(
-                  context,
-                  icon: Icons.people_outline,
-                  selectedIcon: Icons.people,
-                  label: 'Contacts',
-                  index: 2,
-                  isSelected: navigationShell.currentIndex == 2,
-                ),
-                _buildNavItem(
-                  context,
-                  icon: Icons.person_outline,
-                  selectedIcon: Icons.person,
-                  label: 'Profile',
-                  index: 3,
-                  isSelected: navigationShell.currentIndex == 3,
-                ),
-              ],
+          child: SafeArea(
+            child: Container(
+              height: 72,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(
+                    context,
+                    icon: Icons.home_outlined,
+                    selectedIcon: Icons.home,
+                    label: 'Home',
+                    index: 0,
+                    isSelected: navigationShell.currentIndex == 0,
+                  ),
+                  _buildNavItem(
+                    context,
+                    icon: Icons.receipt_long_outlined,
+                    selectedIcon: Icons.receipt_long,
+                    label: 'Transactions',
+                    index: 1,
+                    isSelected: navigationShell.currentIndex == 1,
+                  ),
+                  _buildScannerButton(context),
+                  _buildNavItem(
+                    context,
+                    icon: Icons.people_outline,
+                    selectedIcon: Icons.people,
+                    label: 'Contacts',
+                    index: 2,
+                    isSelected: navigationShell.currentIndex == 2,
+                  ),
+                  _buildNavItem(
+                    context,
+                    icon: Icons.person_outline,
+                    selectedIcon: Icons.person,
+                    label: 'Profile',
+                    index: 3,
+                    isSelected: navigationShell.currentIndex == 3,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -171,7 +178,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
 
   void _showScannerBottomSheet(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -260,7 +267,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
-    
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -276,11 +283,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
                 color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                icon,
-                color: theme.colorScheme.primary,
-                size: 24,
-              ),
+              child: Icon(icon, color: theme.colorScheme.primary, size: 24),
             ),
             const SizedBox(height: 8),
             Text(

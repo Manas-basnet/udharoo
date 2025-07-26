@@ -1,8 +1,10 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:udharoo/core/events/event_bus.dart';
 import 'package:udharoo/core/network/api_result.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction_contact.dart';
+import 'package:udharoo/features/transactions/domain/events/transaction_events.dart';
 import 'package:udharoo/features/transactions/domain/usecases/create_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/update_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_transaction_contacts_usecase.dart';
@@ -44,7 +46,10 @@ class TransactionFormCubit extends Cubit<TransactionFormState> {
 
     if (!isClosed) {
       result.fold(
-        onSuccess: (transaction) => emit(TransactionFormCreated(transaction)),
+        onSuccess: (createdTransaction) {
+          emit(TransactionFormCreated(createdTransaction));
+          EventBus().emit(TransactionCreatedEvent(createdTransaction));
+        },
         onFailure: (message, type) => emit(TransactionFormError(message, type)),
       );
     }
@@ -71,7 +76,10 @@ class TransactionFormCubit extends Cubit<TransactionFormState> {
 
     if (!isClosed) {
       result.fold(
-        onSuccess: (transaction) => emit(TransactionFormUpdated(transaction)),
+        onSuccess: (updatedTransaction) {
+          emit(TransactionFormUpdated(updatedTransaction));
+          EventBus().emit(TransactionUpdatedEvent(updatedTransaction));
+        },
         onFailure: (message, type) => emit(TransactionFormError(message, type)),
       );
     }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shorebird_code_push/shorebird_code_push.dart' as shorebird;
 import 'package:udharoo/config/routes/router_config.dart';
 import 'package:udharoo/core/di/di.dart' as di;
 import 'package:udharoo/features/auth/presentation/bloc/signin_cubit.dart';
 import 'package:udharoo/features/phone_verification/presentation/bloc/phone_verification_cubit.dart';
+import 'package:udharoo/shared/presentation/bloc/shorebird_update/shorebird_update_cubit.dart';
 import 'package:udharoo/shared/presentation/bloc/theme_cubit/theme_cubit.dart';
 import 'package:udharoo/core/theme/app_theme.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
@@ -21,6 +23,11 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider(create: (_) => di.sl<SignInCubit>()),
         BlocProvider(create: (_) => di.sl<PhoneVerificationCubit>()),
+
+        BlocProvider<ShorebirdUpdateCubit>(
+          create: (context) =>
+              ShorebirdUpdateCubit(shorebird.ShorebirdUpdater())..checkForUpdates(),
+        ),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {

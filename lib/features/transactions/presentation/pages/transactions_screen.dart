@@ -497,9 +497,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         floatingActionButton: FloatingActionButton(
           heroTag: "transactions_fab",
           onPressed: () {
-            context.push(Routes.transactionForm).then((_) {
-              _refreshTransactions();
-            });
+            context.push(Routes.transactionForm);
           },
           backgroundColor: theme.colorScheme.primary,
           foregroundColor: theme.colorScheme.onPrimary,
@@ -722,9 +720,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               const SizedBox(height: 32),
               FilledButton.icon(
                 onPressed: () {
-                  context.push(Routes.transactionForm).then((_) {
-                    _refreshTransactions();
-                  });
+                  context.push(Routes.transactionForm);
                 },
                 icon: const Icon(Icons.add),
                 label: const Text('Create Transaction'),

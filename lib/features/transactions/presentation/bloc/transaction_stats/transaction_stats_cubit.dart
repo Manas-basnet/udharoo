@@ -1,20 +1,37 @@
+import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:udharoo/core/events/event_bus.dart';
 import 'package:udharoo/core/network/api_result.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction_stats.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
+import 'package:udharoo/features/transactions/domain/events/transaction_events.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_transaction_stats_usecase.dart';
 
 part 'transaction_stats_state.dart';
 
 class TransactionStatsCubit extends Cubit<TransactionStatsState> {
   final GetTransactionStatsUseCase getTransactionStatsUseCase;
+  late StreamSubscription _eventSubscription;
 
   TransactionStatsCubit({
     required this.getTransactionStatsUseCase,
-  }) : super(const TransactionStatsInitial());
+  }) : super(const TransactionStatsInitial()) {
+    _setupEventListeners();
+  }
+
+  void _setupEventListeners() {
+    _eventSubscription = EventBus().on<TransactionStatsChangedEvent>().listen(_handleStatsChanged);
+  }
+
+  void _handleStatsChanged(TransactionStatsChangedEvent event) {
+    if (isClosed) return;
+    
+    final stats = _calculateStatsFromTransactions(event.allTransactions);
+    emit(TransactionStatsLoaded(stats));
+  }
 
   Future<void> loadTransactionStats([List<Transaction>? transactionData]) async {
     emit(const TransactionStatsLoading());
@@ -91,5 +108,11 @@ class TransactionStatsCubit extends Cubit<TransactionStatsState> {
       totalBorrowing: totalBorrowing,
       netAmount: totalLending - totalBorrowing,
     );
+  }
+
+  @override
+  Future<void> close() {
+    _eventSubscription.cancel();
+    return super.close();
   }
 }

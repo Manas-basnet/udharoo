@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:udharoo/core/events/event_bus.dart';
 import 'package:udharoo/features/transactions/data/datasources/local/transaction_local_datasource_impl.dart';
 import 'package:udharoo/features/transactions/data/datasources/remote/transaction_remote_datasource_impl.dart';
 import 'package:udharoo/features/transactions/data/repositories/transaction_repository_impl.dart';
@@ -34,6 +35,8 @@ import 'package:udharoo/features/transactions/presentation/bloc/finished_transac
 import 'package:udharoo/features/transactions/presentation/bloc/completion_requests/completion_requests_cubit.dart';
 
 Future<void> initTransaction(GetIt sl) async {
+  sl.registerLazySingleton(() => EventBus());
+
   sl.registerLazySingleton(() => CreateTransactionUseCase(sl()));
   sl.registerLazySingleton(() => GetTransactionsUseCase(sl()));
   sl.registerLazySingleton(() => RefreshTransactionsUseCase(sl()));

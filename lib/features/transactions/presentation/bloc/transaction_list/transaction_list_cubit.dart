@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:udharoo/core/events/event_bus.dart';
 import 'package:udharoo/core/network/api_result.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
+import 'package:udharoo/features/transactions/domain/events/transaction_events.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_transactions_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/refresh_transactions_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/delete_transaction_usecase.dart';
@@ -21,6 +24,7 @@ class TransactionListCubit extends Cubit<TransactionListState> {
 
   List<Transaction> _allTransactions = [];
   Function(List<Transaction>)? _onTransactionsChanged;
+  late StreamSubscription _eventSubscription;
 
   TransactionListCubit({
     required this.getTransactionsUseCase,
@@ -28,7 +32,87 @@ class TransactionListCubit extends Cubit<TransactionListState> {
     required this.deleteTransactionUseCase,
     required this.verifyTransactionUseCase,
     required this.completeTransactionUseCase,
-  }) : super(const TransactionListInitial());
+  }) : super(const TransactionListInitial()) {
+    _setupEventListeners();
+  }
+
+  void _setupEventListeners() {
+    _eventSubscription = EventBus().on<TransactionEvent>().listen(_handleEvent);
+  }
+
+  void _handleEvent(TransactionEvent event) {
+    if (isClosed) return;
+
+    switch (event) {
+      case TransactionCreatedEvent():
+        _handleTransactionCreated(event.transaction);
+      case TransactionUpdatedEvent():
+        _handleTransactionUpdated(event.transaction);
+      case TransactionDeletedEvent():
+        _handleTransactionDeleted(event.transactionId);
+      case TransactionVerifiedEvent():
+        _handleTransactionUpdated(event.transaction);
+      case TransactionCompletedEvent():
+        _handleTransactionCompleted(event.transaction);
+      default:
+        break;
+    }
+  }
+
+  void _handleTransactionCreated(Transaction transaction) {
+    _allTransactions.insert(0, transaction);
+    _notifyTransactionsChanged();
+    
+    if (state is TransactionListLoaded) {
+      final currentState = state as TransactionListLoaded;
+      final updatedTransactions = [transaction, ...currentState.transactions];
+      emit(currentState.copyWith(transactions: updatedTransactions));
+    } else {
+      loadTransactions();
+    }
+  }
+
+  void _handleTransactionUpdated(Transaction transaction) {
+    final index = _allTransactions.indexWhere((t) => t.id == transaction.id);
+    if (index != -1) {
+      _allTransactions[index] = transaction;
+      _notifyTransactionsChanged();
+      
+      if (state is TransactionListLoaded) {
+        final currentState = state as TransactionListLoaded;
+        final updatedTransactions = currentState.transactions.map((t) {
+          return t.id == transaction.id ? transaction : t;
+        }).toList();
+        emit(currentState.copyWith(transactions: updatedTransactions));
+      }
+    }
+  }
+
+  void _handleTransactionDeleted(String transactionId) {
+    _allTransactions.removeWhere((t) => t.id == transactionId);
+    _notifyTransactionsChanged();
+    
+    if (state is TransactionListLoaded) {
+      final currentState = state as TransactionListLoaded;
+      final updatedTransactions = currentState.transactions
+          .where((t) => t.id != transactionId)
+          .toList();
+      emit(currentState.copyWith(transactions: updatedTransactions));
+    }
+  }
+
+  void _handleTransactionCompleted(Transaction transaction) {
+    _allTransactions.removeWhere((t) => t.id == transaction.id);
+    _notifyTransactionsChanged();
+    
+    if (state is TransactionListLoaded) {
+      final currentState = state as TransactionListLoaded;
+      final updatedTransactions = currentState.transactions
+          .where((t) => t.id != transaction.id)
+          .toList();
+      emit(currentState.copyWith(transactions: updatedTransactions));
+    }
+  }
 
   void setTransactionsChangeListener(Function(List<Transaction>) listener) {
     _onTransactionsChanged = listener;
@@ -115,18 +199,28 @@ class TransactionListCubit extends Cubit<TransactionListState> {
   }
 
   Future<void> deleteTransaction(String id) async {
+    if (state is TransactionListLoaded) {
+      final currentState = state as TransactionListLoaded;
+      final originalTransactions = List<Transaction>.from(currentState.transactions);
+      
+      final optimisticTransactions = originalTransactions
+          .where((t) => t.id != id)
+          .toList();
+      emit(currentState.copyWith(transactions: optimisticTransactions));
+    }
+
     final result = await deleteTransactionUseCase(id);
 
     if (!isClosed) {
       result.fold(
         onSuccess: (_) {
-          _allTransactions.removeWhere((t) => t.id == id);
-          _notifyTransactionsChanged();
-          
+          EventBus().emit(TransactionDeletedEvent(id));
           emit(TransactionListDeleted(id));
-          _reloadCurrentTransactions();
         },
-        onFailure: (message, type) => emit(TransactionListError(message, type)),
+        onFailure: (message, type) {
+          _revertOptimisticUpdate();
+          emit(TransactionListError(message, type));
+        },
       );
     }
   }
@@ -137,11 +231,8 @@ class TransactionListCubit extends Cubit<TransactionListState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (transaction) {
-          _updateTransactionInList(transaction);
-          _notifyTransactionsChanged();
-          
+          EventBus().emit(TransactionVerifiedEvent(transaction));
           emit(TransactionListUpdated(transaction));
-          _reloadCurrentTransactions();
         },
         onFailure: (message, type) {
           if (message.contains('Only transaction recipients can verify')) {
@@ -160,11 +251,8 @@ class TransactionListCubit extends Cubit<TransactionListState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (transaction) {
-          _allTransactions.removeWhere((t) => t.id == id);
-          _notifyTransactionsChanged();
-          
+          EventBus().emit(TransactionCompletedEvent(transaction));
           emit(TransactionListUpdated(transaction));
-          _reloadCurrentTransactions();
         },
         onFailure: (message, type) {
           if (message.contains('Only lender can complete lending transactions')) {
@@ -181,12 +269,8 @@ class TransactionListCubit extends Cubit<TransactionListState> {
     }
   }
 
-  void _reloadCurrentTransactions() {
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (!isClosed) {
-        loadTransactions();
-      }
-    });
+  void _revertOptimisticUpdate() {
+    loadTransactions();
   }
 
   void updateFromCreation(Transaction transaction) {
@@ -226,7 +310,14 @@ class TransactionListCubit extends Cubit<TransactionListState> {
 
   void _notifyTransactionsChanged() {
     _onTransactionsChanged?.call(_allTransactions);
+    EventBus().emit(TransactionStatsChangedEvent(_allTransactions));
   }
 
   List<Transaction> get allTransactions => List.unmodifiable(_allTransactions);
+
+  @override
+  Future<void> close() {
+    _eventSubscription.cancel();
+    return super.close();
+  }
 }

@@ -117,8 +117,6 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
                   'scannedContactPhone': widget.contact.phone,
                   'scannedContactName': widget.contact.name,
                   'scannedContactEmail': widget.contact.email,
-                }).then((_) {
-                  _loadContactTransactions();
                 });
               },
               icon: const Icon(Icons.add),
@@ -327,8 +325,6 @@ class _ContactTransactionsScreenState extends State<ContactTransactionsScreen> {
                       'scannedContactPhone': widget.contact.phone,
                       'scannedContactName': widget.contact.name,
                       'scannedContactEmail': widget.contact.email,
-                    }).then((_) {
-                      _loadContactTransactions();
                     });
                   },
                   icon: const Icon(Icons.add),
