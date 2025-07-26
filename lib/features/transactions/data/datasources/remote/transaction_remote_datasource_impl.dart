@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:udharoo/features/transactions/data/models/transaction_model.dart';
 import 'package:udharoo/features/transactions/data/models/transaction_contact_model.dart';
 import 'package:udharoo/features/transactions/data/models/transaction_stats_model.dart';
+import 'package:udharoo/features/transactions/data/models/contact_summary_model.dart';
 import 'package:udharoo/features/transactions/domain/datasources/remote/transaction_remote_datasource.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
@@ -15,40 +16,20 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
 
   @override
   Future<TransactionModel> createTransaction(TransactionModel transaction) async {
-    final docRef = _firestore
-        .collection('users')
-        .doc(transaction.createdBy)
-        .collection('transactions')
-        .doc();
+    final docRef = _firestore.collection('transactions').doc();
 
     final transactionWithId = TransactionModel.fromEntity(
       transaction.copyWith(id: docRef.id),
     );
 
-    final batch = _firestore.batch();
+    await docRef.set(transactionWithId.toJson());
 
-    batch.set(docRef, transactionWithId.toJson());
-
-    if (transaction.recipientUserId != null) {
-      final recipientDocRef = _firestore
-          .collection('users')
-          .doc(transaction.recipientUserId)
-          .collection('received_transactions')
-          .doc(docRef.id);
-
-      batch.set(recipientDocRef, transactionWithId.toJson());
-
-      final recipientTransactionDocRef = _firestore
-          .collection('users')
-          .doc(transaction.recipientUserId)
-          .collection('transactions')
-          .doc(docRef.id);
-
-      final flippedTransaction = await _createFlippedTransaction(transactionWithId, transaction.recipientUserId!);
-      batch.set(recipientTransactionDocRef, flippedTransaction.toJson());
-    }
-
-    await batch.commit();
+    _updateContactSummaryAsync(
+      transaction.creatorId,
+      transaction.recipientPhone ?? transaction.contactPhone,
+      transaction.contactName,
+      transaction.contactEmail,
+    );
 
     return transactionWithId;
   }
@@ -65,62 +46,72 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
   }) async {
     if (userId == null) return [];
 
-    Query query = _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions');
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    final userData = userDoc.data();
+    final userPhone = userData?['phoneNumber'] as String?;
+    final userName = userData?['displayName'] as String? ?? userData?['email'] as String?;
+
+    List<Query> queries = [];
+
+    Query creatorQuery = _firestore
+        .collection('transactions')
+        .where('creatorId', isEqualTo: userId)
+        .where('isDeleted', isEqualTo: false);
+
+    Query recipientQuery = _firestore
+        .collection('transactions')
+        .where('recipientId', isEqualTo: userId)
+        .where('isDeleted', isEqualTo: false);
 
     if (lastSyncTime != null) {
-      query = query.where('updatedAt', isGreaterThan: Timestamp.fromDate(lastSyncTime));
+      creatorQuery = creatorQuery.where('updatedAt', isGreaterThan: Timestamp.fromDate(lastSyncTime));
+      recipientQuery = recipientQuery.where('updatedAt', isGreaterThan: Timestamp.fromDate(lastSyncTime));
     }
-
-    query = query.orderBy('updatedAt', descending: true);
 
     if (status != null) {
-      query = query.where('status', isEqualTo: status.name);
+      creatorQuery = creatorQuery.where('status', isEqualTo: status.name);
+      recipientQuery = recipientQuery.where('status', isEqualTo: status.name);
     }
 
-    if (type != null) {
-      query = query.where('type', isEqualTo: type.name);
-    }
+    queries.add(creatorQuery);
+    queries.add(recipientQuery);
 
-    if (limit != null) {
-      query = query.limit(limit);
-    }
+    final results = await Future.wait([
+      creatorQuery.get(),
+      recipientQuery.get(),
+    ]);
 
-    if (lastDocumentId != null && lastSyncTime == null) {
-      final lastDoc = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('transactions')
-          .doc(lastDocumentId)
-          .get();
-      if (lastDoc.exists) {
-        query = query.startAfterDocument(lastDoc);
+    List<TransactionModel> transactions = [];
+
+    for (final snapshot in results) {
+      for (final doc in snapshot.docs) {
+        final transaction = TransactionModel.fromJson({
+          ...doc.data() as Map<String, dynamic>,
+          'id': doc.id,
+        });
+        transactions.add(transaction.transformForUser(userId, userPhone: userPhone, userName: userName));
       }
     }
 
-    final querySnapshot = await query.get();
-    
-    List<TransactionModel> transactions = querySnapshot.docs
-        .map((doc) => TransactionModel.fromJson({
-              ...doc.data() as Map<String, dynamic>,
-              'id': doc.id,
-            }))
-        .where((transaction) => transaction.status != TransactionStatus.completed)
-        .toList();
+    transactions = transactions.where((t) => t.status != TransactionStatus.completed).toList();
+
+    if (type != null) {
+      transactions = transactions.where((t) => t.type == type).toList();
+    }
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
       final searchLower = searchQuery.toLowerCase();
       transactions = transactions.where((transaction) {
         return transaction.contactName.toLowerCase().contains(searchLower) ||
-               (transaction.contactPhone?.contains(searchQuery) ?? false) ||
+               (transaction.recipientPhone?.contains(searchQuery) ?? false) ||
                (transaction.description?.toLowerCase().contains(searchLower) ?? false);
       }).toList();
     }
 
-    if (lastSyncTime == null) {
-      transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    if (limit != null && transactions.length > limit) {
+      transactions = transactions.take(limit).toList();
     }
 
     return transactions;
@@ -132,71 +123,55 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
     DateTime? lastSyncTime,
   }) async {
     Query query = _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('deleted_transactions');
+        .collection('transactions')
+        .where('isDeleted', isEqualTo: true);
 
     if (lastSyncTime != null) {
       query = query.where('deletedAt', isGreaterThan: Timestamp.fromDate(lastSyncTime));
     }
 
-    final querySnapshot = await query.get();
+    final creatorQuery = query.where('creatorId', isEqualTo: userId);
+    final recipientQuery = query.where('recipientId', isEqualTo: userId);
+
+    final results = await Future.wait([
+      creatorQuery.get(),
+      recipientQuery.get(),
+    ]);
+
+    final deletedIds = <String>{};
     
-    return querySnapshot.docs.map((doc) => doc.id).toList();
+    for (final snapshot in results) {
+      for (final doc in snapshot.docs) {
+        deletedIds.add(doc.id);
+      }
+    }
+
+    return deletedIds.toList();
   }
 
   @override
   Future<TransactionModel> getTransactionById(String id, String userId) async {
-    final userRole = await _getUserRoleForTransaction(id, userId);
-    
-    if (userRole == null) {
-      throw Exception('Transaction not found or access denied');
-    }
-
-    late DocumentSnapshot doc;
-    
-    if (userRole == UserTransactionRole.creator) {
-      doc = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('transactions')
-          .doc(id)
-          .get();
-      
-      if (!doc.exists) {
-        doc = await _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('finished_transactions')
-            .doc(id)
-            .get();
-      }
-    } else {
-      doc = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('received_transactions')
-          .doc(id)
-          .get();
-      
-      if (!doc.exists) {
-        doc = await _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('finished_transactions')
-            .doc(id)
-            .get();
-      }
-    }
+    final doc = await _firestore.collection('transactions').doc(id).get();
 
     if (!doc.exists) {
       throw Exception('Transaction not found');
     }
 
-    return TransactionModel.fromJson({
-      ...doc.data()! as Map<String, dynamic>,
+    final transaction = TransactionModel.fromJson({
+      ...doc.data()!,
       'id': doc.id,
     });
+
+    if (!transaction.isUserInvolved(userId)) {
+      throw Exception('Access denied');
+    }
+
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    final userData = userDoc.data();
+    final userPhone = userData?['phoneNumber'] as String?;
+    final userName = userData?['displayName'] as String? ?? userData?['email'] as String?;
+
+    return transaction.transformForUser(userId, userPhone: userPhone, userName: userName);
   }
 
   @override
@@ -205,36 +180,17 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
       transaction.copyWith(updatedAt: DateTime.now()),
     );
 
-    final batch = _firestore.batch();
-
-    final creatorDocRef = _firestore
-        .collection('users')
-        .doc(transaction.createdBy)
+    await _firestore
         .collection('transactions')
-        .doc(transaction.id);
+        .doc(transaction.id)
+        .update(updatedTransaction.toJson());
 
-    batch.update(creatorDocRef, updatedTransaction.toJson());
-
-    if (transaction.recipientUserId != null) {
-      final recipientDocRef = _firestore
-          .collection('users')
-          .doc(transaction.recipientUserId)
-          .collection('received_transactions')
-          .doc(transaction.id);
-
-      batch.update(recipientDocRef, updatedTransaction.toJson());
-
-      final recipientTransactionDocRef = _firestore
-          .collection('users')
-          .doc(transaction.recipientUserId)
-          .collection('transactions')
-          .doc(transaction.id);
-
-      final flippedTransaction = await _createFlippedTransaction(updatedTransaction, transaction.recipientUserId!);
-      batch.update(recipientTransactionDocRef, flippedTransaction.toJson());
-    }
-
-    await batch.commit();
+    _updateContactSummaryAsync(
+      transaction.creatorId,
+      transaction.recipientPhone ?? transaction.contactPhone,
+      transaction.contactName,
+      transaction.contactEmail,
+    );
 
     return updatedTransaction;
   }
@@ -247,76 +203,33 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
       throw Exception('Cannot delete verified transactions');
     }
 
-    final userRole = await _getUserRoleForTransaction(id, userId);
-    
-    if (userRole != UserTransactionRole.creator) {
+    if (!transaction.isUserCreator(userId)) {
       throw Exception('Only transaction creator can delete the transaction');
     }
 
-    final batch = _firestore.batch();
-    final deletedAt = DateTime.now();
-
-    final creatorDocRef = _firestore
-        .collection('users')
-        .doc(transaction.createdBy)
-        .collection('transactions')
-        .doc(id);
-
-    batch.delete(creatorDocRef);
-
-    final deletionTrackingRef = _firestore
-        .collection('users')
-        .doc(transaction.createdBy)
-        .collection('deleted_transactions')
-        .doc(id);
-
-    batch.set(deletionTrackingRef, {
-      'deletedAt': Timestamp.fromDate(deletedAt),
-      'type': 'deleted',
+    await _firestore.collection('transactions').doc(id).update({
+      'isDeleted': true,
+      'deletedAt': Timestamp.fromDate(DateTime.now()),
+      'deletedBy': userId,
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
 
-    if (transaction.recipientUserId != null) {
-      final recipientDocRef = _firestore
-          .collection('users')
-          .doc(transaction.recipientUserId)
-          .collection('received_transactions')
-          .doc(id);
-
-      batch.delete(recipientDocRef);
-
-      final recipientTransactionDocRef = _firestore
-          .collection('users')
-          .doc(transaction.recipientUserId)
-          .collection('transactions')
-          .doc(id);
-
-      batch.delete(recipientTransactionDocRef);
-
-      final recipientDeletionTrackingRef = _firestore
-          .collection('users')
-          .doc(transaction.recipientUserId)
-          .collection('deleted_transactions')
-          .doc(id);
-
-      batch.set(recipientDeletionTrackingRef, {
-        'deletedAt': Timestamp.fromDate(deletedAt),
-        'type': 'deleted',
-      });
-    }
-
-    await batch.commit();
+    _updateContactSummaryAsync(
+      transaction.creatorId,
+      transaction.recipientPhone ?? transaction.contactPhone,
+      transaction.contactName,
+      transaction.contactEmail,
+    );
   }
 
   @override
   Future<TransactionModel> verifyTransaction(String id, String verifiedBy) async {
-    final userRole = await _getUserRoleForTransaction(id, verifiedBy);
+    final transaction = await getTransactionById(id, verifiedBy);
     
-    if (userRole != UserTransactionRole.recipient) {
+    if (!transaction.isUserRecipient(verifiedBy)) {
       throw Exception('Only transaction recipients can verify transactions');
     }
 
-    final transaction = await getTransactionById(id, verifiedBy);
-    
     if (transaction.isVerified) {
       throw Exception('Transaction is already verified');
     }
@@ -334,34 +247,7 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
       ),
     );
 
-    final batch = _firestore.batch();
-
-    final creatorDocRef = _firestore
-        .collection('users')
-        .doc(transaction.createdBy)
-        .collection('transactions')
-        .doc(id);
-
-    batch.update(creatorDocRef, updatedTransaction.toJson());
-
-    final recipientDocRef = _firestore
-        .collection('users')
-        .doc(verifiedBy)
-        .collection('received_transactions')
-        .doc(id);
-
-    batch.update(recipientDocRef, updatedTransaction.toJson());
-
-    final recipientTransactionDocRef = _firestore
-        .collection('users')
-        .doc(verifiedBy)
-        .collection('transactions')
-        .doc(id);
-
-    final flippedTransaction = await _createFlippedTransaction(updatedTransaction, verifiedBy);
-    batch.update(recipientTransactionDocRef, flippedTransaction.toJson());
-
-    await batch.commit();
+    await _firestore.collection('transactions').doc(id).update(updatedTransaction.toJson());
 
     return updatedTransaction;
   }
@@ -369,154 +255,170 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
   @override
   Future<TransactionModel> completeTransaction(String id, String userId, String userRole) async {
     final transaction = await getTransactionById(id, userId);
-    
+
+    if (transaction.type == TransactionType.lending && userRole != 'creator') {
+      throw Exception('Only lender can complete lending transactions');
+    }
+
+    if (transaction.type == TransactionType.borrowing && userRole != 'recipient') {
+      throw Exception('Only borrower can complete borrowing transactions');
+    }
+
+    if (transaction.verificationRequired && !transaction.isVerified) {
+      throw Exception('Transaction must be verified before completion');
+    }
+
     final completedTransaction = TransactionModel.fromEntity(
       transaction.copyWith(
         status: TransactionStatus.completed,
+        completedAt: DateTime.now(),
+        completedBy: userId,
         updatedAt: DateTime.now(),
       ),
     );
 
-    await moveTransactionToFinished(completedTransaction);
+    await _firestore.collection('transactions').doc(id).update(completedTransaction.toJson());
 
-    final batch = _firestore.batch();
-    final deletedAt = DateTime.now();
-
-    final creatorDocRef = _firestore
-        .collection('users')
-        .doc(transaction.createdBy)
-        .collection('transactions')
-        .doc(id);
-
-    batch.delete(creatorDocRef);
-
-    final deletionTrackingRef = _firestore
-        .collection('users')
-        .doc(transaction.createdBy)
-        .collection('deleted_transactions')
-        .doc(id);
-
-    batch.set(deletionTrackingRef, {
-      'deletedAt': Timestamp.fromDate(deletedAt),
-      'type': 'completed',
-    });
-
-    if (transaction.recipientUserId != null) {
-      final recipientDocRef = _firestore
-          .collection('users')
-          .doc(transaction.recipientUserId)
-          .collection('received_transactions')
-          .doc(id);
-
-      batch.delete(recipientDocRef);
-
-      final recipientTransactionDocRef = _firestore
-          .collection('users')
-          .doc(transaction.recipientUserId)
-          .collection('transactions')
-          .doc(id);
-
-      batch.delete(recipientTransactionDocRef);
-
-      final recipientDeletionTrackingRef = _firestore
-          .collection('users')
-          .doc(transaction.recipientUserId)
-          .collection('deleted_transactions')
-          .doc(id);
-
-      batch.set(recipientDeletionTrackingRef, {
-        'deletedAt': Timestamp.fromDate(deletedAt),
-        'type': 'completed',
-      });
-    }
-
-    await batch.commit();
+    _updateContactSummaryAsync(
+      transaction.creatorId,
+      transaction.recipientPhone ?? transaction.contactPhone,
+      transaction.contactName,
+      transaction.contactEmail,
+    );
 
     return completedTransaction;
   }
 
   @override
   Future<void> moveTransactionToFinished(TransactionModel transaction) async {
-    final batch = _firestore.batch();
-
-    final creatorFinishedDocRef = _firestore
-        .collection('users')
-        .doc(transaction.createdBy)
-        .collection('finished_transactions')
-        .doc(transaction.id);
-
-    batch.set(creatorFinishedDocRef, transaction.toJson());
-
-    if (transaction.recipientUserId != null) {
-      final recipientFinishedDocRef = _firestore
-          .collection('users')
-          .doc(transaction.recipientUserId)
-          .collection('finished_transactions')
-          .doc(transaction.id);
-
-      final flippedTransaction = await _createFlippedTransaction(transaction, transaction.recipientUserId!);
-      batch.set(recipientFinishedDocRef, flippedTransaction.toJson());
-    }
-
-    await batch.commit();
   }
 
   @override
   Future<List<TransactionModel>> getFinishedTransactions(String userId) async {
-    final querySnapshot = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('finished_transactions')
-        .orderBy('updatedAt', descending: true)
-        .get();
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    final userData = userDoc.data();
+    final userPhone = userData?['phoneNumber'] as String?;
+    final userName = userData?['displayName'] as String? ?? userData?['email'] as String?;
 
-    return querySnapshot.docs
-        .map((doc) => TransactionModel.fromJson({
-              ...doc.data(),
-              'id': doc.id,
-            }))
-        .toList();
+    final creatorQuery = _firestore
+        .collection('transactions')
+        .where('creatorId', isEqualTo: userId)
+        .where('status', isEqualTo: TransactionStatus.completed.name)
+        .where('isDeleted', isEqualTo: false);
+
+    final recipientQuery = _firestore
+        .collection('transactions')
+        .where('recipientId', isEqualTo: userId)
+        .where('status', isEqualTo: TransactionStatus.completed.name)
+        .where('isDeleted', isEqualTo: false);
+
+    final results = await Future.wait([
+      creatorQuery.get(),
+      recipientQuery.get(),
+    ]);
+
+    List<TransactionModel> transactions = [];
+
+    for (final snapshot in results) {
+      for (final doc in snapshot.docs) {
+        final transaction = TransactionModel.fromJson({
+          ...doc.data(),
+          'id': doc.id,
+        });
+        transactions.add(transaction.transformForUser(userId, userPhone: userPhone, userName: userName));
+      }
+    }
+
+    transactions.sort((a, b) => (b.completedAt ?? b.updatedAt).compareTo(a.completedAt ?? a.updatedAt));
+
+    return transactions;
   }
 
   @override
   Future<List<TransactionContactModel>> getTransactionContacts(String userId) async {
-    final querySnapshot = await _firestore
-        .collection('users')
-        .doc(userId)
+    try {
+      final summariesSnapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('transaction_summaries')
+          .orderBy('lastTransactionDate', descending: true)
+          .get();
+
+      if (summariesSnapshot.docs.isNotEmpty) {
+        return summariesSnapshot.docs
+            .map((doc) => TransactionContactModel.fromJson({
+                  ...doc.data(),
+                  'phone': doc.data()['contactPhone'],
+                  'name': doc.data()['contactName'],
+                  'email': doc.data()['contactEmail'],
+                }))
+            .toList();
+      }
+    } catch (e) {
+    }
+
+    return _calculateContactsFromTransactions(userId);
+  }
+
+  Future<List<TransactionContactModel>> _calculateContactsFromTransactions(String userId) async {
+    final creatorQuery = _firestore
         .collection('transactions')
-        .get();
+        .where('creatorId', isEqualTo: userId)
+        .where('isDeleted', isEqualTo: false);
+
+    final recipientQuery = _firestore
+        .collection('transactions')
+        .where('recipientId', isEqualTo: userId)
+        .where('isDeleted', isEqualTo: false);
+
+    final results = await Future.wait([
+      creatorQuery.get(),
+      recipientQuery.get(),
+    ]);
 
     final Map<String, TransactionContactModel> contactsMap = {};
 
-    for (final doc in querySnapshot.docs) {
-      final transaction = TransactionModel.fromJson({
-        ...doc.data(),
-        'id': doc.id,
-      });
+    for (final snapshot in results) {
+      for (final doc in snapshot.docs) {
+        final transaction = TransactionModel.fromJson({
+          ...doc.data(),
+          'id': doc.id,
+        });
 
-      if (transaction.contactPhone == null) continue;
+        String? contactPhone;
+        String contactName;
 
-      final phone = transaction.contactPhone!;
-      final existing = contactsMap[phone];
+        if (transaction.creatorId == userId) {
+          contactPhone = transaction.recipientPhone;
+          contactName = transaction.contactName;
+        } else {
+          contactPhone = transaction.creatorPhone;
+          contactName = 'Transaction Partner';
+        }
 
-      if (existing == null) {
-        contactsMap[phone] = TransactionContactModel(
-          phone: phone,
-          name: transaction.contactName,
-          email: transaction.contactEmail,
-          transactionCount: 1,
-          lastTransactionDate: transaction.createdAt,
-        );
-      } else {
-        contactsMap[phone] = TransactionContactModel(
-          phone: phone,
-          name: transaction.contactName,
-          email: transaction.contactEmail,
-          transactionCount: existing.transactionCount + 1,
-          lastTransactionDate: transaction.createdAt.isAfter(existing.lastTransactionDate)
-              ? transaction.createdAt
-              : existing.lastTransactionDate,
-        );
+        if (contactPhone == null) continue;
+
+        final existing = contactsMap[contactPhone];
+
+        if (existing == null) {
+          contactsMap[contactPhone] = TransactionContactModel(
+            phone: contactPhone,
+            name: contactName,
+            email: transaction.contactEmail,
+            transactionCount: 1,
+            lastTransactionDate: transaction.createdAt,
+          );
+        } else {
+          contactsMap[contactPhone] = TransactionContactModel(
+            phone: contactPhone,
+            name: contactName,
+            email: transaction.contactEmail,
+            transactionCount: existing.transactionCount + 1,
+            lastTransactionDate: transaction.createdAt.isAfter(existing.lastTransactionDate)
+                ? transaction.createdAt
+                : existing.lastTransactionDate,
+          );
+        }
       }
     }
 
@@ -528,20 +430,43 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
 
   @override
   Future<List<TransactionModel>> getContactTransactions(String userId, String contactPhone) async {
-    final querySnapshot = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .where('contactPhone', isEqualTo: contactPhone)
-        .orderBy('createdAt', descending: true)
-        .get();
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    final userData = userDoc.data();
+    final userPhone = userData?['phoneNumber'] as String?;
+    final userName = userData?['displayName'] as String? ?? userData?['email'] as String?;
 
-    return querySnapshot.docs
-        .map((doc) => TransactionModel.fromJson({
-              ...doc.data(),
-              'id': doc.id,
-            }))
-        .toList();
+    final creatorQuery = _firestore
+        .collection('transactions')
+        .where('creatorId', isEqualTo: userId)
+        .where('recipientPhone', isEqualTo: contactPhone)
+        .where('isDeleted', isEqualTo: false);
+
+    final recipientQuery = _firestore
+        .collection('transactions')
+        .where('recipientId', isEqualTo: userId)
+        .where('creatorPhone', isEqualTo: contactPhone)
+        .where('isDeleted', isEqualTo: false);
+
+    final results = await Future.wait([
+      creatorQuery.get(),
+      recipientQuery.get(),
+    ]);
+
+    List<TransactionModel> transactions = [];
+
+    for (final snapshot in results) {
+      for (final doc in snapshot.docs) {
+        final transaction = TransactionModel.fromJson({
+          ...doc.data(),
+          'id': doc.id,
+        });
+        transactions.add(transaction.transformForUser(userId, userPhone: userPhone, userName: userName));
+      }
+    }
+
+    transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    return transactions;
   }
 
   @override
@@ -565,17 +490,39 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
 
   @override
   Future<TransactionStatsModel> getTransactionStats(String userId) async {
-    final querySnapshot = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .get();
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    final userData = userDoc.data();
+    final userPhone = userData?['phoneNumber'] as String?;
+    final userName = userData?['displayName'] as String? ?? userData?['email'] as String?;
 
-    final activeTransactions = querySnapshot.docs
-        .map((doc) => TransactionModel.fromJson({
-              ...doc.data(),
-              'id': doc.id,
-            }))
+    final creatorQuery = _firestore
+        .collection('transactions')
+        .where('creatorId', isEqualTo: userId)
+        .where('isDeleted', isEqualTo: false);
+
+    final recipientQuery = _firestore
+        .collection('transactions')
+        .where('recipientId', isEqualTo: userId)
+        .where('isDeleted', isEqualTo: false);
+
+    final results = await Future.wait([
+      creatorQuery.get(),
+      recipientQuery.get(),
+    ]);
+
+    List<TransactionModel> transactions = [];
+
+    for (final snapshot in results) {
+      for (final doc in snapshot.docs) {
+        final transaction = TransactionModel.fromJson({
+          ...doc.data(),
+          'id': doc.id,
+        });
+        transactions.add(transaction.transformForUser(userId, userPhone: userPhone, userName: userName));
+      }
+    }
+
+    final activeTransactions = transactions
         .where((transaction) => transaction.status != TransactionStatus.completed)
         .toList();
 
@@ -599,21 +546,29 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
 
   @override
   Future<List<TransactionModel>> getReceivedTransactionRequests(String userId) async {
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    final userData = userDoc.data();
+    final userPhone = userData?['phoneNumber'] as String?;
+    final userName = userData?['displayName'] as String? ?? userData?['email'] as String?;
+
     final querySnapshot = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('received_transactions')
+        .collection('transactions')
+        .where('recipientId', isEqualTo: userId)
         .where('status', isEqualTo: TransactionStatus.pending.name)
         .where('verificationRequired', isEqualTo: true)
         .where('isVerified', isEqualTo: false)
+        .where('isDeleted', isEqualTo: false)
         .orderBy('createdAt', descending: true)
         .get();
 
     return querySnapshot.docs
-        .map((doc) => TransactionModel.fromJson({
-              ...doc.data(),
-              'id': doc.id,
-            }))
+        .map((doc) {
+          final transaction = TransactionModel.fromJson({
+            ...doc.data(),
+            'id': doc.id,
+          });
+          return transaction.transformForUser(userId, userPhone: userPhone, userName: userName);
+        })
         .toList();
   }
 
@@ -638,142 +593,85 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
       ),
     );
 
-    final batch = _firestore.batch();
-
-    final creatorDocRef = _firestore
-        .collection('users')
-        .doc(transaction.createdBy)
-        .collection('transactions')
-        .doc(transactionId);
-
-    batch.update(creatorDocRef, updatedTransaction.toJson());
-
-    if (transaction.recipientUserId != null) {
-      final recipientDocRef = _firestore
-          .collection('users')
-          .doc(transaction.recipientUserId)
-          .collection('received_transactions')
-          .doc(transactionId);
-
-      batch.update(recipientDocRef, updatedTransaction.toJson());
-
-      final recipientTransactionDocRef = _firestore
-          .collection('users')
-          .doc(transaction.recipientUserId)
-          .collection('transactions')
-          .doc(transactionId);
-
-      final flippedTransaction = await _createFlippedTransaction(updatedTransaction, transaction.recipientUserId!);
-      batch.update(recipientTransactionDocRef, flippedTransaction.toJson());
-    }
-
-    final completionRequestRef = _firestore
-        .collection('users')
-        .doc(transaction.createdBy)
-        .collection('completion_requests')
-        .doc(transactionId);
-
-    batch.set(completionRequestRef, updatedTransaction.toJson());
-
-    await batch.commit();
+    await _firestore.collection('transactions').doc(transactionId).update(updatedTransaction.toJson());
 
     return updatedTransaction;
   }
 
   @override
   Future<List<TransactionModel>> getCompletionRequests(String userId) async {
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    final userData = userDoc.data();
+    final userPhone = userData?['phoneNumber'] as String?;
+    final userName = userData?['displayName'] as String? ?? userData?['email'] as String?;
+
     final querySnapshot = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('completion_requests')
+        .collection('transactions')
+        .where('creatorId', isEqualTo: userId)
         .where('completionRequested', isEqualTo: true)
+        .where('status', whereIn: [TransactionStatus.pending.name, TransactionStatus.verified.name])
+        .where('isDeleted', isEqualTo: false)
         .orderBy('completionRequestedAt', descending: true)
         .get();
 
     return querySnapshot.docs
-        .map((doc) => TransactionModel.fromJson({
-              ...doc.data(),
-              'id': doc.id,
-            }))
+        .map((doc) {
+          final transaction = TransactionModel.fromJson({
+            ...doc.data(),
+            'id': doc.id,
+          });
+          return transaction.transformForUser(userId, userPhone: userPhone, userName: userName);
+        })
         .toList();
   }
 
-  Future<UserTransactionRole?> _getUserRoleForTransaction(String transactionId, String userId) async {
-    final recipientDoc = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('received_transactions')
-        .doc(transactionId)
-        .get();
+  void _updateContactSummaryAsync(String userId, String? contactPhone, String contactName, String? contactEmail) {
+    if (contactPhone == null) return;
 
-    if (recipientDoc.exists && recipientDoc.data()?['recipientUserId'] == userId) {
-      return UserTransactionRole.recipient;
-    }
+    Future.microtask(() async {
+      try {
+        final transactions = await getContactTransactions(userId, contactPhone);
+        
+        if (transactions.isEmpty) return;
 
-    final creatorDoc = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .doc(transactionId)
-        .get();
+        double totalLending = 0;
+        double totalBorrowing = 0;
+        DateTime lastTransactionDate = transactions.first.createdAt;
 
-    if (creatorDoc.exists && creatorDoc.data()?['createdBy'] == userId) {
-      return UserTransactionRole.creator;
-    }
+        for (final transaction in transactions) {
+          if (transaction.status != TransactionStatus.completed) {
+            if (transaction.type == TransactionType.lending) {
+              totalLending += transaction.amount;
+            } else {
+              totalBorrowing += transaction.amount;
+            }
+          }
 
-    final finishedDoc = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('finished_transactions')
-        .doc(transactionId)
-        .get();
+          if (transaction.createdAt.isAfter(lastTransactionDate)) {
+            lastTransactionDate = transaction.createdAt;
+          }
+        }
 
-    if (finishedDoc.exists) {
-      final data = finishedDoc.data();
-      if (data?['createdBy'] == userId) {
-        return UserTransactionRole.creator;
-      } else if (data?['recipientUserId'] == userId) {
-        return UserTransactionRole.recipient;
+        final summary = ContactSummaryModel(
+          phone: contactPhone,
+          name: contactName,
+          email: contactEmail,
+          transactionCount: transactions.length,
+          lastTransactionDate: lastTransactionDate,
+          totalLending: totalLending,
+          totalBorrowing: totalBorrowing,
+          netAmount: totalLending - totalBorrowing,
+        );
+
+        await _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('transaction_summaries')
+            .doc(contactPhone)
+            .set(summary.toJson());
+      } catch (e) {
       }
-    }
-
-    return null;
-  }
-
-  Future<TransactionModel> _createFlippedTransaction(TransactionModel originalTransaction, String recipientUserId) async {
-    final flippedType = originalTransaction.type == TransactionType.lending 
-        ? TransactionType.borrowing 
-        : TransactionType.lending;
-
-    final creatorName = await _getOriginalCreatorName(originalTransaction);
-
-    return TransactionModel.fromEntity(
-      originalTransaction.copyWith(
-        type: flippedType,
-        createdBy: recipientUserId,
-        contactPhone: null,
-        contactName: creatorName,
-        contactEmail: null,
-        recipientUserId: originalTransaction.createdBy,
-      ),
-    );
-  }
-
-  Future<String> _getOriginalCreatorName(TransactionModel transaction) async {
-    try {
-      final userDoc = await _firestore
-          .collection('users')
-          .doc(transaction.createdBy)
-          .get();
-      
-      if (userDoc.exists) {
-        final userData = userDoc.data() as Map<String, dynamic>;
-        return userData['displayName'] as String? ?? userData['email'] as String? ?? 'Transaction Partner';
-      }
-    } catch (e) {
-      // TODO: do smth with this idk what 
-    }
-    return 'Transaction Partner';
+    });
   }
 
   TransactionStatsModel _calculateStatsFromTransactions(List<TransactionModel> transactions) {
@@ -822,9 +720,4 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
       netAmount: totalLending - totalBorrowing,
     );
   }
-}
-
-enum UserTransactionRole {
-  creator,
-  recipient,
 }

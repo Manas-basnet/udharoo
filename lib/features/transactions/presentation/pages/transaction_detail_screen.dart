@@ -103,7 +103,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                   if (authState is AuthSessionAuthenticated) {
                     final currentUserId = authState.user.uid;
                     final transaction = state.transaction;
-                    final isCreator = transaction.createdBy == currentUserId;
+                    final isCreator = transaction.creatorId == currentUserId;
                     final canDelete = isCreator && !transaction.isVerified;
                     
                     if (canDelete) {
@@ -245,8 +245,8 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           
           _buildInfoSection('Contact Information', [
             _buildInfoRow(Icons.person, 'Name', transaction.contactName),
-            if (transaction.contactPhone != null)
-              _buildInfoRow(Icons.phone, 'Phone', transaction.contactPhone!)
+            if (transaction.recipientPhone != null)
+              _buildInfoRow(Icons.phone, 'Phone', transaction.recipientPhone!)
             else
               _buildInfoRow(Icons.phone_disabled, 'Phone', 'Not provided', textColor: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
             if (transaction.contactEmail != null)
@@ -288,7 +288,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
               ),
               if (transaction.isVerified && transaction.verifiedBy != null)
                 _buildInfoRow(Icons.person_outline, 'Verified By', transaction.verifiedBy!),
-              if (transaction.contactPhone != null)
+              if (transaction.recipientPhone != null)
                 _buildInfoRow(
                   Icons.phone_android,
                   'Verification Method',
@@ -581,7 +581,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     switch (action) {
       case 'delete':
         final currentUserId = _getCurrentUserId();
-        if (currentUserId != null && transaction.createdBy == currentUserId && !transaction.isVerified) {
+        if (currentUserId != null && transaction.creatorId == currentUserId && !transaction.isVerified) {
           _showDeleteDialog(transaction);
         }
         break;

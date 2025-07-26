@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:udharoo/features/transactions/data/models/transaction_model.dart';
 import 'package:udharoo/features/transactions/data/models/qr_data_model.dart';
 import 'package:udharoo/features/transactions/domain/datasources/local/transaction_local_datasource.dart';
+import 'package:udharoo/features/transactions/domain/entities/qr_data.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
 import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 
@@ -150,24 +151,30 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
   Map<String, dynamic> _transactionToLocalJson(TransactionModel transaction) {
     return {
       'id': transaction.id,
-      'type': transaction.type.name,
-      'amount': transaction.amount,
-      'contactPhone': transaction.contactPhone,
+      'creatorId': transaction.creatorId,
+      'recipientId': transaction.recipientId,
+      'creatorPhone': transaction.creatorPhone,
+      'recipientPhone': transaction.recipientPhone,
       'contactName': transaction.contactName,
       'contactEmail': transaction.contactEmail,
+      'type': transaction.type.name,
+      'amount': transaction.amount,
       'description': transaction.description,
       'dueDate': transaction.dueDate?.toIso8601String(),
       'isVerified': transaction.isVerified,
       'verificationRequired': transaction.verificationRequired,
       'status': transaction.status.name,
+      'isDeleted': transaction.isDeleted,
       'createdAt': transaction.createdAt.toIso8601String(),
       'updatedAt': transaction.updatedAt.toIso8601String(),
-      'createdBy': transaction.createdBy,
+      'deletedAt': transaction.deletedAt?.toIso8601String(),
+      'deletedBy': transaction.deletedBy,
+      'completedAt': transaction.completedAt?.toIso8601String(),
+      'completedBy': transaction.completedBy,
       'verifiedBy': transaction.verifiedBy,
       'qrGeneratedData': transaction.qrGeneratedData != null
           ? _qrDataToLocalJson(transaction.qrGeneratedData!)
           : null,
-      'recipientUserId': transaction.recipientUserId,
       'completionRequested': transaction.completionRequested,
       'completionRequestedBy': transaction.completionRequestedBy,
       'completionRequestedAt': transaction.completionRequestedAt?.toIso8601String(),
@@ -177,13 +184,16 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
   TransactionModel _transactionFromLocalJson(Map<String, dynamic> json) {
     return TransactionModel(
       id: json['id'] as String,
+      creatorId: json['creatorId'] as String? ?? json['createdBy'] as String,
+      recipientId: json['recipientId'] as String?,
+      creatorPhone: json['creatorPhone'] as String? ?? '',
+      recipientPhone: json['recipientPhone'] as String? ?? json['contactPhone'] as String?,
+      contactName: json['contactName'] as String,
+      contactEmail: json['contactEmail'] as String?,
       type: TransactionType.values.firstWhere(
         (e) => e.name == json['type'],
       ),
       amount: (json['amount'] as num).toDouble(),
-      contactPhone: json['contactPhone'] as String?,
-      contactName: json['contactName'] as String,
-      contactEmail: json['contactEmail'] as String?,
       description: json['description'] as String?,
       dueDate: json['dueDate'] != null 
           ? DateTime.parse(json['dueDate'] as String)
@@ -193,14 +203,21 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
       status: TransactionStatus.values.firstWhere(
         (e) => e.name == json['status'],
       ),
+      isDeleted: json['isDeleted'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
-      createdBy: json['createdBy'] as String,
+      deletedAt: json['deletedAt'] != null
+          ? DateTime.parse(json['deletedAt'] as String)
+          : null,
+      deletedBy: json['deletedBy'] as String?,
+      completedAt: json['completedAt'] != null
+          ? DateTime.parse(json['completedAt'] as String)
+          : null,
+      completedBy: json['completedBy'] as String?,
       verifiedBy: json['verifiedBy'] as String?,
       qrGeneratedData: json['qrGeneratedData'] != null
           ? _qrDataFromLocalJson(json['qrGeneratedData'] as Map<String, dynamic>)
           : null,
-      recipientUserId: json['recipientUserId'] as String?,
       completionRequested: json['completionRequested'] as bool? ?? false,
       completionRequestedBy: json['completionRequestedBy'] as String?,
       completionRequestedAt: json['completionRequestedAt'] != null
@@ -209,7 +226,7 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
     );
   }
 
-  Map<String, dynamic> _qrDataToLocalJson(dynamic qrData) {
+  Map<String, dynamic> _qrDataToLocalJson(QRData qrData) {
     return {
       'userPhone': qrData.userPhone,
       'userName': qrData.userName,

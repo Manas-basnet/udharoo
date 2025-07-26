@@ -64,7 +64,6 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
         setState(() {
           _showRecentContacts = false;
         });
-        // Defer the callback to after the build phase
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _onContactDataChanged();
         });
@@ -106,7 +105,6 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
       });
     }
     
-    // Defer the callback to prevent setState during build
     Future.microtask(() {
       _onContactDataChanged();
     });

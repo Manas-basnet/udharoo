@@ -124,14 +124,12 @@ class TransactionVerificationDialog extends StatelessWidget {
                     transaction.contactName,
                     theme,
                   ),
-                  if (transaction.contactPhone != null) ...[
-                    const SizedBox(height: 8),
-                    _buildDetailRow(
-                      'Phone',
-                      transaction.contactPhone!,
-                      theme,
-                    ),
-                  ],
+                  const SizedBox(height: 8),
+                  _buildDetailRow(
+                    'Phone',
+                    transaction.contactPhone,
+                    theme,
+                  ),
                   if (transaction.contactEmail != null) ...[
                     const SizedBox(height: 8),
                     _buildDetailRow(

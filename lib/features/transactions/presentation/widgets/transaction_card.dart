@@ -81,9 +81,9 @@ class TransactionCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          if (transaction.contactPhone != null) ...[
+                          if (transaction.recipientPhone != null) ...[
                             Text(
-                              transaction.contactPhone!,
+                              transaction.recipientPhone!,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                               ),
@@ -295,7 +295,7 @@ class TransactionCard extends StatelessWidget {
     
     final canVerify = TransactionUtils.canUserVerify(transaction, currentUserId) && onVerify != null;
     final canComplete = TransactionUtils.canUserComplete(transaction, currentUserId) && onComplete != null;
-    final canDelete = transaction.createdBy == currentUserId && !transaction.isVerified && onDelete != null;
+    final canDelete = transaction.creatorId == currentUserId && !transaction.isVerified && onDelete != null;
     final canRequestCompletion = TransactionUtils.canUserRequestCompletion(transaction, currentUserId) && onRequestCompletion != null;
     
     return canVerify || canComplete || canDelete || canRequestCompletion;
@@ -306,7 +306,7 @@ class TransactionCard extends StatelessWidget {
     
     final canVerify = TransactionUtils.canUserVerify(transaction, currentUserId) && onVerify != null;
     final canComplete = TransactionUtils.canUserComplete(transaction, currentUserId) && onComplete != null;
-    final canDelete = transaction.createdBy == currentUserId && !transaction.isVerified && onDelete != null;
+    final canDelete = transaction.creatorId == currentUserId && !transaction.isVerified && onDelete != null;
     final canRequestCompletion = TransactionUtils.canUserRequestCompletion(transaction, currentUserId) && onRequestCompletion != null;
     
     return Row(

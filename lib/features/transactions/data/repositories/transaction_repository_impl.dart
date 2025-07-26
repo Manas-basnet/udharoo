@@ -38,21 +38,28 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         return ApiResult.failure('User not authenticated', FailureType.auth);
       }
 
-      String? recipientUserId;
-      if (transaction.verificationRequired && transaction.contactPhone != null) {
-        recipientUserId = await _remoteDatasource.verifyPhoneExists(transaction.contactPhone!);
-        if (recipientUserId == null) {
+      String? recipientId;
+      if (transaction.verificationRequired && transaction.recipientPhone != null) {
+        recipientId = await _remoteDatasource.verifyPhoneExists(transaction.recipientPhone!);
+        if (recipientId == null) {
           return ApiResult.failure('User with this phone number does not exist', FailureType.validation);
         }
       }
 
-      final transactionWithRecipient = TransactionModel.fromEntity(
-        transaction.copyWith(recipientUserId: recipientUserId),
+      final userPhone = _firebaseAuth.currentUser?.phoneNumber ?? '';
+      
+      final transactionWithDetails = TransactionModel.fromEntity(
+        transaction.copyWith(
+          creatorId: _currentUserId!,
+          recipientId: recipientId,
+          creatorPhone: userPhone,
+          recipientPhone: transaction.verificationRequired ? transaction.recipientPhone : null,
+        ),
       );
       
       return handleRemoteCallFirst<Transaction>(
         remoteCall: () async {
-          final result = await _remoteDatasource.createTransaction(transactionWithRecipient);
+          final result = await _remoteDatasource.createTransaction(transactionWithDetails);
           return ApiResult.success(result);
         },
         saveLocalData: (data) async {
@@ -78,7 +85,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
       }
 
       final cached = await _localDatasource.getCachedTransactions(_currentUserId!);
-      List<TransactionModel> filtered = cached.where((t) => t.status != TransactionStatus.completed).toList();
+      List<TransactionModel> filtered = cached.where((t) => t.status != TransactionStatus.completed && !t.isDeleted).toList();
 
       if (status != null) {
         filtered = filtered.where((t) => t.status == status).toList();
@@ -92,7 +99,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         final searchLower = searchQuery.toLowerCase();
         filtered = filtered.where((transaction) {
           return transaction.contactName.toLowerCase().contains(searchLower) ||
-                 (transaction.contactPhone?.contains(searchQuery) ?? false) ||
+                 (transaction.recipientPhone?.contains(searchQuery) ?? false) ||
                  (transaction.description?.toLowerCase().contains(searchLower) ?? false);
         }).toList();
       }
@@ -141,7 +148,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
           final deletedTransactionIds = results[1] as List<String>;
 
           final activeTransactions = updatedTransactions
-              .where((t) => t.status != TransactionStatus.completed)
+              .where((t) => t.status != TransactionStatus.completed && !t.isDeleted)
               .toList();
           
           if (deletedTransactionIds.isNotEmpty) {
@@ -179,7 +186,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
       return handleCacheCallFirst<Transaction>(
         localCall: () async {
           final cached = await _localDatasource.getCachedTransaction(_currentUserId!, id);
-          if (cached != null) {
+          if (cached != null && !cached.isDeleted) {
             return ApiResult.success(cached);
           }
           return ApiResult.failure('Transaction not found in cache', FailureType.noData);
@@ -204,16 +211,16 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         return ApiResult.failure('User not authenticated', FailureType.auth);
       }
 
-      String? recipientUserId = transaction.recipientUserId;
-      if (transaction.verificationRequired && transaction.contactPhone != null && recipientUserId == null) {
-        recipientUserId = await _remoteDatasource.verifyPhoneExists(transaction.contactPhone!);
-        if (recipientUserId == null) {
+      String? recipientId = transaction.recipientId;
+      if (transaction.verificationRequired && transaction.recipientPhone != null && recipientId == null) {
+        recipientId = await _remoteDatasource.verifyPhoneExists(transaction.recipientPhone!);
+        if (recipientId == null) {
           return ApiResult.failure('User with this phone number does not exist', FailureType.validation);
         }
       }
 
       final transactionModel = TransactionModel.fromEntity(
-        transaction.copyWith(recipientUserId: recipientUserId),
+        transaction.copyWith(recipientId: recipientId),
       );
       
       return handleRemoteCallFirst<Transaction>(
@@ -282,9 +289,9 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
           final transaction = await _remoteDatasource.getTransactionById(id, _currentUserId!);
           
           String userRole;
-          if (transaction.createdBy == _currentUserId) {
+          if (transaction.creatorId == _currentUserId) {
             userRole = 'creator';
-          } else if (transaction.recipientUserId == _currentUserId) {
+          } else if (transaction.recipientId == _currentUserId) {
             userRole = 'recipient';
           } else {
             throw Exception('User not authorized to complete this transaction');
@@ -455,7 +462,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
       }
 
       final cached = await _localDatasource.getCachedTransactions(_currentUserId!);
-      final activeTransactions = cached.where((t) => t.status != TransactionStatus.completed).toList();
+      final activeTransactions = cached.where((t) => t.status != TransactionStatus.completed && !t.isDeleted).toList();
       
       if (activeTransactions.isNotEmpty) {
         final stats = _calculateStatsFromTransactions(activeTransactions);
@@ -553,7 +560,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
     double totalBorrowing = 0;
 
     for (final transaction in transactions) {
-      if (transaction.status == TransactionStatus.completed) continue;
+      if (transaction.status == TransactionStatus.completed || transaction.isDeleted) continue;
       
       totalTransactions++;
 

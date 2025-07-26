@@ -71,7 +71,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       final transaction = widget.transaction!;
       _selectedType = transaction.type;
       _amount = transaction.amount;
-      _contactPhone = transaction.contactPhone;
+      _contactPhone = transaction.recipientPhone;
       _contactName = transaction.contactName;
       _contactEmail = transaction.contactEmail;
       _dueDate = transaction.dueDate;
@@ -202,20 +202,26 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       return;
     }
 
+    final user = authState.user;
+    final userPhone = user.phoneNumber ?? '';
+    final now = DateTime.now();
+
     final transaction = Transaction(
       id: widget.transaction?.id ?? '',
-      type: _selectedType,
-      amount: _amount!,
-      contactPhone: _verificationRequired ? _contactPhone : null,
+      creatorId: user.uid,
+      recipientId: null,
+      creatorPhone: userPhone,
+      recipientPhone: _verificationRequired ? _contactPhone : null,
       contactName: _contactName,
       contactEmail: _contactEmail?.isEmpty == true ? null : _contactEmail,
+      type: _selectedType,
+      amount: _amount!,
       description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
       dueDate: _dueDate,
       verificationRequired: _verificationRequired,
       status: TransactionStatus.pending,
-      createdAt: widget.transaction?.createdAt ?? DateTime.now(),
-      updatedAt: DateTime.now(),
-      createdBy: authState.user.uid,
+      createdAt: widget.transaction?.createdAt ?? now,
+      updatedAt: now,
     );
 
     if (widget.transaction != null) {

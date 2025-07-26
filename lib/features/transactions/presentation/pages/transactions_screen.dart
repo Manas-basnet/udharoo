@@ -653,9 +653,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     onComplete: TransactionUtils.canUserComplete(transaction, _getCurrentUserId() ?? '')
                         ? () => _completeTransaction(transaction)
                         : null,
-                    onDelete: transaction.createdBy == _getCurrentUserId() && !transaction.isVerified
-                        ? () => _deleteTransaction(transaction)
-                        : null,
+                    onDelete: transaction.creatorId == _getCurrentUserId() && !transaction.isVerified
+                                        ? () => _deleteTransaction(transaction)
+                                        : null,
                     onRequestCompletion: TransactionUtils.canUserRequestCompletion(transaction, _getCurrentUserId() ?? '')
                         ? () => _requestCompletion(transaction)
                         : null,

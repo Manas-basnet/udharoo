@@ -160,7 +160,7 @@ class TransactionUtils {
       final query = searchQuery.toLowerCase();
       filtered = filtered.where((t) =>
           t.contactName.toLowerCase().contains(query) ||
-          (t.contactPhone?.contains(searchQuery) ?? false) ||
+          (t.recipientPhone?.contains(searchQuery) ?? false) ||
           (t.description?.toLowerCase().contains(query) ?? false)).toList();
     }
 
@@ -175,7 +175,9 @@ class TransactionUtils {
     int completedTransactions = 0;
 
     for (final transaction in transactions) {
-      if (transaction.status != TransactionStatus.cancelled && transaction.status != TransactionStatus.completed) {
+      if (transaction.status != TransactionStatus.cancelled && 
+          transaction.status != TransactionStatus.completed &&
+          !transaction.isDeleted) {
         if (transaction.type == TransactionType.lending) {
           totalLending += transaction.amount;
           if (transaction.status == TransactionStatus.pending) {
@@ -208,25 +210,27 @@ class TransactionUtils {
   }
 
   static String getTransactionIdentifier(Transaction transaction) {
-    if (transaction.contactPhone != null) {
-      return '${transaction.contactName} (${transaction.contactPhone})';
+    if (transaction.recipientPhone != null) {
+      return '${transaction.contactName} (${transaction.recipientPhone})';
     }
     return transaction.contactName;
   }
 
   static bool requiresVerification(Transaction transaction) {
-    return transaction.verificationRequired && transaction.contactPhone != null;
+    return transaction.verificationRequired && transaction.recipientPhone != null;
   }
 
   static bool canUserVerify(Transaction transaction, String currentUserId) {
     return transaction.verificationRequired && 
-           transaction.recipientUserId == currentUserId && 
+           transaction.recipientId == currentUserId && 
            !transaction.isVerified &&
            transaction.status == TransactionStatus.pending;
   }
 
   static bool canUserComplete(Transaction transaction, String currentUserId) {
-    if (transaction.status == TransactionStatus.completed || transaction.status == TransactionStatus.cancelled) {
+    if (transaction.status == TransactionStatus.completed || 
+        transaction.status == TransactionStatus.cancelled ||
+        transaction.isDeleted) {
       return false;
     }
 
@@ -234,8 +238,8 @@ class TransactionUtils {
       return false;
     }
 
-    final isCreator = transaction.createdBy == currentUserId;
-    final isRecipient = transaction.recipientUserId == currentUserId;
+    final isCreator = transaction.creatorId == currentUserId;
+    final isRecipient = transaction.recipientId == currentUserId;
 
     if (transaction.type == TransactionType.lending) {
       return isCreator;
@@ -249,18 +253,18 @@ class TransactionUtils {
       return false;
     }
 
-    final isCreator = transaction.createdBy == currentUserId;
-    final isRecipient = transaction.recipientUserId == currentUserId;
+    final isCreator = transaction.creatorId == currentUserId;
+    final isRecipient = transaction.recipientId == currentUserId;
 
     if (transaction.type == TransactionType.lending) {
-      return isRecipient && transaction.recipientUserId != null;
+      return isRecipient && transaction.recipientId != null;
     } else {
       return isCreator;
     }
   }
 
   static String getCompletionButtonText(Transaction transaction, String currentUserId) {
-    final isCreator = transaction.createdBy == currentUserId;
+    final isCreator = transaction.creatorId == currentUserId;
     
     if (transaction.type == TransactionType.lending && isCreator) {
       return 'Mark as Completed';

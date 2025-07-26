@@ -26,8 +26,8 @@ class TransactionFormCubit extends Cubit<TransactionFormState> {
   Future<void> createTransaction(Transaction transaction) async {
     emit(const TransactionFormLoading());
 
-    if (transaction.verificationRequired && transaction.contactPhone != null) {
-      final phoneVerificationResult = await verifyPhoneExistsUseCase(transaction.contactPhone!);
+    if (transaction.verificationRequired && transaction.recipientPhone != null) {
+      final phoneVerificationResult = await verifyPhoneExistsUseCase(transaction.recipientPhone!);
       
       final phoneValidationFailed = phoneVerificationResult.fold(
         onSuccess: (userId) => userId == null,
@@ -53,8 +53,8 @@ class TransactionFormCubit extends Cubit<TransactionFormState> {
   Future<void> updateTransaction(Transaction transaction) async {
     emit(const TransactionFormLoading());
 
-    if (transaction.verificationRequired && transaction.contactPhone != null) {
-      final phoneVerificationResult = await verifyPhoneExistsUseCase(transaction.contactPhone!);
+    if (transaction.verificationRequired && transaction.recipientPhone != null) {
+      final phoneVerificationResult = await verifyPhoneExistsUseCase(transaction.recipientPhone!);
       
       final phoneValidationFailed = phoneVerificationResult.fold(
         onSuccess: (userId) => userId == null,
