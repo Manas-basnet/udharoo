@@ -73,7 +73,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverAppBar(
-            expandedHeight: 510,
+            expandedHeight: 470,
             floating: true,
             pinned: true,
             snap: false,

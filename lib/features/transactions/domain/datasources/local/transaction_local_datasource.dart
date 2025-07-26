@@ -12,4 +12,6 @@ abstract class TransactionLocalDatasource {
   Future<void> setLastSyncTimestamp(String userId, DateTime timestamp);
   Future<DateTime?> getLastSyncTimestamp(String userId);
   Future<void> mergeTransactions(String userId, List<TransactionModel> transactions);
+  
+  Future<void> removeDeletedTransactions(String userId, List<String> deletedTransactionIds);
 }

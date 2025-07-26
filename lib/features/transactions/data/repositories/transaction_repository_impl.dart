@@ -121,15 +121,33 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
       
       return handleRemoteCallFirst<List<Transaction>>(
         remoteCall: () async {
-          final result = await _remoteDatasource.getTransactions(
-            userId: _currentUserId,
-            status: status,
-            type: type,
-            searchQuery: searchQuery,
-            limit: limit,
-            lastSyncTime: lastSyncTime,
-          );
-          final activeTransactions = result.where((t) => t.status != TransactionStatus.completed).toList();
+          final results = await Future.wait([
+            _remoteDatasource.getTransactions(
+              userId: _currentUserId,
+              status: status,
+              type: type,
+              searchQuery: searchQuery,
+              limit: limit,
+              lastSyncTime: lastSyncTime,
+            ),
+            
+            _remoteDatasource.getDeletedTransactions(
+              userId: _currentUserId!,
+              lastSyncTime: lastSyncTime,
+            ),
+          ]);
+
+          final updatedTransactions = results[0] as List<TransactionModel>;
+          final deletedTransactionIds = results[1] as List<String>;
+
+          final activeTransactions = updatedTransactions
+              .where((t) => t.status != TransactionStatus.completed)
+              .toList();
+          
+          if (deletedTransactionIds.isNotEmpty) {
+            await _localDatasource.removeDeletedTransactions(_currentUserId!, deletedTransactionIds);
+          }
+
           return ApiResult.success(activeTransactions.cast<Transaction>());
         },
         saveLocalData: (data) async {

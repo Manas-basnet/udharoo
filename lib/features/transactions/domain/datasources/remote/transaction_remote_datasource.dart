@@ -15,6 +15,10 @@ abstract class TransactionRemoteDatasource {
     String? lastDocumentId,
     DateTime? lastSyncTime,
   });
+  Future<List<String>> getDeletedTransactions({
+    required String userId,
+    DateTime? lastSyncTime,
+  });
   Future<TransactionModel> getTransactionById(String id, String userId);
   Future<TransactionModel> updateTransaction(TransactionModel transaction);
   Future<void> deleteTransaction(String id, String userId);

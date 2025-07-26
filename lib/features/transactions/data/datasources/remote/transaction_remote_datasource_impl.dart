@@ -127,6 +127,25 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
   }
 
   @override
+  Future<List<String>> getDeletedTransactions({
+    required String userId,
+    DateTime? lastSyncTime,
+  }) async {
+    Query query = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('deleted_transactions');
+
+    if (lastSyncTime != null) {
+      query = query.where('deletedAt', isGreaterThan: Timestamp.fromDate(lastSyncTime));
+    }
+
+    final querySnapshot = await query.get();
+    
+    return querySnapshot.docs.map((doc) => doc.id).toList();
+  }
+
+  @override
   Future<TransactionModel> getTransactionById(String id, String userId) async {
     final userRole = await _getUserRoleForTransaction(id, userId);
     
@@ -235,6 +254,7 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
     }
 
     final batch = _firestore.batch();
+    final deletedAt = DateTime.now();
 
     final creatorDocRef = _firestore
         .collection('users')
@@ -243,6 +263,17 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         .doc(id);
 
     batch.delete(creatorDocRef);
+
+    final deletionTrackingRef = _firestore
+        .collection('users')
+        .doc(transaction.createdBy)
+        .collection('deleted_transactions')
+        .doc(id);
+
+    batch.set(deletionTrackingRef, {
+      'deletedAt': Timestamp.fromDate(deletedAt),
+      'type': 'deleted',
+    });
 
     if (transaction.recipientUserId != null) {
       final recipientDocRef = _firestore
@@ -260,6 +291,17 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
           .doc(id);
 
       batch.delete(recipientTransactionDocRef);
+
+      final recipientDeletionTrackingRef = _firestore
+          .collection('users')
+          .doc(transaction.recipientUserId)
+          .collection('deleted_transactions')
+          .doc(id);
+
+      batch.set(recipientDeletionTrackingRef, {
+        'deletedAt': Timestamp.fromDate(deletedAt),
+        'type': 'deleted',
+      });
     }
 
     await batch.commit();
@@ -338,6 +380,7 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
     await moveTransactionToFinished(completedTransaction);
 
     final batch = _firestore.batch();
+    final deletedAt = DateTime.now();
 
     final creatorDocRef = _firestore
         .collection('users')
@@ -346,6 +389,17 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         .doc(id);
 
     batch.delete(creatorDocRef);
+
+    final deletionTrackingRef = _firestore
+        .collection('users')
+        .doc(transaction.createdBy)
+        .collection('deleted_transactions')
+        .doc(id);
+
+    batch.set(deletionTrackingRef, {
+      'deletedAt': Timestamp.fromDate(deletedAt),
+      'type': 'completed',
+    });
 
     if (transaction.recipientUserId != null) {
       final recipientDocRef = _firestore
@@ -363,6 +417,17 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
           .doc(id);
 
       batch.delete(recipientTransactionDocRef);
+
+      final recipientDeletionTrackingRef = _firestore
+          .collection('users')
+          .doc(transaction.recipientUserId)
+          .collection('deleted_transactions')
+          .doc(id);
+
+      batch.set(recipientDeletionTrackingRef, {
+        'deletedAt': Timestamp.fromDate(deletedAt),
+        'type': 'completed',
+      });
     }
 
     await batch.commit();

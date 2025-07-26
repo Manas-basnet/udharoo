@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:udharoo/features/transactions/data/models/transaction_model.dart';
+import 'package:udharoo/features/transactions/data/models/qr_data_model.dart';
 import 'package:udharoo/features/transactions/domain/datasources/local/transaction_local_datasource.dart';
+import 'package:udharoo/features/transactions/domain/enums/transaction_type.dart';
+import 'package:udharoo/features/transactions/domain/enums/transaction_status.dart';
 
 class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
   static const String _transactionsKey = 'cached_transactions';
@@ -16,7 +19,7 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
   Future<void> cacheTransactions(String userId, List<TransactionModel> transactions) async {
     final prefs = await SharedPreferences.getInstance();
     final transactionsJson = transactions
-        .map((transaction) => transaction.toJson())
+        .map((transaction) => _transactionToLocalJson(transaction))
         .toList();
     
     await prefs.setString(_getUserTransactionsKey(userId), jsonEncode(transactionsJson));
@@ -33,7 +36,7 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
 
     final transactionsJson = jsonDecode(transactionsString) as List<dynamic>;
     return transactionsJson
-        .map((json) => TransactionModel.fromJson(json as Map<String, dynamic>))
+        .map((json) => _transactionFromLocalJson(json as Map<String, dynamic>))
         .toList();
   }
 
@@ -42,7 +45,7 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       _getUserTransactionKey(userId, transaction.id),
-      jsonEncode(transaction.toJson()),
+      jsonEncode(_transactionToLocalJson(transaction)),
     );
   }
 
@@ -56,7 +59,7 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
     }
 
     final transactionJson = jsonDecode(transactionString) as Map<String, dynamic>;
-    return TransactionModel.fromJson(transactionJson);
+    return _transactionFromLocalJson(transactionJson);
   }
 
   @override
@@ -126,5 +129,105 @@ class TransactionLocalDatasourceImpl implements TransactionLocalDatasource {
     mergedTransactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     
     await cacheTransactions(userId, mergedTransactions);
+  }
+
+  @override
+  Future<void> removeDeletedTransactions(String userId, List<String> deletedTransactionIds) async {
+    if (deletedTransactionIds.isEmpty) return;
+
+    final existingTransactions = await getCachedTransactions(userId);
+    final filteredTransactions = existingTransactions
+        .where((transaction) => !deletedTransactionIds.contains(transaction.id))
+        .toList();
+    
+    await cacheTransactions(userId, filteredTransactions);
+
+    for (final id in deletedTransactionIds) {
+      await removeCachedTransaction(userId, id);
+    }
+  }
+
+  Map<String, dynamic> _transactionToLocalJson(TransactionModel transaction) {
+    return {
+      'id': transaction.id,
+      'type': transaction.type.name,
+      'amount': transaction.amount,
+      'contactPhone': transaction.contactPhone,
+      'contactName': transaction.contactName,
+      'contactEmail': transaction.contactEmail,
+      'description': transaction.description,
+      'dueDate': transaction.dueDate?.toIso8601String(),
+      'isVerified': transaction.isVerified,
+      'verificationRequired': transaction.verificationRequired,
+      'status': transaction.status.name,
+      'createdAt': transaction.createdAt.toIso8601String(),
+      'updatedAt': transaction.updatedAt.toIso8601String(),
+      'createdBy': transaction.createdBy,
+      'verifiedBy': transaction.verifiedBy,
+      'qrGeneratedData': transaction.qrGeneratedData != null
+          ? _qrDataToLocalJson(transaction.qrGeneratedData!)
+          : null,
+      'recipientUserId': transaction.recipientUserId,
+      'completionRequested': transaction.completionRequested,
+      'completionRequestedBy': transaction.completionRequestedBy,
+      'completionRequestedAt': transaction.completionRequestedAt?.toIso8601String(),
+    };
+  }
+
+  TransactionModel _transactionFromLocalJson(Map<String, dynamic> json) {
+    return TransactionModel(
+      id: json['id'] as String,
+      type: TransactionType.values.firstWhere(
+        (e) => e.name == json['type'],
+      ),
+      amount: (json['amount'] as num).toDouble(),
+      contactPhone: json['contactPhone'] as String?,
+      contactName: json['contactName'] as String,
+      contactEmail: json['contactEmail'] as String?,
+      description: json['description'] as String?,
+      dueDate: json['dueDate'] != null 
+          ? DateTime.parse(json['dueDate'] as String)
+          : null,
+      isVerified: json['isVerified'] as bool? ?? false,
+      verificationRequired: json['verificationRequired'] as bool? ?? false,
+      status: TransactionStatus.values.firstWhere(
+        (e) => e.name == json['status'],
+      ),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      createdBy: json['createdBy'] as String,
+      verifiedBy: json['verifiedBy'] as String?,
+      qrGeneratedData: json['qrGeneratedData'] != null
+          ? _qrDataFromLocalJson(json['qrGeneratedData'] as Map<String, dynamic>)
+          : null,
+      recipientUserId: json['recipientUserId'] as String?,
+      completionRequested: json['completionRequested'] as bool? ?? false,
+      completionRequestedBy: json['completionRequestedBy'] as String?,
+      completionRequestedAt: json['completionRequestedAt'] != null
+          ? DateTime.parse(json['completionRequestedAt'] as String)
+          : null,
+    );
+  }
+
+  Map<String, dynamic> _qrDataToLocalJson(dynamic qrData) {
+    return {
+      'userPhone': qrData.userPhone,
+      'userName': qrData.userName,
+      'userEmail': qrData.userEmail,
+      'verificationRequired': qrData.verificationRequired,
+      'generatedAt': qrData.generatedAt.toIso8601String(),
+      'customMessage': qrData.customMessage,
+    };
+  }
+
+  dynamic _qrDataFromLocalJson(Map<String, dynamic> json) {
+    return QRDataModel(
+      userPhone: json['userPhone'] as String,
+      userName: json['userName'] as String,
+      userEmail: json['userEmail'] as String?,
+      verificationRequired: json['verificationRequired'] as bool,
+      generatedAt: DateTime.parse(json['generatedAt'] as String),
+      customMessage: json['customMessage'] as String?,
+    );
   }
 }
