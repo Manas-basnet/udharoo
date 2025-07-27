@@ -20,22 +20,23 @@ class TransactionDetailScreen extends StatelessWidget {
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Transaction Details'),
-        backgroundColor: theme.appBarTheme.backgroundColor,
-        foregroundColor: theme.appBarTheme.foregroundColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildTransactionHeader(context, theme),
-            const SizedBox(height: 12),
-            _buildTransactionInfo(context, theme),
-            const SizedBox(height: 12),
-            _buildDeviceInfo(context, theme),
-            const SizedBox(height: 12),
-            _buildActivityTimeline(context, theme),
-            const SizedBox(height: 12),
-            if (_shouldShowActions()) _buildActionButtons(context, theme),
+            _buildAmountSection(theme),
+            const SizedBox(height: 24),
+            _buildInfoSection(theme),
+            const SizedBox(height: 24),
+            _buildTimelineSection(theme),
+            const SizedBox(height: 24),
+            _buildDeviceSection(theme),
+            const SizedBox(height: 24),
+            if (_shouldShowActions()) _buildActionSection(context, theme),
             const SizedBox(height: 24),
           ],
         ),
@@ -43,50 +44,49 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTransactionHeader(BuildContext context, ThemeData theme) {
+  Widget _buildAmountSection(ThemeData theme) {
     return Container(
-      margin: const EdgeInsets.all(16),
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: _getTransactionColor(theme).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              _getTransactionIcon(),
-              color: _getTransactionColor(theme),
-              size: 32,
-            ),
-          ),
-          const SizedBox(height: 16),
           Text(
-            '${transaction.isLent ? '+' : '-'}Rs. ${transaction.amount.toStringAsFixed(2)}',
-            style: theme.textTheme.headlineMedium?.copyWith(
-              color: _getTransactionColor(theme),
+            '${transaction.isLent ? '+' : '-'}Rs. ${_formatAmount(transaction.amount)}',
+            style: theme.textTheme.headlineLarge?.copyWith(
               fontWeight: FontWeight.w700,
+              color: _getTransactionColor(theme),
             ),
           ),
           const SizedBox(height: 8),
+          Text(
+            transaction.isLent 
+                ? 'You lent to ${transaction.otherParty.name}'
+                : 'You borrowed from ${transaction.otherParty.name}',
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: _getStatusColor(theme).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: _getStatusColor(theme).withValues(alpha: 0.3),
+              ),
             ),
             child: Text(
               _getStatusText(),
-              style: theme.textTheme.bodyMedium?.copyWith(
+              style: theme.textTheme.bodySmall?.copyWith(
                 color: _getStatusColor(theme),
                 fontWeight: FontWeight.w600,
               ),
@@ -97,73 +97,74 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTransactionInfo(BuildContext context, ThemeData theme) {
+  Widget _buildInfoSection(ThemeData theme) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Transaction Info',
+            'Transaction Information',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 12),
-          _buildInfoRow(
-            'Transaction ID',
-            transaction.transactionId,
-            theme,
-          ),
-          _buildInfoRow(
-            transaction.isLent ? 'Borrower' : 'Lender',
-            transaction.otherParty.name,
-            theme,
-          ),
-          _buildInfoRow(
-            'Description',
-            transaction.description,
-            theme,
-          ),
-          _buildInfoRow(
-            'Created',
-            _formatDateTime(transaction.createdAt),
-            theme,
-          ),
-          if (transaction.verifiedAt != null)
-            _buildInfoRow(
-              'Verified',
-              _formatDateTime(transaction.verifiedAt!),
-              theme,
-            ),
-          if (transaction.completedAt != null)
-            _buildInfoRow(
-              'Completed',
-              _formatDateTime(transaction.completedAt!),
-              theme,
-            ),
+          const SizedBox(height: 16),
+          _buildInfoRow('ID', transaction.transactionId, theme),
+          _buildInfoRow('Contact', transaction.otherParty.name, theme),
+          _buildInfoRow('Description', transaction.description, theme),
+          _buildInfoRow('Type', transaction.isLent ? 'Lent' : 'Borrowed', theme),
+          _buildInfoRow('Amount', 'Rs. ${_formatAmount(transaction.amount)}', theme),
         ],
       ),
     );
   }
 
-  Widget _buildDeviceInfo(BuildContext context, ThemeData theme) {
+  Widget _buildTimelineSection(ThemeData theme) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Timeline',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildTimelineItem('Created', _formatDateTime(transaction.createdAt), theme),
+          if (transaction.verifiedAt != null)
+            _buildTimelineItem('Verified', _formatDateTime(transaction.verifiedAt!), theme),
+          if (transaction.completedAt != null)
+            _buildTimelineItem('Completed', _formatDateTime(transaction.completedAt!), theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeviceSection(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -175,41 +176,28 @@ class TransactionDetailScreen extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 12),
-          _buildDeviceInfoSection(theme),
+          const SizedBox(height: 16),
+          _buildDeviceInfo(theme),
         ],
       ),
     );
   }
 
-  Widget _buildDeviceInfoSection(ThemeData theme) {
+  Widget _buildDeviceInfo(ThemeData theme) {
     final deviceInfos = <String>[];
     
-    // Created from device
     if (transaction.createdFromDevice != null) {
-      final deviceName = transaction.getDeviceDisplayName(transaction.createdFromDevice);
-      deviceInfos.add('Created From Device: $deviceName');
+      deviceInfos.add('Created from: ${transaction.getDeviceDisplayName(transaction.createdFromDevice)}');
     }
     
-    // Verified from device
     final verifiedDevice = transaction.getDeviceForAction(TransactionStatus.verified);
     if (verifiedDevice != null) {
-      final deviceName = transaction.getDeviceDisplayName(verifiedDevice);
-      deviceInfos.add('Verified From Device: $deviceName');
+      deviceInfos.add('Verified from: ${transaction.getDeviceDisplayName(verifiedDevice)}');
     }
     
-    // Completed from device
     final completedDevice = transaction.getDeviceForAction(TransactionStatus.completed);
     if (completedDevice != null) {
-      final deviceName = transaction.getDeviceDisplayName(completedDevice);
-      deviceInfos.add('Completed From Device: $deviceName');
-    }
-    
-    // Rejected from device
-    final rejectedDevice = transaction.getDeviceForAction(TransactionStatus.rejected);
-    if (rejectedDevice != null) {
-      final deviceName = transaction.getDeviceDisplayName(rejectedDevice);
-      deviceInfos.add('Rejected From Device: $deviceName');
+      deviceInfos.add('Completed from: ${transaction.getDeviceDisplayName(completedDevice)}');
     }
 
     if (deviceInfos.isEmpty) {
@@ -225,105 +213,38 @@ class TransactionDetailScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: deviceInfos.map((info) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          children: [
-            Icon(
-              Icons.phone_android,
-              size: 16,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                info,
-                style: theme.textTheme.bodyMedium,
-              ),
-            ),
-          ],
+        child: Text(
+          info,
+          style: theme.textTheme.bodyMedium,
         ),
       )).toList(),
     );
   }
 
-  Widget _buildActivityTimeline(BuildContext context, ThemeData theme) {
-    if (transaction.activities.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
+  Widget _buildActionSection(BuildContext context, ThemeData theme) {
+    final buttons = _getActionButtons(context, theme);
+    
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Activity Timeline',
+            'Actions',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 12),
-          ...transaction.activities.map((activity) => _buildActivityItem(activity, theme)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActivityItem(TransactionActivity activity, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: _getStatusColor(theme, activity.action).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              _getActivityIcon(activity.action),
-              size: 16,
-              color: _getStatusColor(theme, activity.action),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _getActivityTitle(activity.action),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _formatDateTime(activity.timestamp),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-                if (activity.deviceInfo != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    'From ${transaction.getDeviceDisplayName(activity.deviceInfo)}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+          const SizedBox(height: 16),
+          Row(
+            children: buttons,
           ),
         ],
       ),
@@ -332,23 +253,26 @@ class TransactionDetailScreen extends StatelessWidget {
 
   Widget _buildInfoRow(String label, String value, ThemeData theme) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100,
+            width: 80,
             child: Text(
               label,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: theme.textTheme.bodyMedium,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -356,11 +280,40 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, ThemeData theme) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+  Widget _buildTimelineItem(String title, String time, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        children: _getActionButtons(context, theme),
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  time,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -394,7 +347,7 @@ class TransactionDetailScreen extends StatelessWidget {
       buttons.add(
         Expanded(
           child: _ActionButton(
-            label: 'Mark as Complete',
+            label: 'Mark Complete',
             color: theme.colorScheme.primary,
             onPressed: () {
               cubit.completeTransaction(transaction.transactionId);
@@ -415,15 +368,8 @@ class TransactionDetailScreen extends StatelessWidget {
         : theme.colorScheme.error;
   }
 
-  IconData _getTransactionIcon() {
-    return transaction.isLent 
-        ? Icons.arrow_upward 
-        : Icons.arrow_downward;
-  }
-
-  Color _getStatusColor(ThemeData theme, [TransactionStatus? status]) {
-    status ??= transaction.status;
-    switch (status) {
+  Color _getStatusColor(ThemeData theme) {
+    switch (transaction.status) {
       case TransactionStatus.pendingVerification:
         return Colors.orange;
       case TransactionStatus.verified:
@@ -438,33 +384,7 @@ class TransactionDetailScreen extends StatelessWidget {
   String _getStatusText() {
     switch (transaction.status) {
       case TransactionStatus.pendingVerification:
-        return 'PENDING';
-      case TransactionStatus.verified:
-        return 'VERIFIED';
-      case TransactionStatus.completed:
-        return 'COMPLETED';
-      case TransactionStatus.rejected:
-        return 'REJECTED';
-    }
-  }
-
-  IconData _getActivityIcon(TransactionStatus action) {
-    switch (action) {
-      case TransactionStatus.pendingVerification:
-        return Icons.schedule;
-      case TransactionStatus.verified:
-        return Icons.verified;
-      case TransactionStatus.completed:
-        return Icons.check_circle;
-      case TransactionStatus.rejected:
-        return Icons.cancel;
-    }
-  }
-
-  String _getActivityTitle(TransactionStatus action) {
-    switch (action) {
-      case TransactionStatus.pendingVerification:
-        return 'Created';
+        return 'Pending';
       case TransactionStatus.verified:
         return 'Verified';
       case TransactionStatus.completed:
@@ -497,6 +417,16 @@ class TransactionDetailScreen extends StatelessWidget {
     return '$displayHour:$minute $period';
   }
 
+  String _formatAmount(double amount) {
+    if (amount >= 1000000) {
+      return '${(amount / 1000000).toStringAsFixed(1)}M';
+    } else if (amount >= 1000) {
+      return '${(amount / 1000).toStringAsFixed(0)}K';
+    } else {
+      return amount.toStringAsFixed(0);
+    }
+  }
+
   bool _shouldShowActions() {
     return (transaction.isPending && !_isCreatedByCurrentUser()) ||
            (transaction.isVerified && _canCompleteTransaction());
@@ -511,9 +441,12 @@ class TransactionDetailScreen extends StatelessWidget {
   }
 
   void _showRejectDialog(BuildContext context, TransactionCubit cubit) {
+    final theme = Theme.of(context);
+    
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        backgroundColor: theme.colorScheme.surface,
         title: const Text('Reject Transaction'),
         content: const Text('Are you sure you want to reject this transaction?'),
         actions: [
@@ -521,12 +454,16 @@ class TransactionDetailScreen extends StatelessWidget {
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () {
               cubit.rejectTransaction(transaction.transactionId);
               Navigator.of(dialogContext).pop();
               CustomToast.show(context, message: 'Transaction rejected', isSuccess: true);
             },
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Reject'),
           ),
         ],
@@ -549,22 +486,19 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 48,
-      child: ElevatedButton(
+      height: 44,
+      child: OutlinedButton(
         onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: color,
+          side: BorderSide(color: color),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
           ),
-          elevation: 0,
         ),
         child: Text(
           label,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
     );

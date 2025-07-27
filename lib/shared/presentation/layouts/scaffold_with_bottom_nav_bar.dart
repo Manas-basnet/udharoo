@@ -167,15 +167,10 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
   }
 
   void _onItemTapped(int index, BuildContext context) {
-    // Adjust index for the + button in the middle
-    int actualIndex = index;
-    if (index >= 2) {
-      actualIndex = index + 1;
-    }
-    
+    // Direct mapping - no adjustment needed since we handle the + button separately
     navigationShell.goBranch(
-      actualIndex,
-      initialLocation: actualIndex == navigationShell.currentIndex,
+      index,
+      initialLocation: index == navigationShell.currentIndex,
     );
   }
 
@@ -226,7 +221,7 @@ class _CreateActionBottomSheet extends StatelessWidget {
               subtitle: 'Add a new lending or borrowing record',
               onTap: () {
                 Navigator.of(context).pop();
-                context.go(Routes.transactionForm);;
+                context.push(Routes.transactionForm);;
               },
             ),
             const SizedBox(height: 16),

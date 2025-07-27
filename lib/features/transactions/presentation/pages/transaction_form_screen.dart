@@ -62,23 +62,21 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         return;
       }
 
-      final otherPartyUid = _selectedUser?.uid ?? 'manual_${_phoneController.text}';
-      final otherPartyName = _nameController.text.trim();
-      final description = _descriptionController.text.trim();
-
-      if (otherPartyName.isEmpty) {
+      if (_selectedUser == null) {
         CustomToast.show(
           context,
-          message: 'Please enter contact name',
+          message: 'Please select a valid registered contact',
           isSuccess: false,
         );
         return;
       }
 
+      final description = _descriptionController.text.trim();
+
       context.read<TransactionFormCubit>().createTransaction(
         amount: amount,
-        otherPartyUid: otherPartyUid,
-        otherPartyName: otherPartyName,
+        otherPartyUid: _selectedUser!.uid,
+        otherPartyName: _selectedUser!.displayName ?? _selectedUser!.fullName ?? '',
         description: description.isEmpty ? 'Transaction' : description,
         type: _selectedType!,
       );
@@ -107,6 +105,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               isSuccess: false,
             );
             break;
+          case TransactionFormUserNotFound():
+            setState(() {
+              _selectedUser = null;
+            });
+            break;
           default:
             break;
         }
@@ -120,12 +123,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           leading: IconButton(
             onPressed: () => context.pop(),
             icon: const Icon(Icons.close),
-            style: IconButton.styleFrom(
-              backgroundColor: theme.colorScheme.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
           ),
         ),
         body: Form(
@@ -135,10 +132,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 8),
-                
                 // Step 1: Transaction Type
-                _buildStepHeader('1', 'Choose Type', true),
+                _buildStepHeader('1', 'Choose Type'),
                 const SizedBox(height: 16),
                 TransactionTypeSelector(
                   selectedType: _selectedType,
@@ -149,10 +144,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   },
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
                 // Step 2: Amount
-                _buildStepHeader('2', 'Enter Amount', _selectedType != null),
+                _buildStepHeader('2', 'Enter Amount'),
                 const SizedBox(height: 16),
                 AmountInputWidget(
                   controller: _amountController,
@@ -171,10 +166,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   },
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
                 // Step 3: Contact
-                _buildStepHeader('3', 'Select Contact', _amountController.text.isNotEmpty),
+                _buildStepHeader('3', 'Select Contact'),
                 const SizedBox(height: 16),
                 ContactSelectorWidget(
                   phoneController: _phoneController,
@@ -190,26 +185,23 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     return null;
                   },
                   nameValidator: (value) {
-                    if (value?.trim().isEmpty ?? true) {
-                      return 'Name is required';
-                    }
-                    if (value!.trim().length < 2) {
-                      return 'Name must be at least 2 characters';
+                    if (_selectedUser == null) {
+                      return 'Please select a registered contact';
                     }
                     return null;
                   },
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
                 // Step 4: Description
-                _buildStepHeader('4', 'Add Description', _nameController.text.isNotEmpty),
+                _buildStepHeader('4', 'Add Description (Optional)'),
                 const SizedBox(height: 16),
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: theme.colorScheme.outline.withValues(alpha: 0.2),
                     ),
@@ -217,7 +209,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   child: TextFormField(
                     controller: _descriptionController,
                     decoration: InputDecoration(
-                      hintText: 'What was this for? (Optional)',
+                      hintText: 'What was this for?',
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
@@ -228,39 +220,40 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 32),
 
                 // Submit Button
                 BlocBuilder<TransactionFormCubit, TransactionFormState>(
                   builder: (context, state) {
                     final isLoading = state is TransactionFormLoading;
+                    final canSubmit = _selectedUser != null && 
+                                    _selectedType != null && 
+                                    _amountController.text.isNotEmpty;
 
                     return SizedBox(
-                      height: 56,
+                      height: 48,
                       child: FilledButton(
-                        onPressed: isLoading ? null : _handleSubmit,
+                        onPressed: (isLoading || !canSubmit) ? null : _handleSubmit,
                         style: FilledButton.styleFrom(
                           backgroundColor: theme.colorScheme.primary,
                           foregroundColor: theme.colorScheme.onPrimary,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          elevation: 0,
                         ),
                         child: isLoading
-                            ? SizedBox(
-                                width: 24,
-                                height: 24,
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: theme.colorScheme.onPrimary,
+                                  color: Colors.white,
                                 ),
                               )
                             : Text(
                                 'Create Transaction',
                                 style: theme.textTheme.bodyLarge?.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: theme.colorScheme.onPrimary,
                                 ),
                               ),
                       ),
@@ -268,7 +261,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   },
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -277,40 +270,33 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     );
   }
 
-  Widget _buildStepHeader(String stepNumber, String title, bool isActive) {
+  Widget _buildStepHeader(String stepNumber, String title) {
     final theme = Theme.of(context);
     
     return Row(
       children: [
         Container(
-          width: 32,
-          height: 32,
+          width: 24,
+          height: 24,
           decoration: BoxDecoration(
-            color: isActive 
-                ? theme.colorScheme.primary
-                : theme.colorScheme.outline.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(16),
+            color: theme.colorScheme.primary,
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Center(
             child: Text(
               stepNumber,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: isActive 
-                    ? theme.colorScheme.onPrimary
-                    : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         Text(
           title,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
-            color: isActive 
-                ? theme.colorScheme.onSurface
-                : theme.colorScheme.onSurface.withValues(alpha: 0.5),
           ),
         ),
       ],

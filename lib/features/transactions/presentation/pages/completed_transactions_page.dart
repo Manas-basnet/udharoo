@@ -147,15 +147,17 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
-    double totalCompletedAmount = 0;
+    double totalLent = 0;
+    double totalBorrowed = 0;
     int lentCount = 0;
     int borrowedCount = 0;
 
     for (final transaction in completedTransactions) {
-      totalCompletedAmount += transaction.amount;
       if (transaction.isLent) {
+        totalLent += transaction.amount;
         lentCount++;
       } else {
+        totalBorrowed += transaction.amount;
         borrowedCount++;
       }
     }
@@ -194,15 +196,15 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Total Completed',
+                        'Completed Transactions',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: Colors.green.shade700,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       Text(
-                        'Rs. ${_formatAmount(totalCompletedAmount)}',
-                        style: theme.textTheme.headlineSmall?.copyWith(
+                        '${completedTransactions.length} transactions completed',
+                        style: theme.textTheme.titleMedium?.copyWith(
                           color: Colors.green.shade800,
                           fontWeight: FontWeight.w700,
                         ),
@@ -216,8 +218,9 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
             Row(
               children: [
                 Expanded(
-                  child: _StatItem(
-                    title: 'Lent',
+                  child: _SummaryItem(
+                    title: 'Total Lent',
+                    amount: totalLent,
                     count: lentCount,
                     color: theme.colorScheme.primary,
                     icon: Icons.trending_up,
@@ -225,12 +228,13 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
                 ),
                 Container(
                   width: 1,
-                  height: 30,
+                  height: 40,
                   color: Colors.green.withValues(alpha: 0.3),
                 ),
                 Expanded(
-                  child: _StatItem(
-                    title: 'Borrowed',
+                  child: _SummaryItem(
+                    title: 'Total Borrowed',
+                    amount: totalBorrowed,
                     count: borrowedCount,
                     color: theme.colorScheme.error,
                     icon: Icons.trending_down,
@@ -400,26 +404,18 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
       ),
     );
   }
-
-  String _formatAmount(double amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(1)}M';
-    } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(0)}K';
-    } else {
-      return amount.toStringAsFixed(0);
-    }
-  }
 }
 
-class _StatItem extends StatelessWidget {
+class _SummaryItem extends StatelessWidget {
   final String title;
+  final double amount;
   final int count;
   final Color color;
   final IconData icon;
 
-  const _StatItem({
+  const _SummaryItem({
     required this.title,
+    required this.amount,
     required this.count,
     required this.color,
     required this.icon,
@@ -445,15 +441,32 @@ class _StatItem extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         Text(
-          count.toString(),
+          'Rs. ${_formatAmount(amount)}',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
             color: color,
           ),
         ),
+        Text(
+          '$count transactions',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: color.withValues(alpha: 0.7),
+            fontSize: 10,
+          ),
+        ),
       ],
     );
+  }
+
+  String _formatAmount(double amount) {
+    if (amount >= 1000000) {
+      return '${(amount / 1000000).toStringAsFixed(1)}M';
+    } else if (amount >= 1000) {
+      return '${(amount / 1000).toStringAsFixed(0)}K';
+    } else {
+      return amount.toStringAsFixed(0);
+    }
   }
 }
