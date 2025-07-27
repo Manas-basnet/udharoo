@@ -6,14 +6,14 @@ import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubi
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_list_item.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_search_delegate.dart';
 
-class RejectedTransactionsPage extends StatefulWidget {
-  const RejectedTransactionsPage({super.key});
+class PendingTransactionsPage extends StatefulWidget {
+  const PendingTransactionsPage({super.key});
 
   @override
-  State<RejectedTransactionsPage> createState() => _RejectedTransactionsPageState();
+  State<PendingTransactionsPage> createState() => _PendingTransactionsPageState();
 }
 
-class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
+class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -52,7 +52,7 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
   PreferredSizeWidget _buildAppBar(ThemeData theme) {
     return AppBar(
       title: Text(
-        'Rejected Transactions',
+        'Pending Transactions',
         style: theme.textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.w600,
         ),
@@ -66,14 +66,11 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
             return IconButton(
               onPressed: () {
                 if (state is TransactionLoaded) {
-                  final rejectedTransactions = state.transactions
-                      .where((t) => t.isRejected)
-                      .toList();
                   showSearch(
                     context: context,
                     delegate: TransactionSearchDelegate(
-                      transactions: rejectedTransactions,
-                      searchType: 'rejected',
+                      transactions: state.pendingTransactions,
+                      searchType: 'pending',
                     ),
                   );
                 }
@@ -92,11 +89,9 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
       return const SizedBox.shrink();
     }
 
-    final rejectedTransactions = state.transactions
-        .where((t) => t.isRejected)
-        .toList();
+    final pendingTransactions = state.pendingTransactions;
 
-    if (rejectedTransactions.isEmpty) {
+    if (pendingTransactions.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -105,7 +100,7 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
     int lentCount = 0;
     int borrowedCount = 0;
 
-    for (final transaction in rejectedTransactions) {
+    for (final transaction in pendingTransactions) {
       if (transaction.isLent) {
         totalLent += transaction.amount;
         lentCount++;
@@ -134,16 +129,16 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Colors.red.withValues(alpha: 0.3),
+                    color: Colors.orange.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
                 child: const Icon(
-                  Icons.cancel,
-                  color: Colors.red,
+                  Icons.schedule,
+                  color: Colors.orange,
                   size: 18,
                 ),
               ),
@@ -153,16 +148,16 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Rejected Transactions',
+                      'Pending Verification',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.red.shade700,
+                        color: Colors.orange.shade700,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     Text(
-                      '${rejectedTransactions.length} transactions rejected',
+                      '${pendingTransactions.length} transactions awaiting action',
                       style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.red.shade800,
+                        color: Colors.orange.shade800,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -214,20 +209,18 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
         return const Center(child: CircularProgressIndicator());
 
       case TransactionLoaded():
-        final rejectedTransactions = state.transactions
-            .where((t) => t.isRejected)
-            .toList()
+        final pendingTransactions = state.pendingTransactions
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-        if (rejectedTransactions.isEmpty) {
+        if (pendingTransactions.isEmpty) {
           return _buildEmptyState(theme);
         }
 
         return ListView.builder(
           controller: _scrollController,
-          itemCount: rejectedTransactions.length,
+          itemCount: pendingTransactions.length,
           itemBuilder: (context, index) {
-            final transaction = rejectedTransactions[index];
+            final transaction = pendingTransactions[index];
             return GestureDetector(
               onTap: () => context.push(
                 Routes.transactionDetail,
@@ -254,13 +247,13 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.thumb_up_outlined,
+              Icons.check_circle_outline,
               size: 48,
               color: Colors.green.withValues(alpha: 0.7),
             ),
             const SizedBox(height: 16),
             Text(
-              'No Rejected Transactions',
+              'All Caught Up!',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: theme.colorScheme.onSurface,
@@ -268,7 +261,7 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Great! You don\'t have any rejected transactions.',
+              'No pending transactions require your attention.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),

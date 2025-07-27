@@ -12,14 +12,16 @@ enum TransactionStatus {
 class OtherParty extends Equatable {
   final String uid;
   final String name;
+  final String phoneNumber;
 
   const OtherParty({
     required this.uid,
     required this.name,
+    required this.phoneNumber,
   });
 
   @override
-  List<Object?> get props => [uid, name];
+  List<Object?> get props => [uid, name, phoneNumber];
 }
 
 class DeviceInfo extends Equatable {
@@ -131,9 +133,6 @@ class Transaction extends Equatable {
 
   String getDeviceDisplayName(DeviceInfo? device) {
     if (device == null) return 'Unknown Device';
-    // if (device.model != null && device.model!.isNotEmpty) {
-    //   return device.model!;
-    // }
     return device.deviceName;
   }
 

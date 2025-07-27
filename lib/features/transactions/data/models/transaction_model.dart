@@ -108,12 +108,14 @@ class OtherPartyModel extends OtherParty {
   const OtherPartyModel({
     required super.uid,
     required super.name,
+    required super.phoneNumber,
   });
 
   factory OtherPartyModel.fromJson(Map<String, dynamic> json) {
     return OtherPartyModel(
       uid: json['uid'] as String,
       name: json['name'] as String,
+      phoneNumber: json['phoneNumber'] as String,
     );
   }
 
@@ -121,6 +123,7 @@ class OtherPartyModel extends OtherParty {
     return {
       'uid': uid,
       'name': name,
+      'phoneNumber': phoneNumber,
     };
   }
 
@@ -128,6 +131,7 @@ class OtherPartyModel extends OtherParty {
     return OtherPartyModel(
       uid: entity.uid,
       name: entity.name,
+      phoneNumber: entity.phoneNumber,
     );
   }
 }

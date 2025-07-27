@@ -11,6 +11,7 @@ class CreateTransactionUseCase {
     required double amount,
     required String otherPartyUid,
     required String otherPartyName,
+    required String otherPartyPhone,
     required String description,
     required TransactionType type,
   }) {
@@ -18,6 +19,7 @@ class CreateTransactionUseCase {
       amount: amount,
       otherPartyUid: otherPartyUid,
       otherPartyName: otherPartyName,
+      otherPartyPhone: otherPartyPhone,
       description: description,
       type: type,
     );

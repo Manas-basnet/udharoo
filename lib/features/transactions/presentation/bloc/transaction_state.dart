@@ -19,15 +19,19 @@ final class TransactionLoaded extends TransactionState {
   final List<Transaction> transactions;
   final List<Transaction> lentTransactions;
   final List<Transaction> borrowedTransactions;
+  final List<Transaction> pendingTransactions;
+  final List<Transaction> completedTransactions;
 
   const TransactionLoaded({
     required this.transactions,
     required this.lentTransactions,
     required this.borrowedTransactions,
+    required this.pendingTransactions,
+    required this.completedTransactions,
   });
 
   @override
-  List<Object?> get props => [transactions, lentTransactions, borrowedTransactions];
+  List<Object?> get props => [transactions, lentTransactions, borrowedTransactions, pendingTransactions];
 }
 
 final class TransactionError extends TransactionState {

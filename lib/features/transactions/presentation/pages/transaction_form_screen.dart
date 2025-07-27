@@ -76,6 +76,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       context.read<TransactionFormCubit>().createTransaction(
         amount: amount,
         otherPartyUid: _selectedUser!.uid,
+        otherPartyPhone: _selectedUser!.phoneNumber!,
         otherPartyName: _selectedUser!.displayName ?? _selectedUser!.fullName ?? '',
         description: description.isEmpty ? 'Transaction' : description,
         type: _selectedType!,

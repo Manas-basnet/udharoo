@@ -42,13 +42,17 @@ class TransactionCubit extends Cubit<TransactionState> {
     _transactionsSubscription = _getTransactionsUseCase().listen(
       (transactions) {
         if (!isClosed) {
-          final lentTransactions = transactions.where((t) => t.isLent).toList();
-          final borrowedTransactions = transactions.where((t) => t.isBorrowed).toList();
+          final lentTransactions = transactions.where((t) => t.isLent && (t.isVerified)).toList();
+          final borrowedTransactions = transactions.where((t) => t.isBorrowed && (t.isVerified)).toList();
+          final pendingTransactions = transactions.where((t) => t.isPending).toList();
+          final completedTransactions = transactions.where((t) => t.isCompleted).toList();
 
           emit(TransactionLoaded(
             transactions: transactions,
             lentTransactions: lentTransactions,
             borrowedTransactions: borrowedTransactions,
+            pendingTransactions: pendingTransactions,
+            completedTransactions: completedTransactions,
           ));
         }
       },
@@ -67,6 +71,7 @@ class TransactionCubit extends Cubit<TransactionState> {
     required double amount,
     required String otherPartyUid,
     required String otherPartyName,
+    required String otherPartyPhone,
     required String description,
     required TransactionType type,
   }) async {
@@ -78,6 +83,7 @@ class TransactionCubit extends Cubit<TransactionState> {
       amount: amount,
       otherPartyUid: otherPartyUid,
       otherPartyName: otherPartyName,
+      otherPartyPhone: otherPartyPhone,
       description: description,
       type: type,
     );

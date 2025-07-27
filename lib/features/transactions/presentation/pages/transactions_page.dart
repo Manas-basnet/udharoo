@@ -10,8 +10,6 @@ import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 enum TransactionFilter { 
   all, 
-  pending, 
-  verified, 
   lent, 
   borrowed,
 }
@@ -27,12 +25,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
   final ScrollController _scrollController = ScrollController();
   
   TransactionFilter _selectedFilter = TransactionFilter.all;
-  bool _showScrollToTop = false;
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TransactionCubit>().loadTransactions();
@@ -43,26 +39,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.offset > 300 && !_showScrollToTop) {
-      setState(() {
-        _showScrollToTop = true;
-      });
-    } else if (_scrollController.offset <= 300 && _showScrollToTop) {
-      setState(() {
-        _showScrollToTop = false;
-      });
-    }
-  }
-
-  void _scrollToTop() {
-    _scrollController.animateTo(
-      0,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-    );
   }
 
   @override
@@ -94,56 +70,37 @@ class _TransactionsPageState extends State<TransactionsPage> {
       builder: (context, state) {
         return Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
+          appBar: _buildAppBar(theme, state),
           body: RefreshIndicator(
             onRefresh: () async {
               context.read<TransactionCubit>().loadTransactions();
             },
-            child: CustomScrollView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                _buildSliverAppBar(theme, state),
+            child: Column(
+              children: [
                 _buildSummarySection(theme, state),
                 _buildFilterSection(theme),
-                _buildTransactionsList(state, theme),
+                Expanded(
+                  child: _buildTransactionsList(state, theme),
+                ),
               ],
             ),
           ),
-          floatingActionButton: _showScrollToTop
-              ? FloatingActionButton.small(
-                  onPressed: _scrollToTop,
-                  backgroundColor: theme.colorScheme.surface,
-                  foregroundColor: theme.colorScheme.primary,
-                  elevation: 4,
-                  child: const Icon(Icons.keyboard_arrow_up),
-                )
-              : null,
-          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         );
       },
     );
   }
 
-  Widget _buildSliverAppBar(ThemeData theme, TransactionState state) {
-    return SliverAppBar(
-      expandedHeight: 120,
-      floating: true,
-      pinned: true,
-      snap: false,
-      backgroundColor: theme.scaffoldBackgroundColor,
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
-      leading: Container(),
-      flexibleSpace: FlexibleSpaceBar(
-        titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
-        title: Text(
-          'Transactions',
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: theme.colorScheme.onSurface,
-          ),
+  PreferredSizeWidget _buildAppBar(ThemeData theme, TransactionState state) {
+    return AppBar(
+      title: Text(
+        'Transactions',
+        style: theme.textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w600,
         ),
       ),
+      backgroundColor: theme.colorScheme.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
       actions: [
         IconButton(
           onPressed: () {
@@ -152,159 +109,131 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 context: context,
                 delegate: TransactionSearchDelegate(
                   transactions: state.transactions,
+                  searchType: 'all',
                 ),
               );
             }
           },
-          icon: const Icon(Icons.search),
-          style: IconButton.styleFrom(
-            backgroundColor: theme.colorScheme.surface,
-            foregroundColor: theme.colorScheme.onSurface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
+          icon: const Icon(Icons.search, size: 20),
         ),
-        const SizedBox(width: 8),
+        IconButton(
+          onPressed: () => context.push(Routes.pendingTransactions),
+          icon: const Icon(Icons.schedule, size: 20),
+        ),
         IconButton(
           onPressed: () => context.push(Routes.completedTransactions),
-          icon: const Icon(Icons.history),
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.green.withValues(alpha: 0.1),
-            foregroundColor: Colors.green,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
+          icon: const Icon(Icons.check_circle_outline, size: 20),
         ),
-        const SizedBox(width: 8),
         IconButton(
           onPressed: () => context.push(Routes.rejectedTransactions),
-          icon: const Icon(Icons.cancel),
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.red.withValues(alpha: 0.1),
-            foregroundColor: Colors.red,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
+          icon: const Icon(Icons.cancel_outlined, size: 20),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 8),
       ],
     );
   }
 
   Widget _buildSummarySection(ThemeData theme, TransactionState state) {
     if (state is! TransactionLoaded) {
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
+      return const SizedBox.shrink();
     }
 
     double totalLent = 0;
     double totalBorrowed = 0;
-    int pendingCount = 0;
+    int pendingCount = state.pendingTransactions.length;
     
-    for (final transaction in state.transactions) {
-      if (transaction.isLent) {
-        totalLent += transaction.amount;
-      } else {
-        totalBorrowed += transaction.amount;
-      }
-      if (transaction.isPending) {
-        pendingCount++;
-      }
+    for (final transaction in state.lentTransactions) {
+      totalLent += transaction.amount;
+    }
+    
+    for (final transaction in state.borrowedTransactions) {
+      totalBorrowed += transaction.amount;
     }
 
-    return SliverToBoxAdapter(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
             color: theme.colorScheme.outline.withValues(alpha: 0.1),
+            width: 1,
           ),
         ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _SummaryItem(
-                    title: 'Total Lent',
-                    amount: totalLent,
-                    color: theme.colorScheme.primary,
-                    icon: Icons.trending_up,
-                  ),
+      ),
+      child: Column(
+        children: [
+          // Breakdown
+          Row(
+            children: [
+              Expanded(
+                child: _SummaryItem(
+                  title: 'Lent',
+                  amount: totalLent,
+                  color: Colors.green,
                 ),
-                Container(
-                  width: 1,
-                  height: 40,
-                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                ),
-                Expanded(
-                  child: _SummaryItem(
-                    title: 'Total Borrowed',
-                    amount: totalBorrowed,
-                    color: theme.colorScheme.error,
-                    icon: Icons.trending_down,
-                  ),
-                ),
-              ],
-            ),
-            if (pendingCount > 0) ...[
-              const SizedBox(height: 16),
+              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.pending,
-                      size: 16,
-                      color: Colors.orange.shade700,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$pendingCount pending verification',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.orange.shade700,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                width: 1,
+                height: 32,
+                color: theme.colorScheme.outline.withValues(alpha: 0.2),
+              ),
+              Expanded(
+                child: _SummaryItem(
+                  title: 'Borrowed',
+                  amount: totalBorrowed,
+                  color: Colors.red,
                 ),
               ),
             ],
+          ),
+          
+          if (pendingCount > 0) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: Colors.orange.withValues(alpha: 0.3),
+                  width: 0.5,
+                ),
+              ),
+              child: Text(
+                '$pendingCount pending verification',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.orange.shade700,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildFilterSection(ThemeData theme) {
-    return SliverToBoxAdapter(
-      child: Container(
-        height: 60,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          children: [
-            _buildFilterChip('All', TransactionFilter.all, theme),
-            const SizedBox(width: 8),
-            _buildFilterChip('Pending', TransactionFilter.pending, theme),
-            const SizedBox(width: 8),
-            _buildFilterChip('Verified', TransactionFilter.verified, theme),
-            const SizedBox(width: 8),
-            _buildFilterChip('Lent', TransactionFilter.lent, theme),
-            const SizedBox(width: 8),
-            _buildFilterChip('Borrowed', TransactionFilter.borrowed, theme),
-          ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
+            width: 1,
+          ),
         ),
+      ),
+      child: Row(
+        children: [
+          _buildFilterChip('All', TransactionFilter.all, theme),
+          const SizedBox(width: 8),
+          _buildFilterChip('Lent', TransactionFilter.lent, theme),
+          const SizedBox(width: 8),
+          _buildFilterChip('Borrowed', TransactionFilter.borrowed, theme),
+        ],
       ),
     );
   }
@@ -312,30 +241,35 @@ class _TransactionsPageState extends State<TransactionsPage> {
   Widget _buildFilterChip(String label, TransactionFilter filter, ThemeData theme) {
     final isSelected = _selectedFilter == filter;
     
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        if (selected) {
-          setState(() {
-            _selectedFilter = filter;
-          });
-        }
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilter = filter;
+        });
       },
-      selectedColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-      backgroundColor: theme.colorScheme.surface,
-      checkmarkColor: theme.colorScheme.primary,
-      labelStyle: TextStyle(
-        color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
-        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-      ),
-      side: BorderSide(
-        color: isSelected 
-            ? theme.colorScheme.primary 
-            : theme.colorScheme.outline.withValues(alpha: 0.3),
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? theme.colorScheme.primary.withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: isSelected 
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: isSelected 
+                ? theme.colorScheme.primary
+                : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
       ),
     );
   }
@@ -343,44 +277,35 @@ class _TransactionsPageState extends State<TransactionsPage> {
   Widget _buildTransactionsList(TransactionState state, ThemeData theme) {
     switch (state) {
       case TransactionLoading():
-        return const SliverFillRemaining(
-          child: Center(child: CircularProgressIndicator()),
-        );
+        return const Center(child: CircularProgressIndicator());
 
       case TransactionLoaded():
         final filteredTransactions = _getFilteredTransactions(state);
 
         if (filteredTransactions.isEmpty) {
-          return SliverFillRemaining(
-            child: _buildEmptyState(theme),
-          );
+          return _buildEmptyState(theme);
         }
 
-        return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final transaction = filteredTransactions[index];
-              return GestureDetector(
-                onTap: () => context.push(
-                  Routes.transactionDetail,
-                  extra: transaction,
-                ),
-                child: TransactionListItem(transaction: transaction),
-              );
-            },
-            childCount: filteredTransactions.length,
-          ),
+        return ListView.builder(
+          controller: _scrollController,
+          itemCount: filteredTransactions.length,
+          itemBuilder: (context, index) {
+            final transaction = filteredTransactions[index];
+            return GestureDetector(
+              onTap: () => context.push(
+                Routes.transactionDetail,
+                extra: transaction,
+              ),
+              child: TransactionListItem(transaction: transaction),
+            );
+          },
         );
 
       case TransactionError():
-        return SliverFillRemaining(
-          child: _buildErrorState(state.message, theme),
-        );
+        return _buildErrorState(state.message, theme);
 
       default:
-        return SliverFillRemaining(
-          child: _buildEmptyState(theme),
-        );
+        return _buildEmptyState(theme);
     }
   }
 
@@ -389,19 +314,16 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
     switch (_selectedFilter) {
       case TransactionFilter.all:
-        transactions = state.transactions;
-        break;
-      case TransactionFilter.pending:
-        transactions = state.transactions.where((t) => t.isPending).toList();
-        break;
-      case TransactionFilter.verified:
-        transactions = state.transactions.where((t) => t.isVerified).toList();
+        transactions = [...state.lentTransactions, ...state.borrowedTransactions]
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
       case TransactionFilter.lent:
-        transactions = state.lentTransactions;
+        transactions = state.lentTransactions
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
       case TransactionFilter.borrowed:
-        transactions = state.borrowedTransactions;
+        transactions = state.borrowedTransactions
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
     }
 
@@ -411,119 +333,92 @@ class _TransactionsPageState extends State<TransactionsPage> {
   Widget _buildEmptyState(ThemeData theme) {
     String message;
     String subtitle;
-    IconData icon;
 
     switch (_selectedFilter) {
       case TransactionFilter.all:
         message = 'No transactions yet';
         subtitle = 'Create your first transaction to get started';
-        icon = Icons.receipt_long;
-        break;
-      case TransactionFilter.pending:
-        message = 'No pending transactions';
-        subtitle = 'All your transactions are up to date';
-        icon = Icons.schedule;
-        break;
-      case TransactionFilter.verified:
-        message = 'No verified transactions';
-        subtitle = 'Verified transactions will appear here';
-        icon = Icons.verified;
         break;
       case TransactionFilter.lent:
         message = 'No lending records';
         subtitle = 'Money you lend will appear here';
-        icon = Icons.trending_up;
         break;
       case TransactionFilter.borrowed:
         message = 'No borrowing records';
         subtitle = 'Money you borrow will appear here';
-        icon = Icons.trending_down;
         break;
     }
 
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 48,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
-            child: Icon(icon, size: 40, color: theme.colorScheme.primary),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            message,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface,
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
+            const SizedBox(height: 8),
+            Text(
               subtitle,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildErrorState(String message, ThemeData theme) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.error.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
               Icons.error_outline,
-              size: 40,
+              size: 48,
               color: theme.colorScheme.error,
             ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Something went wrong',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.error,
+            const SizedBox(height: 16),
+            Text(
+              'Something went wrong',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: theme.colorScheme.error,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
+            const SizedBox(height: 8),
+            Text(
               message,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: 20),
-          OutlinedButton.icon(
-            onPressed: () {
-              context.read<TransactionCubit>().loadTransactions();
-            },
-            icon: const Icon(Icons.refresh),
-            label: const Text('Try Again'),
-          ),
-        ],
+            const SizedBox(height: 16),
+            OutlinedButton(
+              onPressed: () {
+                context.read<TransactionCubit>().loadTransactions();
+              },
+              child: const Text('Try Again'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -533,13 +428,11 @@ class _SummaryItem extends StatelessWidget {
   final String title;
   final double amount;
   final Color color;
-  final IconData icon;
 
   const _SummaryItem({
     required this.title,
     required this.amount,
     required this.color,
-    required this.icon,
   });
 
   @override
@@ -548,25 +441,18 @@ class _SummaryItem extends StatelessWidget {
 
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 6),
-            Text(
-              title,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+        Text(
+          title,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            fontWeight: FontWeight.w500,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           'Rs. ${_formatAmount(amount)}',
           style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
             color: color,
           ),
         ),

@@ -55,6 +55,7 @@ class TransactionFormCubit extends Cubit<TransactionFormState> {
     required double amount,
     required String otherPartyUid,
     required String otherPartyName,
+    required String otherPartyPhone,
     required String description,
     required TransactionType type,
   }) async {
@@ -66,6 +67,7 @@ class TransactionFormCubit extends Cubit<TransactionFormState> {
       amount: amount,
       otherPartyUid: otherPartyUid,
       otherPartyName: otherPartyName,
+      otherPartyPhone: otherPartyPhone,
       description: description,
       type: type,
     );

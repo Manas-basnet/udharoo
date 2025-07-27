@@ -6,6 +6,7 @@ class Routes {
   static const String transactions = '/transactions';
   static const String transactionForm = '/transaction-form';
   static const String transactionDetail = '/transactions/transaction-detail';
+  static const String pendingTransactions = '/transactions/pending-transactions';
   static const String completedTransactions = '/transactions/completed-transactions';
   static const String rejectedTransactions = '/transactions/rejected-transactions';
   static const String contacts = '/contacts';

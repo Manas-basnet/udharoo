@@ -37,6 +37,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
     required double amount,
     required String otherPartyUid,
     required String otherPartyName,
+    required String otherPartyPhone,
     required String description,
     required TransactionType type,
   }) async {
@@ -51,6 +52,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         otherParty: OtherPartyModel(
           uid: otherPartyUid,
           name: otherPartyName,
+          phoneNumber: otherPartyPhone,
         ),
         description: description,
         status: TransactionStatus.pendingVerification,

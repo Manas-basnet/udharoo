@@ -6,6 +6,7 @@ abstract class TransactionRepository {
     required double amount,
     required String otherPartyUid,
     required String otherPartyName,
+    required String otherPartyPhone,
     required String description,
     required TransactionType type,
   });

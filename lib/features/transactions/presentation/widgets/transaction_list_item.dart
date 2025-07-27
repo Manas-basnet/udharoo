@@ -17,126 +17,135 @@ class TransactionListItem extends StatelessWidget {
     final theme = Theme.of(context);
     
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      margin: const EdgeInsets.only(bottom: 1),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
+            width: 1,
+          ),
         ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            // Main transaction info
-            Row(
-              children: [
-                _buildTransactionIcon(theme),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            // Transaction type indicator
+            Container(
+              width: 4,
+              height: 48,
+              decoration: BoxDecoration(
+                color: _getTransactionColor(theme),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            
+            const SizedBox(width: 16),
+            
+            // Main content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Name and amount row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      Expanded(
+                        child: Text(
+                          transaction.otherParty.name,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       Text(
-                        transaction.otherParty.name,
-                        style: theme.textTheme.titleMedium?.copyWith(
+                        '${transaction.isLent ? '+' : '-'}Rs. ${_formatAmount(transaction.amount)}',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: _getTransactionColor(theme),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 4),
+                  
+                  // Phone and description row
+                  Row(
+                    children: [
                       Text(
-                        transaction.description,
+                        transaction.otherParty.phoneNumber,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          fontWeight: FontWeight.w500,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        ' • ',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          transaction.description,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${transaction.isLent ? '+' : '-'}Rs. ${_formatAmount(transaction.amount)}',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: _getTransactionColor(theme),
-                        fontWeight: FontWeight.w700,
+                  
+                  const SizedBox(height: 8),
+                  
+                  // Bottom row with date, status, and actions
+                  Row(
+                    children: [
+                      Text(
+                        _getFormattedDate(),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                          fontSize: 11,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    _buildStatusChip(theme),
-                  ],
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 12),
-            
-            // Bottom section with date and actions
-            Row(
-              children: [
-                Icon(
-                  Icons.schedule,
-                  size: 14,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  _getFormattedDate(),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                    fontSize: 12,
+                      
+                      const SizedBox(width: 8),
+                      
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(theme).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: _getStatusColor(theme).withValues(alpha: 0.3),
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Text(
+                          _getStatusText(),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: _getStatusColor(theme),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                      
+                      const Spacer(),
+                      
+                      if (_shouldShowActionButtons()) 
+                        ..._buildActionButtons(context, theme),
+                    ],
                   ),
-                ),
-                const Spacer(),
-                if (_shouldShowActionButtons()) 
-                  ..._buildActionButtons(context, theme),
-              ],
+                ],
+              ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTransactionIcon(ThemeData theme) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: _getTransactionColor(theme).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(
-        _getTransactionIcon(),
-        color: _getTransactionColor(theme),
-        size: 20,
-      ),
-    );
-  }
-
-  Widget _buildStatusChip(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: _getStatusColor(theme).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: _getStatusColor(theme).withValues(alpha: 0.2),
-          width: 1,
-        ),
-      ),
-      child: Text(
-        _getStatusText(),
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: _getStatusColor(theme),
-          fontWeight: FontWeight.w600,
-          fontSize: 10,
-          letterSpacing: 0.3,
         ),
       ),
     );
@@ -191,14 +200,8 @@ class TransactionListItem extends StatelessWidget {
 
   Color _getTransactionColor(ThemeData theme) {
     return transaction.isLent 
-        ? theme.colorScheme.primary 
-        : theme.colorScheme.error;
-  }
-
-  IconData _getTransactionIcon() {
-    return transaction.isLent 
-        ? Icons.arrow_upward_rounded 
-        : Icons.arrow_downward_rounded;
+        ? Colors.green 
+        : Colors.red;
   }
 
   Color _getStatusColor(ThemeData theme) {
@@ -233,22 +236,14 @@ class TransactionListItem extends StatelessWidget {
     final difference = now.difference(date);
 
     if (difference.inDays == 0) {
-      return 'Today ${_formatTime(date)}';
+      return 'Today';
     } else if (difference.inDays == 1) {
       return 'Yesterday';
     } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
+      return '${difference.inDays}d ago';
     } else {
-      return '${date.day}/${date.month}/${date.year}';
+      return '${date.day}/${date.month}';
     }
-  }
-
-  String _formatTime(DateTime date) {
-    final hour = date.hour;
-    final minute = date.minute.toString().padLeft(2, '0');
-    final period = hour >= 12 ? 'PM' : 'AM';
-    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
-    return '$displayHour:$minute $period';
   }
 
   bool _shouldShowActionButtons() {
@@ -272,16 +267,16 @@ class TransactionListItem extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: theme.colorScheme.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
         ),
         title: Text(
           'Reject Transaction',
-          style: theme.textTheme.titleLarge?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
         content: Text(
-          'Are you sure you want to reject this transaction? This action cannot be undone.',
+          'Are you sure you want to reject this transaction?',
           style: theme.textTheme.bodyMedium,
         ),
         actions: [
@@ -294,20 +289,16 @@ class TransactionListItem extends StatelessWidget {
               ),
             ),
           ),
-          FilledButton(
+          TextButton(
             onPressed: () {
               cubit.rejectTransaction(transaction.transactionId);
               Navigator.of(dialogContext).pop();
               CustomToast.show(context, message: 'Transaction rejected', isSuccess: true);
             },
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+            child: const Text(
+              'Reject',
+              style: TextStyle(color: Colors.red),
             ),
-            child: const Text('Reject'),
           ),
         ],
       ),
@@ -329,16 +320,16 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 28,
+      height: 24,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: color,
           side: BorderSide(color: color, width: 1),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(4),
           ),
           minimumSize: Size.zero,
         ),

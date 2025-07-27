@@ -17,6 +17,7 @@ import 'package:udharoo/features/profile/presentation/pages/edit_profile_screen.
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/pages/pending_transactions_page.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_detail_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transactions_page.dart';
@@ -94,6 +95,11 @@ class AppRouter {
                         path: '/completed-transactions',
                         name: 'completedTransactions',
                         builder: (context, state) => const CompletedTransactionsPage(),
+                      ),
+                      GoRoute(
+                        path: '/pending-transactions',
+                        name: 'pendingTransactions',
+                        builder: (context, state) => const PendingTransactionsPage(),
                       ),
                       GoRoute(
                         path: '/rejected-transactions',

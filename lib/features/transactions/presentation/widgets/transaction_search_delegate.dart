@@ -7,7 +7,7 @@ import 'package:udharoo/features/transactions/presentation/widgets/transaction_l
 class TransactionSearchDelegate extends SearchDelegate<Transaction?> {
   final List<Transaction> transactions;
 
-  TransactionSearchDelegate({required this.transactions});
+  TransactionSearchDelegate({required this.transactions, required String searchType});
 
   @override
   String get searchFieldLabel => 'Search transactions...';
