@@ -33,6 +33,15 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final screenWidth = mediaQuery.size.width;
+    final topPadding = mediaQuery.padding.top;
+
+    // Calculate responsive dimensions
+    final expandedHeight = _calculateExpandedHeight(screenHeight, topPadding);
+    final horizontalPadding = screenWidth * 0.04; // 4% of screen width
+    final verticalSpacing = screenHeight * 0.01; // 1% of screen height
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -45,8 +54,14 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
             child: CustomScrollView(
               controller: _scrollController,
               slivers: [
-                _buildSliverAppBar(theme, state),
-                _buildFilterSliver(theme),
+                _buildResponsiveSliverAppBar(
+                  theme, 
+                  state, 
+                  expandedHeight, 
+                  horizontalPadding,
+                  verticalSpacing,
+                ),
+                _buildFilterSliver(theme, horizontalPadding),
                 _buildTransactionsSliver(state, theme),
               ],
             ),
@@ -56,7 +71,19 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
     );
   }
 
-  Widget _buildSliverAppBar(ThemeData theme, TransactionState state) {
+  double _calculateExpandedHeight(double screenHeight, double topPadding) {
+    final baseHeight = kToolbarHeight + topPadding;
+    final additionalHeight = screenHeight * 0.17;
+    return baseHeight + additionalHeight;
+  }
+
+  Widget _buildResponsiveSliverAppBar(
+    ThemeData theme, 
+    TransactionState state, 
+    double expandedHeight,
+    double horizontalPadding,
+    double verticalSpacing,
+  ) {
     return SliverAppBar(
       backgroundColor: theme.colorScheme.surface,
       surfaceTintColor: Colors.transparent,
@@ -64,7 +91,7 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
       floating: true,
       snap: true,
       pinned: false,
-      expandedHeight: 190,
+      expandedHeight: expandedHeight,
       title: Text(
         'Pending',
         style: theme.textTheme.headlineSmall?.copyWith(
@@ -72,7 +99,6 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
           color: theme.colorScheme.onSurface,
         ),
       ),
-      titleSpacing: 0,
       actions: [
         BlocBuilder<TransactionCubit, TransactionState>(
           builder: (context, state) {
@@ -93,48 +119,67 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
             );
           },
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: MediaQuery.of(context).size.width * 0.02),
       ],
       flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          color: theme.colorScheme.surface,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 80, 16, 16),
+        background: SafeArea(
+          child: Container(
+            color: theme.colorScheme.surface,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.orange.withValues(alpha: 0.3),
-                          width: 1,
+                SizedBox(height: kToolbarHeight + verticalSpacing),
+                
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Status indicator row
+                        Row(
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.orange.withValues(alpha: 0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.schedule_rounded,
+                                color: Colors.orange,
+                                size: 18,
+                              ),
+                            ),
+                            SizedBox(width: horizontalPadding * 0.75),
+                            Expanded(
+                              child: Text(
+                                'Transactions awaiting settlement',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      child: const Icon(
-                        Icons.schedule_rounded,
-                        color: Colors.orange,
-                        size: 18,
-                      ),
+                        
+                        SizedBox(height: verticalSpacing * 2),
+                        
+                        // Summary section
+                        Flexible(
+                          child: _buildResponsiveSummary(theme, state),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Transactions awaiting settlement',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                // Summary section in expanded appbar
-                if (state is TransactionLoaded) _buildSummaryInAppBar(theme, state),
               ],
             ),
           ),
@@ -143,7 +188,11 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
     );
   }
 
-  Widget _buildSummaryInAppBar(ThemeData theme, TransactionLoaded state) {
+  Widget _buildResponsiveSummary(ThemeData theme, TransactionState state) {
+    if (state is! TransactionLoaded) {
+      return const SizedBox.shrink();
+    }
+
     final pendingTransactions = state.pendingTransactions;
 
     if (pendingTransactions.isEmpty) {
@@ -165,51 +214,57 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
       }
     }
 
-    return Column(
-      children: [
-        if (lentCount > 0 || borrowedCount > 0) ...[
-          Row(
-            children: [
-              if (lentCount > 0)
-                Expanded(
-                  child: _SummaryItem(
-                    title: 'Lent',
-                    amount: totalLent,
-                    count: lentCount,
-                    color: Colors.green,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          width: double.infinity,
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                if (lentCount > 0)
+                  Expanded(
+                    child: _ResponsiveSummaryItem(
+                      title: 'Lent',
+                      amount: totalLent,
+                      count: lentCount,
+                      color: Colors.green,
+                      constraints: constraints,
+                    ),
                   ),
-                ),
-              if (lentCount > 0 && borrowedCount > 0)
-                Container(
-                  width: 1,
-                  height: 32,
-                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                ),
-              if (borrowedCount > 0)
-                Expanded(
-                  child: _SummaryItem(
-                    title: 'Borrowed',
-                    amount: totalBorrowed,
-                    count: borrowedCount,
-                    color: Colors.red,
+                if (lentCount > 0 && borrowedCount > 0)
+                  Container(
+                    width: 1,
+                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
                   ),
-                ),
-            ],
+                if (borrowedCount > 0)
+                  Expanded(
+                    child: _ResponsiveSummaryItem(
+                      title: 'Borrowed',
+                      amount: totalBorrowed,
+                      count: borrowedCount,
+                      color: Colors.red,
+                      constraints: constraints,
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ],
-      ],
+        );
+      },
     );
   }
 
-  Widget _buildFilterSliver(ThemeData theme) {
+  Widget _buildFilterSliver(ThemeData theme, double horizontalPadding) {
     return SliverPersistentHeader(
       pinned: true,
-      delegate: _FilterSliverDelegate(
-        minHeight: 56.0,
-        maxHeight: 56.0,
+      delegate: _ResponsiveFilterSliverDelegate(
         theme: theme,
+        horizontalPadding: horizontalPadding,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding, 
+            vertical: 8,
+          ),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             border: Border(
@@ -219,14 +274,20 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
               ),
             ),
           ),
-          child: Row(
-            children: [
-              _buildFilterChip('All', TransactionFilter.all, theme),
-              const SizedBox(width: 8),
-              _buildFilterChip('Lent', TransactionFilter.lent, theme),
-              const SizedBox(width: 8),
-              _buildFilterChip('Borrowed', TransactionFilter.borrowed, theme),
-            ],
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildFilterChip('All', TransactionFilter.all, theme),
+                  SizedBox(width: horizontalPadding * 0.5),
+                  _buildFilterChip('Lent', TransactionFilter.lent, theme),
+                  SizedBox(width: horizontalPadding * 0.5),
+                  _buildFilterChip('Borrowed', TransactionFilter.borrowed, theme),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -359,7 +420,7 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.08),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -375,6 +436,7 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
                 fontWeight: FontWeight.w600,
                 color: theme.colorScheme.onSurface,
               ),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
@@ -398,7 +460,7 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
   Widget _buildErrorState(String message, ThemeData theme) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.08),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -437,98 +499,115 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
   }
 }
 
-class _SummaryItem extends StatelessWidget {
+class _ResponsiveSummaryItem extends StatelessWidget {
   final String title;
   final double amount;
   final int count;
   final Color color;
+  final BoxConstraints constraints;
 
-  const _SummaryItem({
+  const _ResponsiveSummaryItem({
     required this.title,
     required this.amount,
     required this.count,
     required this.color,
+    required this.constraints,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    // Responsive font sizes
+    final titleFontSize = (constraints.maxWidth * 0.08).clamp(12.0, 16.0);
+    final amountFontSize = (constraints.maxWidth * 0.12).clamp(14.0, 20.0);
+    final countFontSize = (constraints.maxWidth * 0.06).clamp(10.0, 12.0);
 
-    return Column(
-      children: [
-        Text(
-          title,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: color,
-            fontWeight: FontWeight.w500,
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: screenWidth * 0.02),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w500,
+              fontSize: titleFontSize,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Rs. ${_formatAmount(amount)}',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: color,
+          SizedBox(height: screenWidth * 0.01),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              'Rs. ${_formatAmount(amount)}',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: color,
+                fontSize: amountFontSize,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-        ),
-        Text(
-          '$count transactions',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: color.withValues(alpha: 0.7),
-            fontSize: 10,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              '$count transactions',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: color.withValues(alpha: 0.7),
+                fontSize: countFontSize,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   String _formatAmount(double amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(1)}M';
-    } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(0)}K';
-    } else {
-      return amount.toStringAsFixed(0);
-    }
+    String amountStr = amount.toStringAsFixed(0);
+    return amountStr.replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
   }
 }
 
-// Custom delegate for pinned filter section
-class _FilterSliverDelegate extends SliverPersistentHeaderDelegate {
+class _ResponsiveFilterSliverDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
-  final double minHeight;
-  final double maxHeight;
   final ThemeData theme;
+  final double horizontalPadding;
 
-  _FilterSliverDelegate({
+  _ResponsiveFilterSliverDelegate({
     required this.child, 
-    required this.minHeight, 
-    required this.maxHeight,
     required this.theme,
+    required this.horizontalPadding,
   });
 
   @override
-  double get minExtent => minHeight;
+  double get minExtent => 56.0;
 
   @override
-  double get maxExtent => maxHeight;
+  double get maxExtent => 56.0;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return SizedBox(
-      height: maxHeight,
+      height: maxExtent,
       child: child,
     );
   }
 
   @override
   bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
-    if (oldDelegate is! _FilterSliverDelegate) return true;
+    if (oldDelegate is! _ResponsiveFilterSliverDelegate) return true;
     
-    return oldDelegate.minHeight != minHeight ||
-           oldDelegate.maxHeight != maxHeight ||
-           oldDelegate.theme.brightness != theme.brightness ||
+    return oldDelegate.theme.brightness != theme.brightness ||
            oldDelegate.theme.colorScheme != theme.colorScheme ||
+           oldDelegate.horizontalPadding != horizontalPadding ||
            oldDelegate.child != child;
   }
 }

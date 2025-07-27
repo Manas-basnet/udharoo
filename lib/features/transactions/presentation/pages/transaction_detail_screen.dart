@@ -15,476 +15,435 @@ class TransactionDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final mediaQuery = MediaQuery.of(context);
+    final screenWidth = mediaQuery.size.width;
+    final screenHeight = mediaQuery.size.height;
     
+    final horizontalPadding = screenWidth * 0.04;
+    final verticalSpacing = screenHeight * 0.015;
+    final cardSpacing = screenHeight * 0.02;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Transaction Details'),
-        backgroundColor: theme.colorScheme.surface,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  // Main transaction info
-                  _buildMainInfoSection(theme),
-                  
-                  // Contact details
-                  _buildContactSection(theme),
-                  
-                  // Transaction info
-                  _buildTransactionInfoSection(theme),
-                  
-                  // Timeline (if has multiple events)
-                  if (_hasTimeline()) _buildTimelineSection(theme),
-                  
-                  // Device info (if available)
-                  if (_hasDeviceInfo()) _buildDeviceSection(theme),
-                  
-                  const SizedBox(height: 16),
+      body: CustomScrollView(
+        slivers: [
+          _buildResponsiveAppBar(theme, horizontalPadding),
+          
+          SliverPadding(
+            padding: EdgeInsets.all(horizontalPadding),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _buildMainTransactionCard(theme, screenWidth, verticalSpacing),
+                
+                SizedBox(height: cardSpacing),
+                
+                _buildContactCard(theme, screenWidth, verticalSpacing),
+                
+                SizedBox(height: cardSpacing),
+                
+                _buildTransactionDetailsCard(theme, screenWidth, verticalSpacing),
+                
+                if (_hasTimeline()) ...[
+                  SizedBox(height: cardSpacing),
+                  _buildTimelineCard(theme, screenWidth, verticalSpacing),
                 ],
-              ),
+                
+                if (_hasDeviceInfo()) ...[
+                  SizedBox(height: cardSpacing),
+                  _buildDeviceInfoCard(theme, screenWidth, verticalSpacing),
+                ],
+                
+                SizedBox(height: cardSpacing * 2),
+              ]),
             ),
           ),
-          
-          // Action buttons (if needed)
-          if (_shouldShowActions()) _buildActionButtons(context, theme),
+        ],
+      ),
+      
+      bottomNavigationBar: _shouldShowActions() 
+          ? _buildBottomActionBar(context, theme, horizontalPadding)
+          : null,
+    );
+  }
+
+  Widget _buildResponsiveAppBar(ThemeData theme, double horizontalPadding) {
+    return SliverAppBar(
+      backgroundColor: theme.colorScheme.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      pinned: true,
+      expandedHeight: 120,
+      title: Text(
+        'Transaction Details',
+        style: theme.textTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: theme.colorScheme.onSurface,
+        ),
+      ),
+      flexibleSpace: FlexibleSpaceBar(
+        background: SafeArea(
+          child: Container(
+            color: theme.colorScheme.surface,
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding, 
+              kToolbarHeight + 16, 
+              horizontalPadding, 
+              16,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: _getTransactionColor(theme).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _getTransactionColor(theme).withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        transaction.isLent ? Icons.trending_up : Icons.trending_down,
+                        color: _getTransactionColor(theme),
+                        size: 14,
+                      ),
+                    ),
+                    
+                    const SizedBox(width: 12),
+                    
+                    Expanded(
+                      child: Text(
+                        '${transaction.isLent ? 'Lent to' : 'Borrowed from'} ${transaction.otherParty.name}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    
+                    _buildStatusBadge(theme),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: _getStatusColor(theme).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _getStatusColor(theme).withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: _getStatusColor(theme),
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            _getStatusText(),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: _getStatusColor(theme),
+              fontWeight: FontWeight.w600,
+              fontSize: 11,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildMainInfoSection(ThemeData theme) {
+  Widget _buildMainTransactionCard(ThemeData theme, double screenWidth, double verticalSpacing) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(screenWidth * 0.06),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: theme.colorScheme.outline.withValues(alpha: 0.1),
-            width: 1,
-          ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.shadowColor.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          // Transaction type icon
           Container(
-            width: 56,
-            height: 56,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               color: _getTransactionColor(theme).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(40),
               border: Border.all(
                 color: _getTransactionColor(theme).withValues(alpha: 0.2),
                 width: 2,
               ),
             ),
             child: Icon(
-              transaction.isLent ? Icons.arrow_upward : Icons.arrow_downward,
+              transaction.isLent ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
               color: _getTransactionColor(theme),
-              size: 28,
+              size: 36,
             ),
           ),
           
-          const SizedBox(height: 16),
+          SizedBox(height: verticalSpacing),
           
-          // Amount
-          Text(
-            '${transaction.isLent ? '+' : '-'}Rs. ${_formatAmount(transaction.amount)}',
-            style: theme.textTheme.headlineLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: _getTransactionColor(theme),
-            ),
-          ),
-          
-          const SizedBox(height: 8),
-          
-          // Description
-          Text(
-            transaction.description,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Status badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: _getStatusColor(theme).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: _getStatusColor(theme).withValues(alpha: 0.3),
-                width: 1,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              'Rs. ${_formatAmount(transaction.amount)}',
+              style: theme.textTheme.headlineLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: _getTransactionColor(theme),
+                fontSize: (screenWidth * 0.08).clamp(24.0, 36.0),
               ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(theme),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _getStatusText(),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: _getStatusColor(theme),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
           ),
+          
+          SizedBox(height: verticalSpacing * 0.5),
+          
+          if (transaction.description.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                transaction.description,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildContactSection(ThemeData theme) {
+  Widget _buildContactCard(ThemeData theme, double screenWidth, double verticalSpacing) {
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: theme.colorScheme.outline.withValues(alpha: 0.1),
-          width: 1,
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Contact avatar
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Icon(
-              Icons.person,
-              color: theme.colorScheme.primary,
-              size: 24,
+          Text(
+            'Contact Information',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
             ),
           ),
           
-          const SizedBox(width: 16),
+          SizedBox(height: verticalSpacing),
           
-          // Contact info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  transaction.otherParty.name,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.2),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Row(
+                child: Icon(
+                  Icons.person_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 24,
+                ),
+              ),
+              
+              SizedBox(width: screenWidth * 0.04),
+              
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.phone,
-                      size: 14,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                    const SizedBox(width: 4),
                     Text(
-                      transaction.otherParty.phoneNumber,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      transaction.otherParty.name,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    
+                    SizedBox(height: verticalSpacing * 0.25),
+                    
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.phone_rounded,
+                          size: 16,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            transaction.otherParty.phoneNumber,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          
-          // Transaction type
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: _getTransactionColor(theme).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: _getTransactionColor(theme).withValues(alpha: 0.2),
-                width: 1,
               ),
-            ),
-            child: Text(
-              transaction.isLent ? 'Lent' : 'Borrowed',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: _getTransactionColor(theme),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTransactionInfoSection(ThemeData theme) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Transaction Information',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          // Transaction ID
-          _buildInfoRow(
-            Icons.tag,
-            'Transaction ID',
-            transaction.transactionId,
-            theme,
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Created date
-          _buildInfoRow(
-            Icons.schedule,
-            'Created',
-            _formatDateTime(transaction.createdAt),
-            theme,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimelineSection(ThemeData theme) {
-    final events = <Map<String, dynamic>>[];
-    
-    events.add({
-      'title': 'Transaction Created',
-      'time': transaction.createdAt,
-      'icon': Icons.add_circle_outline,
-      'color': Colors.blue,
-    });
-    
-    if (transaction.verifiedAt != null) {
-      events.add({
-        'title': 'Transaction Verified',
-        'time': transaction.verifiedAt!,
-        'icon': Icons.verified,
-        'color': Colors.green,
-      });
-    }
-    
-    if (transaction.completedAt != null) {
-      events.add({
-        'title': 'Transaction Completed',
-        'time': transaction.completedAt!,
-        'icon': Icons.check_circle,
-        'color': Colors.green,
-      });
-    }
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Activity Timeline',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...events.asMap().entries.map((entry) {
-            final isLast = entry.key == events.length - 1;
-            final event = entry.value;
-            return _buildTimelineItem(
-              event['title'],
-              _formatDateTime(event['time']),
-              event['icon'],
-              event['color'],
-              theme,
-              isLast: isLast,
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDeviceSection(ThemeData theme) {
-    final deviceInfos = <String>[];
-    
-    if (transaction.createdFromDevice != null) {
-      deviceInfos.add('Created from ${transaction.getDeviceDisplayName(transaction.createdFromDevice)}');
-    }
-    
-    final verifiedDevice = transaction.getDeviceForAction(TransactionStatus.verified);
-    if (verifiedDevice != null) {
-      deviceInfos.add('Verified from ${transaction.getDeviceDisplayName(verifiedDevice)}');
-    }
-    
-    final completedDevice = transaction.getDeviceForAction(TransactionStatus.completed);
-    if (completedDevice != null) {
-      deviceInfos.add('Completed from ${transaction.getDeviceDisplayName(completedDevice)}');
-    }
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.smartphone,
-                size: 16,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Device Information',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+              
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _getTransactionColor(theme).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: _getTransactionColor(theme).withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Text(
+                  transaction.isLent ? 'Lent' : 'Borrowed',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: _getTransactionColor(theme),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          ...deviceInfos.map((info) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              info,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
-            ),
-          )),
         ],
       ),
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, ThemeData theme) {
-    final cubit = context.read<TransactionCubit>();
-    final buttons = <Widget>[];
-
-    if (transaction.isPending && !_isCreatedByCurrentUser()) {
-      buttons.addAll([
-        Expanded(
-          child: _ActionButton(
-            label: 'Verify',
-            icon: Icons.check,
-            color: Colors.green,
-            onPressed: () {
-              cubit.verifyTransaction(transaction.transactionId);
-              CustomToast.show(context, message: 'Transaction verified', isSuccess: true);
-            },
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _ActionButton(
-            label: 'Reject',
-            icon: Icons.close,
-            color: Colors.red,
-            onPressed: () => _showRejectDialog(context, cubit),
-          ),
-        ),
-      ]);
-    } else if (transaction.isVerified && _canCompleteTransaction()) {
-      buttons.add(
-        Expanded(
-          child: _ActionButton(
-            label: 'Mark Complete',
-            icon: Icons.check_circle,
-            color: theme.colorScheme.primary,
-            onPressed: () {
-              cubit.completeTransaction(transaction.transactionId);
-              CustomToast.show(context, message: 'Transaction completed', isSuccess: true);
-            },
-          ),
-        ),
-      );
-    }
-
+  Widget _buildTransactionDetailsCard(ThemeData theme, double screenWidth, double verticalSpacing) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        border: Border(
-          top: BorderSide(
-            color: theme.colorScheme.outline.withValues(alpha: 0.1),
-            width: 1,
-          ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
         ),
       ),
-      child: Row(children: buttons),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Transaction Details',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          
+          SizedBox(height: verticalSpacing),
+          
+          _buildDetailRow(
+            Icons.tag_rounded,
+            'Transaction ID',
+            transaction.transactionId,
+            theme,
+            verticalSpacing,
+          ),
+          
+          SizedBox(height: verticalSpacing * 0.75),
+          
+          _buildDetailRow(
+            Icons.schedule_rounded,
+            'Created',
+            _formatDateTime(transaction.createdAt),
+            theme,
+            verticalSpacing,
+          ),
+          
+          if (transaction.verifiedAt != null) ...[
+            SizedBox(height: verticalSpacing * 0.75),
+            _buildDetailRow(
+              Icons.verified_rounded,
+              'Verified',
+              _formatDateTime(transaction.verifiedAt!),
+              theme,
+              verticalSpacing,
+            ),
+          ],
+          
+          if (transaction.completedAt != null) ...[
+            SizedBox(height: verticalSpacing * 0.75),
+            _buildDetailRow(
+              Icons.check_circle_rounded,
+              'Completed',
+              _formatDateTime(transaction.completedAt!),
+              theme,
+              verticalSpacing,
+            ),
+          ],
+        ],
+      ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, ThemeData theme) {
+  Widget _buildDetailRow(IconData icon, String label, String value, ThemeData theme, double verticalSpacing) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(
+            icon,
+            size: 16,
+            color: theme.colorScheme.primary,
+          ),
         ),
+        
         const SizedBox(width: 12),
+        
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -496,11 +455,12 @@ class TransactionDetailScreen extends StatelessWidget {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
                 value,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
             ],
@@ -510,30 +470,106 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTimelineItem(String title, String time, IconData icon, Color color, ThemeData theme, {bool isLast = false}) {
+  Widget _buildTimelineCard(ThemeData theme, double screenWidth, double verticalSpacing) {
+    final events = <Map<String, dynamic>>[];
+    
+    events.add({
+      'title': 'Transaction Created',
+      'time': transaction.createdAt,
+      'icon': Icons.add_circle_outline_rounded,
+      'color': Colors.blue,
+    });
+    
+    if (transaction.verifiedAt != null) {
+      events.add({
+        'title': 'Transaction Verified',
+        'time': transaction.verifiedAt!,
+        'icon': Icons.verified_rounded,
+        'color': Colors.green,
+      });
+    }
+    
+    if (transaction.completedAt != null) {
+      events.add({
+        'title': 'Transaction Completed',
+        'time': transaction.completedAt!,
+        'icon': Icons.check_circle_rounded,
+        'color': Colors.green,
+      });
+    }
+
+    return Container(
+      padding: EdgeInsets.all(screenWidth * 0.04),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Activity Timeline',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          
+          SizedBox(height: verticalSpacing),
+          
+          ...events.asMap().entries.map((entry) {
+            final isLast = entry.key == events.length - 1;
+            final event = entry.value;
+            return _buildTimelineItem(
+              event['title'],
+              _formatDateTime(event['time']),
+              event['icon'],
+              event['color'],
+              theme,
+              verticalSpacing,
+              isLast: isLast,
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimelineItem(
+    String title, 
+    String time, 
+    IconData icon, 
+    Color color, 
+    ThemeData theme, 
+    double verticalSpacing,
+    {bool isLast = false}
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
           children: [
             Container(
-              width: 32,
-              height: 32,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: color.withValues(alpha: 0.3),
                   width: 2,
                 ),
               ),
-              child: Icon(icon, color: color, size: 16),
+              child: Icon(icon, color: color, size: 18),
             ),
             if (!isLast)
               Container(
                 width: 2,
-                height: 24,
-                margin: const EdgeInsets.symmetric(vertical: 4),
+                height: 32,
+                margin: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.outline.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(1),
@@ -541,10 +577,12 @@ class TransactionDetailScreen extends StatelessWidget {
               ),
           ],
         ),
-        const SizedBox(width: 12),
+        
+        const SizedBox(width: 16),
+        
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 12),
+            padding: EdgeInsets.only(top: 6, bottom: isLast ? 0 : 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -554,7 +592,7 @@ class TransactionDetailScreen extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   time,
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -569,9 +607,185 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
-  // Helper methods
+  Widget _buildDeviceInfoCard(ThemeData theme, double screenWidth, double verticalSpacing) {
+    final deviceInfos = <Map<String, String>>[];
+    
+    if (transaction.createdFromDevice != null) {
+      deviceInfos.add({
+        'label': 'Created from',
+        'value': transaction.getDeviceDisplayName(transaction.createdFromDevice),
+      });
+    }
+    
+    final verifiedDevice = transaction.getDeviceForAction(TransactionStatus.verified);
+    if (verifiedDevice != null) {
+      deviceInfos.add({
+        'label': 'Verified from',
+        'value': transaction.getDeviceDisplayName(verifiedDevice),
+      });
+    }
+    
+    final completedDevice = transaction.getDeviceForAction(TransactionStatus.completed);
+    if (completedDevice != null) {
+      deviceInfos.add({
+        'label': 'Completed from',
+        'value': transaction.getDeviceDisplayName(completedDevice),
+      });
+    }
+
+    return Container(
+      padding: EdgeInsets.all(screenWidth * 0.04),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.smartphone_rounded,
+                size: 20,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Device Information',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          
+          SizedBox(height: verticalSpacing),
+          
+          ...deviceInfos.map((info) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: RichText(
+                    text: TextSpan(
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                      children: [
+                        TextSpan(
+                          text: '${info['label']}: ',
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        TextSpan(text: info['value']),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomActionBar(BuildContext context, ThemeData theme, double horizontalPadding) {
+    final cubit = context.read<TransactionCubit>();
+
+    Widget? actionContent;
+
+    if (transaction.isPending && !_isCreatedByCurrentUser()) {
+      actionContent = Row(
+        children: [
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: () {
+                cubit.verifyTransaction(transaction.transactionId);
+                CustomToast.show(context, message: 'Transaction verified', isSuccess: true);
+              },
+              icon: const Icon(Icons.check_rounded, size: 18),
+              label: const Text('Verify'),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () => _showRejectDialog(context, cubit),
+              icon: const Icon(Icons.close_rounded, size: 18),
+              label: const Text('Reject'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: const BorderSide(color: Colors.red),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    } else if (transaction.isVerified && _canCompleteTransaction()) {
+      actionContent = SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
+          onPressed: () {
+            cubit.completeTransaction(transaction.transactionId);
+            CustomToast.show(context, message: 'Transaction completed', isSuccess: true);
+          },
+          icon: const Icon(Icons.check_circle_rounded, size: 18),
+          label: const Text('Mark as Completed'),
+          style: FilledButton.styleFrom(
+            backgroundColor: theme.colorScheme.primary,
+            foregroundColor: theme.colorScheme.onPrimary,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: EdgeInsets.all(horizontalPadding),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
+          ),
+        ),
+      ),
+      child: SafeArea(
+        child: actionContent ?? const SizedBox.shrink(),
+      ),
+    );
+  }
+
   bool _hasTimeline() {
-    int eventCount = 1; // Always has created
+    int eventCount = 1;
     if (transaction.verifiedAt != null) eventCount++;
     if (transaction.completedAt != null) eventCount++;
     return eventCount > 1;
@@ -603,7 +817,7 @@ class TransactionDetailScreen extends StatelessWidget {
   String _getStatusText() {
     switch (transaction.status) {
       case TransactionStatus.pendingVerification:
-        return 'Pending Verification';
+        return 'Pending';
       case TransactionStatus.verified:
         return 'Verified';
       case TransactionStatus.completed:
@@ -637,13 +851,11 @@ class TransactionDetailScreen extends StatelessWidget {
   }
 
   String _formatAmount(double amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(1)}M';
-    } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(0)}K';
-    } else {
-      return amount.toStringAsFixed(0);
-    }
+    String amountStr = amount.toStringAsFixed(0);
+    return amountStr.replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
   }
 
   bool _shouldShowActions() {
@@ -656,9 +868,6 @@ class TransactionDetailScreen extends StatelessWidget {
   }
 
   bool _canCompleteTransaction() {
-    // Only allow completion if:
-    // 1. Transaction is verified
-    // 2. Current user is the lender (created a lent transaction)
     return transaction.isVerified && transaction.isLent;
   }
 
@@ -669,7 +878,7 @@ class TransactionDetailScreen extends StatelessWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: theme.colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Reject Transaction',
           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -688,46 +897,19 @@ class TransactionDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () {
               cubit.rejectTransaction(transaction.transactionId);
               Navigator.of(dialogContext).pop();
               CustomToast.show(context, message: 'Transaction rejected', isSuccess: true);
             },
-            child: const Text('Reject', style: TextStyle(color: Colors.red)),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Reject'),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onPressed;
-
-  const _ActionButton({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: FilledButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 18),
-        label: Text(label),
-        style: FilledButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
       ),
     );
   }

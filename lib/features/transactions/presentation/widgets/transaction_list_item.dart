@@ -62,7 +62,7 @@ class TransactionListItem extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '${transaction.isLent ? '+' : '-'}Rs. ${_formatAmount(transaction.amount)}',
+                        'Rs. ${_formatAmount(transaction.amount)}',
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: _getTransactionColor(theme),
                           fontWeight: FontWeight.w600,
@@ -189,13 +189,11 @@ class TransactionListItem extends StatelessWidget {
   }
 
   String _formatAmount(double amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(1)}M';
-    } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(0)}K';
-    } else {
-      return amount.toStringAsFixed(0);
-    }
+    String amountStr = amount.toStringAsFixed(0);
+    return amountStr.replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
   }
 
   Color _getTransactionColor(ThemeData theme) {

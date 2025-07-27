@@ -31,20 +31,36 @@ class ContactSelectorWidget extends StatefulWidget {
   State<ContactSelectorWidget> createState() => _ContactSelectorWidgetState();
 }
 
-class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
+class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
+    with SingleTickerProviderStateMixin {
   AuthUser? _selectedUser;
   Timer? _debounceTimer;
   final FocusNode _phoneFocusNode = FocusNode();
-  OverlayEntry? _overlayEntry;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  bool _showSuggestions = false;
 
   @override
   void initState() {
     super.initState();
+    
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    ));
+
     if (!widget.readOnly) {
       widget.phoneController.addListener(_onPhoneChanged);
       _phoneFocusNode.addListener(_onFocusChanged);
-      
-      // Load contact history when widget initializes
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         context.read<ContactHistoryCubit>().loadContactHistory();
       });
@@ -59,15 +75,15 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
     }
     _phoneFocusNode.dispose();
     _debounceTimer?.cancel();
-    _removeOverlay();
+    _animationController.dispose();
     super.dispose();
   }
 
   void _onFocusChanged() {
     if (_phoneFocusNode.hasFocus && !widget.readOnly) {
-      _showContactHistoryOverlay();
+      _showContactHistoryDropdown();
     } else {
-      _hideContactHistoryOverlay();
+      _hideContactHistoryDropdown();
     }
   }
 
@@ -81,8 +97,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
         context.read<TransactionFormCubit>().clearUserLookup();
         _clearSelectedUser();
       }
-      
-      // Update contact history search
+
       if (phone.isNotEmpty) {
         context.read<ContactHistoryCubit>().searchContacts(phone);
       } else {
@@ -107,7 +122,8 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
       widget.onUserSelected!(user, formattedPhone);
     }
     
-    _hideContactHistoryOverlay();
+    _hideContactHistoryDropdown();
+    _phoneFocusNode.unfocus();
   }
 
   void _selectFromHistory(ContactHistory contact) {
@@ -117,7 +133,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
     // Try to look up the user
     context.read<TransactionFormCubit>().lookupUserByPhone(contact.phoneNumber);
     
-    _hideContactHistoryOverlay();
+    _hideContactHistoryDropdown();
     _phoneFocusNode.unfocus();
   }
 
@@ -144,62 +160,208 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
     }
   }
 
-  void _showContactHistoryOverlay() {
-    if (_overlayEntry != null) return;
-    
-    _overlayEntry = _createOverlayEntry();
-    Overlay.of(context).insert(_overlayEntry!);
-    setState(() {
-    });
+  void _showContactHistoryDropdown() {
+    if (!_showSuggestions) {
+      setState(() {
+        _showSuggestions = true;
+      });
+      _animationController.forward();
+    }
   }
 
-  void _hideContactHistoryOverlay() {
-    _removeOverlay();
-    setState(() {
-    });
+  void _hideContactHistoryDropdown() {
+    if (_showSuggestions) {
+      _animationController.reverse().then((_) {
+        if (mounted) {
+          setState(() {
+            _showSuggestions = false;
+          });
+        }
+      });
+    }
   }
 
-  void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
 
-  OverlayEntry _createOverlayEntry() {
-    RenderBox renderBox = context.findRenderObject() as RenderBox;
-    var size = renderBox.size;
-    var offset = renderBox.localToGlobal(Offset.zero);
-    
-    return OverlayEntry(
-      builder: (context) => Positioned(
-        left: offset.dx,
-        top: offset.dy + size.height + 4,
-        width: size.width,
-        child: Material(
-          elevation: 4,
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            constraints: const BoxConstraints(maxHeight: 200),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // QR Source Indicator
+        if (widget.qrSourceIndicator != null) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(8),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                color: theme.colorScheme.primary.withValues(alpha: 0.3),
               ),
             ),
-            child: BlocBuilder<ContactHistoryCubit, ContactHistoryState>(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.qr_code,
+                  size: 14,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  widget.qrSourceIndicator!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: theme.colorScheme.outline.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            children: [
+              TextFormField(
+                controller: widget.phoneController,
+                focusNode: _phoneFocusNode,
+                decoration: InputDecoration(
+                  labelText: 'Phone Number',
+                  hintText: widget.readOnly ? '' : '98XXXXXXXX',
+                  prefixIcon: const Icon(Icons.phone, size: 20),
+                  suffixIcon: _buildPhoneSuffixIcon(),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(6),
+                      topRight: const Radius.circular(6),
+                      bottomLeft: Radius.circular(_showSuggestions ? 0 : 6),
+                      bottomRight: Radius.circular(_showSuggestions ? 0 : 6),
+                    ),
+                    borderSide: BorderSide(
+                      color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(6),
+                      topRight: const Radius.circular(6),
+                      bottomLeft: Radius.circular(_showSuggestions ? 0 : 6),
+                      bottomRight: Radius.circular(_showSuggestions ? 0 : 6),
+                    ),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(6),
+                      topRight: const Radius.circular(6),
+                      bottomLeft: Radius.circular(_showSuggestions ? 0 : 6),
+                      bottomRight: Radius.circular(_showSuggestions ? 0 : 6),
+                    ),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: _selectedUser != null || widget.readOnly
+                      ? theme.colorScheme.primary.withValues(alpha: 0.05)
+                      : theme.scaffoldBackgroundColor,
+                ),
+                keyboardType: TextInputType.phone,
+                inputFormatters: widget.readOnly ? [] : [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(10),
+                ],
+                validator: widget.phoneValidator,
+                readOnly: _selectedUser != null || widget.readOnly,
+              ),
+
+              if (_showSuggestions && !widget.readOnly)
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Container(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(6),
+                        bottomRight: Radius.circular(6),
+                      ),
+                      border: Border(
+                        top: BorderSide(
+                          color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: BlocBuilder<ContactHistoryCubit, ContactHistoryState>(
+                      builder: (context, state) {
+                        return _buildContactHistoryDropdown(state, theme);
+                      },
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 12),
+        
+        if (!widget.readOnly)
+          BlocListener<TransactionFormCubit, TransactionFormState>(
+            listener: (context, state) {
+              if (state is TransactionFormUserFound) {
+                _selectUser(state.user);
+              } else if (state is TransactionFormUserNotFound) {
+                _clearSelectedUser();
+              }
+            },
+            child: BlocBuilder<TransactionFormCubit, TransactionFormState>(
               builder: (context, state) {
-                return _buildContactHistoryList(state);
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: _buildUserStatus(state, theme),
+                );
               },
             ),
           ),
-        ),
-      ),
+        
+        if (_selectedUser != null || widget.readOnly) ...[
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: widget.nameController,
+            decoration: InputDecoration(
+              labelText: 'Full Name',
+              hintText: widget.readOnly ? '' : 'Auto-filled from contact',
+              prefixIcon: const Icon(Icons.person, size: 20),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(
+                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(
+                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                ),
+              ),
+              filled: true,
+              fillColor: theme.colorScheme.primary.withValues(alpha: 0.05),
+            ),
+            validator: widget.nameValidator,
+            readOnly: true,
+          ),
+        ],
+      ],
     );
   }
 
-  Widget _buildContactHistoryList(ContactHistoryState state) {
-    final theme = Theme.of(context);
-    
+  Widget _buildContactHistoryDropdown(ContactHistoryState state, ThemeData theme) {
     switch (state) {
       case ContactHistoryLoading():
       case ContactHistorySearching():
@@ -270,20 +432,24 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _selectFromHistory(contact),
+        borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Icon(
-                  Icons.history,
-                  size: 16,
+                  Icons.history_rounded,
+                  size: 18,
                   color: theme.colorScheme.primary,
                 ),
               ),
@@ -297,13 +463,18 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 2),
                     Row(
                       children: [
-                        Text(
-                          contact.phoneNumber,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        Expanded(
+                          child: Text(
+                            contact.phoneNumber,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Text(
@@ -317,152 +488,24 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 contact.formattedLastUsed,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                  fontSize: 11,
                 ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 12,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // QR Source Indicator
-        if (widget.qrSourceIndicator != null) ...[
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: theme.colorScheme.primary.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.qr_code,
-                  size: 14,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  widget.qrSourceIndicator!,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-        
-        // Phone number input
-        TextFormField(
-          controller: widget.phoneController,
-          focusNode: _phoneFocusNode,
-          decoration: InputDecoration(
-            labelText: 'Phone Number',
-            hintText: widget.readOnly ? '' : '98XXXXXXXX',
-            prefixIcon: const Icon(Icons.phone, size: 20),
-            suffixIcon: _buildPhoneSuffixIcon(),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: BorderSide(
-                color: theme.colorScheme.outline.withValues(alpha: 0.3),
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: BorderSide(
-                color: theme.colorScheme.outline.withValues(alpha: 0.3),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: BorderSide(
-                color: theme.colorScheme.primary,
-                width: 2,
-              ),
-            ),
-            filled: true,
-            fillColor: _selectedUser != null || widget.readOnly
-                ? theme.colorScheme.primary.withValues(alpha: 0.05)
-                : theme.scaffoldBackgroundColor,
-          ),
-          keyboardType: TextInputType.phone,
-          inputFormatters: widget.readOnly ? [] : [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(10),
-          ],
-          validator: widget.phoneValidator,
-          readOnly: _selectedUser != null || widget.readOnly,
-        ),
-        
-        const SizedBox(height: 12),
-        
-        // User lookup result
-        if (!widget.readOnly)
-          BlocListener<TransactionFormCubit, TransactionFormState>(
-            listener: (context, state) {
-              if (state is TransactionFormUserFound) {
-                _selectUser(state.user);
-              } else if (state is TransactionFormUserNotFound) {
-                _clearSelectedUser();
-              }
-            },
-            child: BlocBuilder<TransactionFormCubit, TransactionFormState>(
-              builder: (context, state) {
-                return AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: _buildUserStatus(state, theme),
-                );
-              },
-            ),
-          ),
-        
-        // Name input
-        if (_selectedUser != null || widget.readOnly) ...[
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: widget.nameController,
-            decoration: InputDecoration(
-              labelText: 'Full Name',
-              hintText: widget.readOnly ? '' : 'Auto-filled from contact',
-              prefixIcon: const Icon(Icons.person, size: 20),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                ),
-              ),
-              filled: true,
-              fillColor: theme.colorScheme.primary.withValues(alpha: 0.05),
-            ),
-            validator: widget.nameValidator,
-            readOnly: true,
-          ),
-        ],
-      ],
     );
   }
 
@@ -524,7 +567,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.green.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: Colors.green.withValues(alpha: 0.3),
             width: 1,
@@ -534,10 +577,10 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
           children: [
             const Icon(
               Icons.check_circle,
-              size: 16,
+              size: 18,
               color: Colors.green,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -548,6 +591,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
                       fontWeight: FontWeight.w500,
                       color: Colors.green.shade700,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   if (state.user.email != null)
                     Text(
@@ -555,6 +599,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.green.shade600,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                 ],
               ),
@@ -568,7 +613,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.red.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: Colors.red.withValues(alpha: 0.3),
             width: 1,
@@ -578,10 +623,10 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
           children: [
             const Icon(
               Icons.error,
-              size: 16,
+              size: 18,
               color: Colors.red,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 'User not found. This phone number is not registered on Udharoo.',

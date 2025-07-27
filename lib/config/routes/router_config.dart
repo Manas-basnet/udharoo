@@ -31,8 +31,6 @@ import 'package:udharoo/features/transactions/presentation/pages/rejected_transa
 import 'package:udharoo/shared/presentation/layouts/scaffold_with_bottom_nav_bar.dart';
 import 'package:udharoo/shared/presentation/widgets/auth_wrapper.dart';
 
-
-
 class AppRouter {
   static final AppRouter _instance = AppRouter._internal();
 
@@ -87,8 +85,10 @@ class AppRouter {
             routes: [
               ShellRoute(
                 builder: (context, state, child) {
-                  return BlocProvider(
-                    create: (_) => di.sl<TransactionCubit>(),
+                  return MultiBlocProvider(
+                    providers: [
+                      BlocProvider(create: (_) => di.sl<TransactionCubit>()),
+                    ],
                     child: child,
                   );
                 },
@@ -101,24 +101,29 @@ class AppRouter {
                       GoRoute(
                         path: '/completed-transactions',
                         name: 'completedTransactions',
-                        builder: (context, state) => const CompletedTransactionsPage(),
+                        builder: (context, state) =>
+                            const CompletedTransactionsPage(),
                       ),
                       GoRoute(
                         path: '/pending-transactions',
                         name: 'pendingTransactions',
-                        builder: (context, state) => const PendingTransactionsPage(),
+                        builder: (context, state) =>
+                            const PendingTransactionsPage(),
                       ),
                       GoRoute(
                         path: '/rejected-transactions',
                         name: 'rejectedTransactions',
-                        builder: (context, state) => const RejectedTransactionsPage(),
+                        builder: (context, state) =>
+                            const RejectedTransactionsPage(),
                       ),
                       GoRoute(
                         path: '/transaction-detail',
                         name: 'transactionDetail',
                         builder: (context, state) {
                           final transaction = state.extra as Transaction;
-                          return TransactionDetailScreen(transaction: transaction);
+                          return TransactionDetailScreen(
+                            transaction: transaction,
+                          );
                         },
                       ),
                     ],
@@ -159,7 +164,7 @@ class AppRouter {
         builder: (context, state) {
           QRTransactionData? qrData;
           String? source;
-          
+
           final extra = state.extra;
           if (extra is Map<String, dynamic>) {
             qrData = extra['qrData'] as QRTransactionData?;
@@ -168,13 +173,12 @@ class AppRouter {
             qrData = extra.qrData;
             source = extra.source;
           }
-          
-          return BlocProvider(
-            create: (_) => di.sl<TransactionFormCubit>(),
-            child: TransactionFormScreen(
-              qrData: qrData,
-              source: source,
-            ),
+
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider(create: (_) => di.sl<TransactionFormCubit>()),
+            ],
+            child: TransactionFormScreen(qrData: qrData, source: source),
           );
         },
       ),

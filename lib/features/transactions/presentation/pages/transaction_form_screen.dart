@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:udharoo/core/di/di.dart' as di;
 import 'package:udharoo/features/auth/domain/entities/auth_user.dart';
 import 'package:udharoo/features/transactions/domain/entities/qr_transaction_data.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
@@ -191,303 +190,296 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (_) => di.sl<ContactHistoryCubit>(),
+    return BlocListener<TransactionFormCubit, TransactionFormState>(
+      listener: (context, state) {
+        switch (state) {
+          case TransactionFormSuccess():
+            if (_selectedUser != null && _selectedPhoneNumber != null) {
+              context.read<ContactHistoryCubit>().saveContact(
+                phoneNumber: _selectedPhoneNumber!,
+                name: _selectedUser!.displayName ?? _selectedUser!.fullName ?? '',
+              );
+            }
+            
+            CustomToast.show(context, message: 'Transaction created successfully', isSuccess: true);
+            context.pop();
+            break;
+          case TransactionFormError():
+            CustomToast.show(context, message: state.message, isSuccess: false);
+            break;
+          case TransactionFormUserNotFound():
+            setState(() {
+              _selectedUser = null;
+              _selectedPhoneNumber = null;
+            });
+            _updateSubmitButtonState();
+            break;
+          default:
+            break;
+        }
+      },
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          title: Text(_isQRSource ? 'QR Transaction' : 'New Transaction'),
+          backgroundColor: theme.colorScheme.surface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
         ),
-      ],
-      child: BlocListener<TransactionFormCubit, TransactionFormState>(
-        listener: (context, state) {
-          switch (state) {
-            case TransactionFormSuccess():
-              if (_selectedUser != null && _selectedPhoneNumber != null) {
-                context.read<ContactHistoryCubit>().saveContact(
-                  phoneNumber: _selectedPhoneNumber!,
-                  name: _selectedUser!.displayName ?? _selectedUser!.fullName ?? '',
-                );
-              }
-              
-              CustomToast.show(context, message: 'Transaction created successfully', isSuccess: true);
-              context.pop();
-              break;
-            case TransactionFormError():
-              CustomToast.show(context, message: state.message, isSuccess: false);
-              break;
-            case TransactionFormUserNotFound():
-              setState(() {
-                _selectedUser = null;
-                _selectedPhoneNumber = null;
-              });
-              _updateSubmitButtonState();
-              break;
-            default:
-              break;
-          }
-        },
-        child: Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          appBar: AppBar(
-            title: Text(_isQRSource ? 'QR Transaction' : 'New Transaction'),
-            backgroundColor: theme.colorScheme.surface,
-            surfaceTintColor: Colors.transparent,
-            elevation: 0,
-          ),
-          body: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        // QR Info Banner
-                        if (_isQRSource) _buildQRInfoBanner(theme),
-                        
-                        // Transaction Type
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            border: Border(
-                              bottom: BorderSide(
-                                color: theme.colorScheme.outline.withValues(alpha: 0.1),
-                                width: 1,
-                              ),
+        body: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      // QR Info Banner
+                      if (_isQRSource) _buildQRInfoBanner(theme),
+                      
+                      // Transaction Type
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          border: Border(
+                            bottom: BorderSide(
+                              color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                              width: 1,
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Transaction Type',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TransactionTypeSelector(
-                                selectedType: _selectedType,
-                                onTypeChanged: _onTypeChanged,
-                                enabled: !(_isQRSource && widget.qrData?.hasTransactionConstraint == true),
-                              ),
-                              if (_isQRSource && widget.qrData?.hasTransactionConstraint == true)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: Text(
-                                    'Transaction type is fixed by QR code constraint',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
                         ),
-
-                        // Amount
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            border: Border(
-                              bottom: BorderSide(
-                                color: theme.colorScheme.outline.withValues(alpha: 0.1),
-                                width: 1,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Transaction Type',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                               ),
                             ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Amount',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              AmountInputWidget(
-                                controller: _amountController,
-                                validator: (value) {
-                                  if (value?.isEmpty ?? true) {
-                                    return 'Amount is required';
-                                  }
-                                  final amount = double.tryParse(value!);
-                                  if (amount == null || amount <= 0) {
-                                    return 'Enter a valid amount';
-                                  }
-                                  if (amount > 10000000) {
-                                    return 'Amount cannot exceed Rs. 1,00,00,000';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Contact
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            border: Border(
-                              bottom: BorderSide(
-                                color: theme.colorScheme.outline.withValues(alpha: 0.1),
-                                width: 1,
-                              ),
+                            const SizedBox(height: 12),
+                            TransactionTypeSelector(
+                              selectedType: _selectedType,
+                              onTypeChanged: _onTypeChanged,
+                              enabled: !(_isQRSource && widget.qrData?.hasTransactionConstraint == true),
                             ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Contact',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                            if (_isQRSource && widget.qrData?.hasTransactionConstraint == true)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(
+                                  'Transaction type is fixed by QR code constraint',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                    fontStyle: FontStyle.italic,
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              ContactSelectorWidget(
-                                phoneController: _phoneController,
-                                nameController: _nameController,
-                                onUserSelected: _onUserSelected,
-                                readOnly: _isQRSource,
-                                qrSourceIndicator: _isQRSource ? _getQRSourceText() : null,
-                                phoneValidator: (value) {
-                                  if (value?.isEmpty ?? true) {
-                                    return 'Phone number is required';
-                                  }
-                                  if (value!.length < 7) {
-                                    return 'Enter a valid phone number';
-                                  }
-                                  return null;
-                                },
-                                nameValidator: (value) {
-                                  if (_selectedUser == null) {
-                                    return 'Please select a registered contact';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ],
-                          ),
+                          ],
                         ),
-
-                        // Description
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            border: Border(
-                              bottom: BorderSide(
-                                color: theme.colorScheme.outline.withValues(alpha: 0.1),
-                                width: 1,
-                              ),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Description (Optional)',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextFormField(
-                                controller: _descriptionController,
-                                decoration: InputDecoration(
-                                  hintText: 'What was this for?',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(6),
-                                    borderSide: BorderSide(
-                                      color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(6),
-                                    borderSide: BorderSide(
-                                      color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(6),
-                                    borderSide: BorderSide(
-                                      color: theme.colorScheme.primary,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.all(12),
-                                ),
-                                maxLines: 2,
-                                textCapitalization: TextCapitalization.sentences,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                // Submit Button
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    border: Border(
-                      top: BorderSide(
-                        color: theme.colorScheme.outline.withValues(alpha: 0.1),
-                        width: 1,
                       ),
-                    ),
-                  ),
-                  child: BlocBuilder<TransactionFormCubit, TransactionFormState>(
-                    builder: (context, state) {
-                      final isLoading = state is TransactionFormLoading;
-
-                      return SizedBox(
-                        width: double.infinity,
-                        height: 44,
-                        child: FilledButton(
-                          onPressed: (isLoading || !_canSubmit) ? null : _handleSubmit,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: theme.colorScheme.primary,
-                            foregroundColor: theme.colorScheme.onPrimary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
+    
+                      // Amount
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          border: Border(
+                            bottom: BorderSide(
+                              color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                              width: 1,
                             ),
                           ),
-                          child: isLoading
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Text(
-                                  'Create Transaction',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Amount',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            AmountInputWidget(
+                              controller: _amountController,
+                              validator: (value) {
+                                if (value?.isEmpty ?? true) {
+                                  return 'Amount is required';
+                                }
+                                final amount = double.tryParse(value!);
+                                if (amount == null || amount <= 0) {
+                                  return 'Enter a valid amount';
+                                }
+                                if (amount > 10000000) {
+                                  return 'Amount cannot exceed Rs. 1,00,00,000';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+    
+                      // Contact
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          border: Border(
+                            bottom: BorderSide(
+                              color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Contact',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ContactSelectorWidget(
+                              phoneController: _phoneController,
+                              nameController: _nameController,
+                              onUserSelected: _onUserSelected,
+                              readOnly: _isQRSource,
+                              qrSourceIndicator: _isQRSource ? _getQRSourceText() : null,
+                              phoneValidator: (value) {
+                                if (value?.isEmpty ?? true) {
+                                  return 'Phone number is required';
+                                }
+                                if (value!.length < 7) {
+                                  return 'Enter a valid phone number';
+                                }
+                                return null;
+                              },
+                              nameValidator: (value) {
+                                if (_selectedUser == null) {
+                                  return 'Please select a registered contact';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+    
+                      // Description
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          border: Border(
+                            bottom: BorderSide(
+                              color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Description (Optional)',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: _descriptionController,
+                              decoration: InputDecoration(
+                                hintText: 'What was this for?',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: BorderSide(
+                                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
                                   ),
                                 ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: BorderSide(
+                                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: BorderSide(
+                                    color: theme.colorScheme.primary,
+                                    width: 2,
+                                  ),
+                                ),
+                                contentPadding: const EdgeInsets.all(12),
+                              ),
+                              maxLines: 2,
+                              textCapitalization: TextCapitalization.sentences,
+                            ),
+                          ],
                         ),
-                      );
-                    },
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              
+              // Submit Button
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  border: Border(
+                    top: BorderSide(
+                      color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: BlocBuilder<TransactionFormCubit, TransactionFormState>(
+                  builder: (context, state) {
+                    final isLoading = state is TransactionFormLoading;
+    
+                    return SizedBox(
+                      width: double.infinity,
+                      height: 44,
+                      child: FilledButton(
+                        onPressed: (isLoading || !_canSubmit) ? null : _handleSubmit,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: theme.colorScheme.onPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                'Create Transaction',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ),
