@@ -14,10 +14,15 @@ import 'package:udharoo/features/home/presentation/pages/home_screen.dart';
 import 'package:udharoo/features/contacts/presentation/pages/contacts_screen.dart';
 import 'package:udharoo/features/profile/presentation/pages/profile_screen.dart';
 import 'package:udharoo/features/profile/presentation/pages/edit_profile_screen.dart';
+import 'package:udharoo/features/transactions/domain/entities/qr_transaction_data.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/qr_generator/qr_generator_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/qr_scanner/qr_scanner_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/pages/pending_transactions_page.dart';
+import 'package:udharoo/features/transactions/presentation/pages/qr/qr_generartor_screen.dart';
+import 'package:udharoo/features/transactions/presentation/pages/qr/qr_scanner_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_detail_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transactions_page.dart';
@@ -25,6 +30,8 @@ import 'package:udharoo/features/transactions/presentation/pages/completed_trans
 import 'package:udharoo/features/transactions/presentation/pages/rejected_transactions_page.dart';
 import 'package:udharoo/shared/presentation/layouts/scaffold_with_bottom_nav_bar.dart';
 import 'package:udharoo/shared/presentation/widgets/auth_wrapper.dart';
+
+
 
 class AppRouter {
   static final AppRouter _instance = AppRouter._internal();
@@ -149,9 +156,46 @@ class AppRouter {
       GoRoute(
         path: Routes.transactionForm,
         name: 'transactionForm',
+        builder: (context, state) {
+          QRTransactionData? qrData;
+          String? source;
+          
+          final extra = state.extra;
+          if (extra is Map<String, dynamic>) {
+            qrData = extra['qrData'] as QRTransactionData?;
+            source = extra['source'] as String?;
+          } else if (extra is TransactionFormExtra) {
+            qrData = extra.qrData;
+            source = extra.source;
+          }
+          
+          return BlocProvider(
+            create: (_) => di.sl<TransactionFormCubit>(),
+            child: TransactionFormScreen(
+              qrData: qrData,
+              source: source,
+            ),
+          );
+        },
+      ),
+
+      // QR Generator Route
+      GoRoute(
+        path: Routes.qrGenerator,
+        name: 'qrGenerator',
         builder: (context, state) => BlocProvider(
-          create: (_) => di.sl<TransactionFormCubit>(),
-          child: const TransactionFormScreen(),
+          create: (_) => di.sl<QRGeneratorCubit>(),
+          child: const QRGeneratorScreen(),
+        ),
+      ),
+
+      // QR Scanner Route
+      GoRoute(
+        path: Routes.qrScanner,
+        name: 'qrScanner',
+        builder: (context, state) => BlocProvider(
+          create: (_) => di.sl<QRScannerCubit>(),
+          child: const QRScannerScreen(),
         ),
       ),
 

@@ -226,19 +226,23 @@ class _CreateActionBottomSheet extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _CreateActionItem(
-              icon: Icons.qr_code,
-              title: 'QR Code',
-              subtitle: 'Generate or scan QR code (Coming soon)',
+              icon: Icons.qr_code_scanner,
+              title: 'Scan QR Code',
+              subtitle: 'Scan a QR code to create transaction',
               onTap: () {
                 Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('QR feature coming soon!'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+                context.push(Routes.qrScanner);
               },
-              isEnabled: false,
+            ),
+            const SizedBox(height: 16),
+            _CreateActionItem(
+              icon: Icons.qr_code,
+              title: 'Generate QR Code',
+              subtitle: 'Create your QR code for others to scan',
+              onTap: () {
+                Navigator.of(context).pop();
+                context.push(Routes.qrGenerator);
+              },
             ),
             const SizedBox(height: 16),
           ],
@@ -253,14 +257,12 @@ class _CreateActionItem extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-  final bool isEnabled;
 
   const _CreateActionItem({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.onTap,
-    this.isEnabled = true,
   });
 
   @override
@@ -270,7 +272,7 @@ class _CreateActionItem extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: isEnabled ? onTap : null,
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -286,16 +288,12 @@ class _CreateActionItem extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: isEnabled 
-                      ? theme.colorScheme.primary.withValues(alpha: 0.1)
-                      : theme.colorScheme.outline.withValues(alpha: 0.1),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
-                  color: isEnabled 
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.outline.withValues(alpha: 0.5),
+                  color: theme.colorScheme.primary,
                   size: 24,
                 ),
               ),
@@ -308,18 +306,14 @@ class _CreateActionItem extends StatelessWidget {
                       title,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: isEnabled 
-                            ? theme.colorScheme.onSurface
-                            : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        color:  theme.colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: isEnabled 
-                            ? theme.colorScheme.onSurface.withValues(alpha: 0.6)
-                            : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -328,9 +322,7 @@ class _CreateActionItem extends StatelessWidget {
               Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
-                color: isEnabled 
-                    ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
-                    : theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                color:  theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
             ],
           ),
