@@ -25,6 +25,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   
   TransactionType? _selectedType;
   AuthUser? _selectedUser;
+  String? _selectedPhoneNumber;
 
   @override
   void dispose() {
@@ -35,39 +36,28 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     super.dispose();
   }
 
-  void _onUserSelected(AuthUser? user) {
+  void _onUserSelected(AuthUser? user, String? phoneNumber) {
     setState(() {
       _selectedUser = user;
+      _selectedPhoneNumber = phoneNumber;
     });
   }
 
   void _handleSubmit() {
     if (_formKey.currentState?.validate() ?? false) {
       if (_selectedType == null) {
-        CustomToast.show(
-          context,
-          message: 'Please select transaction type',
-          isSuccess: false,
-        );
+        CustomToast.show(context, message: 'Please select transaction type', isSuccess: false);
         return;
       }
 
       final amount = double.tryParse(_amountController.text);
       if (amount == null || amount <= 0) {
-        CustomToast.show(
-          context,
-          message: 'Please enter a valid amount',
-          isSuccess: false,
-        );
+        CustomToast.show(context, message: 'Please enter a valid amount', isSuccess: false);
         return;
       }
 
-      if (_selectedUser == null) {
-        CustomToast.show(
-          context,
-          message: 'Please select a valid registered contact',
-          isSuccess: false,
-        );
+      if (_selectedUser == null || _selectedPhoneNumber == null) {
+        CustomToast.show(context, message: 'Please select a valid registered contact', isSuccess: false);
         return;
       }
 
@@ -76,8 +66,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       context.read<TransactionFormCubit>().createTransaction(
         amount: amount,
         otherPartyUid: _selectedUser!.uid,
-        otherPartyPhone: _selectedUser!.phoneNumber!,
         otherPartyName: _selectedUser!.displayName ?? _selectedUser!.fullName ?? '',
+        otherPartyPhone: _selectedPhoneNumber!,
         description: description.isEmpty ? 'Transaction' : description,
         type: _selectedType!,
       );
@@ -92,23 +82,16 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       listener: (context, state) {
         switch (state) {
           case TransactionFormSuccess():
-            CustomToast.show(
-              context,
-              message: 'Transaction created successfully',
-              isSuccess: true,
-            );
+            CustomToast.show(context, message: 'Transaction created successfully', isSuccess: true);
             context.pop();
             break;
           case TransactionFormError():
-            CustomToast.show(
-              context,
-              message: state.message,
-              isSuccess: false,
-            );
+            CustomToast.show(context, message: state.message, isSuccess: false);
             break;
           case TransactionFormUserNotFound():
             setState(() {
               _selectedUser = null;
+              _selectedPhoneNumber = null;
             });
             break;
           default:
@@ -119,112 +102,215 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
           title: const Text('New Transaction'),
-          backgroundColor: Colors.transparent,
+          backgroundColor: theme.colorScheme.surface,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
-          leading: IconButton(
-            onPressed: () => context.pop(),
-            icon: const Icon(Icons.close),
-          ),
         ),
         body: Form(
           key: _formKey,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Step 1: Transaction Type
-                _buildStepHeader('1', 'Choose Type'),
-                const SizedBox(height: 16),
-                TransactionTypeSelector(
-                  selectedType: _selectedType,
-                  onTypeChanged: (type) {
-                    setState(() {
-                      _selectedType = type;
-                    });
-                  },
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      // Transaction Type
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          border: Border(
+                            bottom: BorderSide(
+                              color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Transaction Type',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TransactionTypeSelector(
+                              selectedType: _selectedType,
+                              onTypeChanged: (type) {
+                                setState(() {
+                                  _selectedType = type;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Amount
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          border: Border(
+                            bottom: BorderSide(
+                              color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Amount',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            AmountInputWidget(
+                              controller: _amountController,
+                              validator: (value) {
+                                if (value?.isEmpty ?? true) {
+                                  return 'Amount is required';
+                                }
+                                final amount = double.tryParse(value!);
+                                if (amount == null || amount <= 0) {
+                                  return 'Enter a valid amount';
+                                }
+                                if (amount > 10000000) {
+                                  return 'Amount cannot exceed Rs. 1,00,00,000';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Contact
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          border: Border(
+                            bottom: BorderSide(
+                              color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Contact',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ContactSelectorWidget(
+                              phoneController: _phoneController,
+                              nameController: _nameController,
+                              onUserSelected: _onUserSelected,
+                              phoneValidator: (value) {
+                                if (value?.isEmpty ?? true) {
+                                  return 'Phone number is required';
+                                }
+                                if (value!.length < 7) {
+                                  return 'Enter a valid phone number';
+                                }
+                                return null;
+                              },
+                              nameValidator: (value) {
+                                if (_selectedUser == null) {
+                                  return 'Please select a registered contact';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Description
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          border: Border(
+                            bottom: BorderSide(
+                              color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Description (Optional)',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: _descriptionController,
+                              decoration: InputDecoration(
+                                hintText: 'What was this for?',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: BorderSide(
+                                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: BorderSide(
+                                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: BorderSide(
+                                    color: theme.colorScheme.primary,
+                                    width: 2,
+                                  ),
+                                ),
+                                contentPadding: const EdgeInsets.all(12),
+                              ),
+                              maxLines: 2,
+                              textCapitalization: TextCapitalization.sentences,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-
-                const SizedBox(height: 24),
-
-                // Step 2: Amount
-                _buildStepHeader('2', 'Enter Amount'),
-                const SizedBox(height: 16),
-                AmountInputWidget(
-                  controller: _amountController,
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) {
-                      return 'Amount is required';
-                    }
-                    final amount = double.tryParse(value!);
-                    if (amount == null || amount <= 0) {
-                      return 'Enter a valid amount';
-                    }
-                    if (amount > 10000000) {
-                      return 'Amount cannot exceed Rs. 1,00,00,000';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 24),
-
-                // Step 3: Contact
-                _buildStepHeader('3', 'Select Contact'),
-                const SizedBox(height: 16),
-                ContactSelectorWidget(
-                  phoneController: _phoneController,
-                  nameController: _nameController,
-                  onUserSelected: _onUserSelected,
-                  phoneValidator: (value) {
-                    if (value?.isEmpty ?? true) {
-                      return 'Phone number is required';
-                    }
-                    if (value!.length < 7) {
-                      return 'Enter a valid phone number';
-                    }
-                    return null;
-                  },
-                  nameValidator: (value) {
-                    if (_selectedUser == null) {
-                      return 'Please select a registered contact';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 24),
-
-                // Step 4: Description
-                _buildStepHeader('4', 'Add Description (Optional)'),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.colorScheme.outline.withValues(alpha: 0.2),
+              ),
+              
+              // Submit Button
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  border: Border(
+                    top: BorderSide(
+                      color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                      width: 1,
                     ),
                   ),
-                  child: TextFormField(
-                    controller: _descriptionController,
-                    decoration: InputDecoration(
-                      hintText: 'What was this for?',
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    maxLines: 3,
-                    textCapitalization: TextCapitalization.sentences,
-                  ),
                 ),
-
-                const SizedBox(height: 32),
-
-                // Submit Button
-                BlocBuilder<TransactionFormCubit, TransactionFormState>(
+                child: BlocBuilder<TransactionFormCubit, TransactionFormState>(
                   builder: (context, state) {
                     final isLoading = state is TransactionFormLoading;
                     final canSubmit = _selectedUser != null && 
@@ -232,20 +318,21 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                                     _amountController.text.isNotEmpty;
 
                     return SizedBox(
-                      height: 48,
+                      width: double.infinity,
+                      height: 44,
                       child: FilledButton(
                         onPressed: (isLoading || !canSubmit) ? null : _handleSubmit,
                         style: FilledButton.styleFrom(
                           backgroundColor: theme.colorScheme.primary,
                           foregroundColor: theme.colorScheme.onPrimary,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                         ),
                         child: isLoading
                             ? const SizedBox(
-                                width: 20,
-                                height: 20,
+                                width: 18,
+                                height: 18,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   color: Colors.white,
@@ -253,7 +340,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                               )
                             : Text(
                                 'Create Transaction',
-                                style: theme.textTheme.bodyLarge?.copyWith(
+                                style: theme.textTheme.bodyMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -261,46 +348,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     );
                   },
                 ),
-
-                const SizedBox(height: 16),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildStepHeader(String stepNumber, String title) {
-    final theme = Theme.of(context);
-    
-    return Row(
-      children: [
-        Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Center(
-            child: Text(
-              stepNumber,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
     );
   }
 }

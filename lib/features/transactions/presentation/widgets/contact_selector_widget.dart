@@ -10,7 +10,7 @@ class ContactSelectorWidget extends StatefulWidget {
   final TextEditingController nameController;
   final String? Function(String?)? phoneValidator;
   final String? Function(String?)? nameValidator;
-  final Function(AuthUser?)? onUserSelected;
+  final Function(AuthUser?, String?)? onUserSelected;
 
   const ContactSelectorWidget({
     super.key,
@@ -56,6 +56,12 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
   }
 
   void _selectUser(AuthUser user) {
+    // Format the phone number
+    String formattedPhone = widget.phoneController.text.trim();
+    if (!formattedPhone.startsWith('+')) {
+      formattedPhone = '+977$formattedPhone';
+    }
+    
     setState(() {
       _selectedUser = user;
     });
@@ -63,7 +69,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
     widget.nameController.text = user.displayName ?? user.fullName ?? '';
     
     if (widget.onUserSelected != null) {
-      widget.onUserSelected!(user);
+      widget.onUserSelected!(user, formattedPhone);
     }
   }
 
@@ -75,7 +81,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
     widget.nameController.clear();
     
     if (widget.onUserSelected != null) {
-      widget.onUserSelected!(null);
+      widget.onUserSelected!(null, null);
     }
   }
 
@@ -86,7 +92,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
     widget.nameController.clear();
     context.read<TransactionFormCubit>().clearUserLookup();
     if (widget.onUserSelected != null) {
-      widget.onUserSelected!(null);
+      widget.onUserSelected!(null, null);
     }
   }
 
@@ -94,93 +100,100 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Contact Details',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Phone number input
+        TextFormField(
+          controller: widget.phoneController,
+          decoration: InputDecoration(
+            labelText: 'Phone Number',
+            hintText: '98XXXXXXXX',
+            prefixIcon: const Icon(Icons.phone, size: 20),
+            suffixIcon: _buildPhoneSuffixIcon(),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide(
+                color: theme.colorScheme.outline.withValues(alpha: 0.3),
+              ),
             ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide(
+                color: theme.colorScheme.outline.withValues(alpha: 0.3),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide(
+                color: theme.colorScheme.primary,
+                width: 2,
+              ),
+            ),
+            filled: true,
+            fillColor: _selectedUser != null 
+                ? theme.colorScheme.primary.withValues(alpha: 0.05)
+                : theme.scaffoldBackgroundColor,
           ),
-          const SizedBox(height: 16),
-          
-          // Phone number input
+          keyboardType: TextInputType.phone,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(10),
+          ],
+          validator: widget.phoneValidator,
+          readOnly: _selectedUser != null,
+        ),
+        
+        const SizedBox(height: 12),
+        
+        // User lookup result
+        BlocListener<TransactionFormCubit, TransactionFormState>(
+          listener: (context, state) {
+            if (state is TransactionFormUserFound) {
+              _selectUser(state.user);
+            } else if (state is TransactionFormUserNotFound) {
+              _clearSelectedUser();
+            }
+          },
+          child: BlocBuilder<TransactionFormCubit, TransactionFormState>(
+            builder: (context, state) {
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _buildUserStatus(state, theme),
+              );
+            },
+          ),
+        ),
+        
+        // Name input
+        if (_selectedUser != null) ...[
+          const SizedBox(height: 12),
           TextFormField(
-            controller: widget.phoneController,
+            controller: widget.nameController,
             decoration: InputDecoration(
-              labelText: 'Phone Number',
-              hintText: '98XXXXXXXX',
-              prefixIcon: const Icon(Icons.phone),
-              suffixIcon: _buildPhoneSuffixIcon(),
+              labelText: 'Full Name',
+              hintText: 'Auto-filled from contact',
+              prefixIcon: const Icon(Icons.person, size: 20),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(
+                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(
+                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                ),
               ),
               filled: true,
-              fillColor: _selectedUser != null 
-                  ? theme.colorScheme.primary.withValues(alpha: 0.05)
-                  : theme.scaffoldBackgroundColor,
+              fillColor: theme.colorScheme.primary.withValues(alpha: 0.05),
             ),
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(10),
-            ],
-            validator: widget.phoneValidator,
-            readOnly: _selectedUser != null,
+            validator: widget.nameValidator,
+            readOnly: true,
           ),
-          
-          const SizedBox(height: 16),
-          
-          // User lookup result
-          BlocListener<TransactionFormCubit, TransactionFormState>(
-            listener: (context, state) {
-              if (state is TransactionFormUserFound) {
-                _selectUser(state.user);
-              } else if (state is TransactionFormUserNotFound) {
-                _clearSelectedUser();
-              }
-            },
-            child: BlocBuilder<TransactionFormCubit, TransactionFormState>(
-              builder: (context, state) {
-                return AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: _buildUserStatus(state, theme),
-                );
-              },
-            ),
-          ),
-          
-          // Name input
-          if (_selectedUser != null) ...[
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: widget.nameController,
-              decoration: InputDecoration(
-                labelText: 'Full Name',
-                hintText: 'Auto-filled from contact',
-                prefixIcon: const Icon(Icons.person),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                filled: true,
-                fillColor: theme.colorScheme.primary.withValues(alpha: 0.05),
-              ),
-              validator: widget.nameValidator,
-              readOnly: true,
-            ),
-          ],
         ],
-      ),
+      ],
     );
   }
 
@@ -190,15 +203,15 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
         if (_selectedUser != null) {
           return IconButton(
             onPressed: _editPhoneNumber,
-            icon: const Icon(Icons.edit, size: 20),
+            icon: const Icon(Icons.edit, size: 16),
             tooltip: 'Edit phone number',
           );
         } else if (state is TransactionFormUserLookupLoading) {
           return Container(
             padding: const EdgeInsets.all(14),
             child: const SizedBox(
-              width: 20,
-              height: 20,
+              width: 16,
+              height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
           );
@@ -208,7 +221,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
             child: const Icon(
               Icons.check_circle,
               color: Colors.green,
-              size: 24,
+              size: 20,
             ),
           );
         } else if (state is TransactionFormUserNotFound) {
@@ -217,7 +230,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
             child: const Icon(
               Icons.error,
               color: Colors.red,
-              size: 24,
+              size: 20,
             ),
           );
         }
@@ -233,16 +246,17 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.green.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: Colors.green.withValues(alpha: 0.3),
+            width: 1,
           ),
         ),
         child: Row(
           children: [
             const Icon(
               Icons.check_circle,
-              size: 20,
+              size: 16,
               color: Colors.green,
             ),
             const SizedBox(width: 8),
@@ -276,16 +290,17 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.red.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: Colors.red.withValues(alpha: 0.3),
+            width: 1,
           ),
         ),
         child: Row(
           children: [
             const Icon(
               Icons.error,
-              size: 20,
+              size: 16,
               color: Colors.red,
             ),
             const SizedBox(width: 8),
