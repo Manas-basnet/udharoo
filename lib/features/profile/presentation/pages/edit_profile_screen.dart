@@ -486,12 +486,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                         if (_hasGoogleProvider(state.user))
                                           Container(
                                             padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
+                                              horizontal: 12,
+                                              vertical: 6,
                                             ),
                                             decoration: BoxDecoration(
                                               color: Colors.green.withValues(alpha: 0.1),
-                                              borderRadius: BorderRadius.circular(12),
+                                              borderRadius: BorderRadius.circular(16),
                                             ),
                                             child: Text(
                                               'Linked',
@@ -502,43 +502,42 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                             ),
                                           )
                                         else
-                                          SizedBox(
-                                            height: 32,
-                                            child: OutlinedButton(
-                                              onPressed: (_isLinkingGoogle || signInState is SignInLoading)
-                                                  ? null 
-                                                  : () {
-                                                      setState(() {
-                                                        _isLinkingGoogle = true;
-                                                      });
-                                                      signInCubit.linkGoogleAccount();
-                                                    },
-                                              style: OutlinedButton.styleFrom(
-                                                foregroundColor: theme.colorScheme.primary,
-                                                side: BorderSide(
-                                                  color: theme.colorScheme.primary,
-                                                  width: 1,
-                                                ),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(8),
-                                                ),
+                                          OutlinedButton(
+                                            onPressed: (_isLinkingGoogle || signInState is SignInLoading)
+                                                ? null 
+                                                : () {
+                                                    setState(() {
+                                                      _isLinkingGoogle = true;
+                                                    });
+                                                    signInCubit.linkGoogleAccount();
+                                                  },
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: theme.colorScheme.primary,
+                                              side: BorderSide(
+                                                color: theme.colorScheme.primary,
+                                                width: 1,
                                               ),
-                                              child: (_isLinkingGoogle || signInState is SignInLoading)
-                                                  ? SizedBox(
-                                                      height: 12,
-                                                      width: 12,
-                                                      child: CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        color: theme.colorScheme.primary,
-                                                      ),
-                                                    )
-                                                  : Text(
-                                                      'Link',
-                                                      style: theme.textTheme.labelSmall?.copyWith(
-                                                        fontWeight: FontWeight.w600,
-                                                      ),
-                                                    ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              minimumSize: const Size(64, 36),
+                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                             ),
+                                            child: (_isLinkingGoogle || signInState is SignInLoading)
+                                                ? SizedBox(
+                                                    height: 16,
+                                                    width: 16,
+                                                    child: CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: theme.colorScheme.primary,
+                                                    ),
+                                                  )
+                                                : Text(
+                                                    'Link',
+                                                    style: theme.textTheme.labelMedium?.copyWith(
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
                                           ),
                                       ],
                                     ),
@@ -590,12 +589,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                             children: [
                                               Container(
                                                 padding: const EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 4,
+                                                  horizontal: 12,
+                                                  vertical: 6,
                                                 ),
                                                 decoration: BoxDecoration(
                                                   color: Colors.green.withValues(alpha: 0.1),
-                                                  borderRadius: BorderRadius.circular(12),
+                                                  borderRadius: BorderRadius.circular(16),
                                                 ),
                                                 child: Text(
                                                   'Linked',
@@ -606,63 +605,61 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                                 ),
                                               ),
                                               const SizedBox(width: 8),
-                                              SizedBox(
-                                                height: 32,
-                                                child: OutlinedButton(
-                                                  onPressed: _showChangePasswordDialog,
-                                                  style: OutlinedButton.styleFrom(
-                                                    foregroundColor: theme.colorScheme.primary,
-                                                    side: BorderSide(
-                                                      color: theme.colorScheme.primary,
-                                                      width: 1,
-                                                    ),
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(8),
-                                                    ),
+                                              OutlinedButton(
+                                                onPressed: _showChangePasswordDialog,
+                                                style: OutlinedButton.styleFrom(
+                                                  foregroundColor: theme.colorScheme.primary,
+                                                  side: BorderSide(
+                                                    color: theme.colorScheme.primary,
+                                                    width: 1,
                                                   ),
-                                                  child: Text(
-                                                    'Change',
-                                                    style: theme.textTheme.labelSmall?.copyWith(
-                                                      fontWeight: FontWeight.w600,
-                                                    ),
-                                                  )
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  minimumSize: const Size(64, 36),
+                                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                                 ),
+                                                child: Text(
+                                                  'Change',
+                                                  style: theme.textTheme.labelMedium?.copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                )
                                               ),
                                             ],
                                           )
                                         else
-                                          SizedBox(
-                                            height: 32,
-                                            child: OutlinedButton(
-                                              onPressed: (_isLinkingPassword || signInState is SignInLoading)
-                                                  ? null 
-                                                  : () => _showPasswordSetupDialog(signInCubit),
-                                              style: OutlinedButton.styleFrom(
-                                                foregroundColor: theme.colorScheme.primary,
-                                                side: BorderSide(
-                                                  color: theme.colorScheme.primary,
-                                                  width: 1,
-                                                ),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(8),
-                                                ),
+                                          OutlinedButton(
+                                            onPressed: (_isLinkingPassword || signInState is SignInLoading)
+                                                ? null 
+                                                : () => _showPasswordSetupDialog(signInCubit),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: theme.colorScheme.primary,
+                                              side: BorderSide(
+                                                color: theme.colorScheme.primary,
+                                                width: 1,
                                               ),
-                                              child: (_isLinkingPassword || signInState is SignInLoading)
-                                                  ? SizedBox(
-                                                      height: 12,
-                                                      width: 12,
-                                                      child: CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        color: theme.colorScheme.primary,
-                                                      ),
-                                                    )
-                                                  : Text(
-                                                      'Link',
-                                                      style: theme.textTheme.labelSmall?.copyWith(
-                                                        fontWeight: FontWeight.w600,
-                                                      ),
-                                                    ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              minimumSize: const Size(64, 36),
+                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                             ),
+                                            child: (_isLinkingPassword || signInState is SignInLoading)
+                                                ? SizedBox(
+                                                    height: 16,
+                                                    width: 16,
+                                                    child: CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: theme.colorScheme.primary,
+                                                    ),
+                                                  )
+                                                : Text(
+                                                    'Link',
+                                                    style: theme.textTheme.labelMedium?.copyWith(
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
                                           ),
                                       ],
                                     ),
@@ -712,12 +709,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                             children: [
                                               Container(
                                                 padding: const EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 4,
+                                                  horizontal: 12,
+                                                  vertical: 6,
                                                 ),
                                                 decoration: BoxDecoration(
                                                   color: Colors.green.withValues(alpha: 0.1),
-                                                  borderRadius: BorderRadius.circular(12),
+                                                  borderRadius: BorderRadius.circular(16),
                                                 ),
                                                 child: Text(
                                                   'Verified',
@@ -728,52 +725,50 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                                 ),
                                               ),
                                               const SizedBox(width: 8),
-                                              SizedBox(
-                                                height: 32,
-                                                child: OutlinedButton(
-                                                  onPressed: _showChangePhoneDialog,
-                                                  style: OutlinedButton.styleFrom(
-                                                    foregroundColor: theme.colorScheme.primary,
-                                                    side: BorderSide(
-                                                      color: theme.colorScheme.primary,
-                                                      width: 1,
-                                                    ),
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(8),
-                                                    ),
+                                              OutlinedButton(
+                                                onPressed: _showChangePhoneDialog,
+                                                style: OutlinedButton.styleFrom(
+                                                  foregroundColor: theme.colorScheme.primary,
+                                                  side: BorderSide(
+                                                    color: theme.colorScheme.primary,
+                                                    width: 1,
                                                   ),
-                                                  child: Text(
-                                                    'Change',
-                                                    style: theme.textTheme.labelSmall?.copyWith(
-                                                      fontWeight: FontWeight.w600,
-                                                    ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  minimumSize: const Size(64, 36),
+                                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                ),
+                                                child: Text(
+                                                  'Change',
+                                                  style: theme.textTheme.labelMedium?.copyWith(
+                                                    fontWeight: FontWeight.w600,
                                                   ),
                                                 ),
                                               ),
                                             ],
                                           )
                                         else
-                                          SizedBox(
-                                            height: 32,
-                                            child: OutlinedButton(
-                                              onPressed: () {
-                                                context.push(Routes.phoneSetup);
-                                              },
-                                              style: OutlinedButton.styleFrom(
-                                                foregroundColor: theme.colorScheme.primary,
-                                                side: BorderSide(
-                                                  color: theme.colorScheme.primary,
-                                                  width: 1,
-                                                ),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(8),
-                                                ),
+                                          OutlinedButton(
+                                            onPressed: () {
+                                              context.push(Routes.phoneSetup);
+                                            },
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: theme.colorScheme.primary,
+                                              side: BorderSide(
+                                                color: theme.colorScheme.primary,
+                                                width: 1,
                                               ),
-                                              child: Text(
-                                                'Link',
-                                                style: theme.textTheme.labelSmall?.copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              minimumSize: const Size(64, 36),
+                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                            ),
+                                            child: Text(
+                                              'Link',
+                                              style: theme.textTheme.labelMedium?.copyWith(
+                                                fontWeight: FontWeight.w600,
                                               ),
                                             ),
                                           ),

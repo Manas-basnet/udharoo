@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
+import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_list_item.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_search_delegate.dart';
+
+enum TransactionFilter { 
+  all, 
+  lent, 
+  borrowed,
+}
 
 class CompletedTransactionsPage extends StatefulWidget {
   const CompletedTransactionsPage({super.key});
@@ -15,6 +22,7 @@ class CompletedTransactionsPage extends StatefulWidget {
 
 class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
   final ScrollController _scrollController = ScrollController();
+  TransactionFilter _selectedFilter = TransactionFilter.all;
 
   @override
   void dispose() {
@@ -38,6 +46,7 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
             child: Column(
               children: [
                 _buildStatsSection(theme, state),
+                _buildFilterSection(theme),
                 Expanded(
                   child: _buildTransactionsList(state, theme),
                 ),
@@ -127,53 +136,8 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
         ),
       ),
       child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.green.withValues(alpha: 0.3),
-                    width: 1,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.check_circle,
-                  color: Colors.green,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Completed Transactions',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.green.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Text(
-                      '${completedTransactions.length} transactions completed',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.green.shade800,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          
+        children: [          
           if (lentCount > 0 || borrowedCount > 0) ...[
-            const SizedBox(height: 16),
             Row(
               children: [
                 if (lentCount > 0)
@@ -208,31 +172,84 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
     );
   }
 
+  // CHANGE 4: Add filter section
+  Widget _buildFilterSection(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          _buildFilterChip('All', TransactionFilter.all, theme),
+          const SizedBox(width: 8),
+          _buildFilterChip('Lent', TransactionFilter.lent, theme),
+          const SizedBox(width: 8),
+          _buildFilterChip('Borrowed', TransactionFilter.borrowed, theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, TransactionFilter filter, ThemeData theme) {
+    final isSelected = _selectedFilter == filter;
+    
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilter = filter;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? theme.colorScheme.primary.withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: isSelected 
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: isSelected 
+                ? theme.colorScheme.primary
+                : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTransactionsList(TransactionState state, ThemeData theme) {
     switch (state) {
       case TransactionLoading():
         return const Center(child: CircularProgressIndicator());
 
       case TransactionLoaded():
-        final completedTransactions = state.transactions
-            .where((t) => t.isCompleted)
-            .toList()
-          ..sort((a, b) {
-            if (a.completedAt == null && b.completedAt == null) return 0;
-            if (a.completedAt == null) return 1;
-            if (b.completedAt == null) return -1;
-            return b.completedAt!.compareTo(a.completedAt!);
-          });
+        final filteredTransactions = _getFilteredTransactions(state);
 
-        if (completedTransactions.isEmpty) {
+        if (filteredTransactions.isEmpty) {
           return _buildEmptyState(theme);
         }
 
         return ListView.builder(
           controller: _scrollController,
-          itemCount: completedTransactions.length,
+          itemCount: filteredTransactions.length,
           itemBuilder: (context, index) {
-            final transaction = completedTransactions[index];
+            final transaction = filteredTransactions[index];
             return GestureDetector(
               onTap: () => context.push(
                 Routes.transactionDetail,
@@ -251,7 +268,58 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
     }
   }
 
+  // CHANGE 4: Add filtered transactions method
+  List<Transaction> _getFilteredTransactions(TransactionLoaded state) {
+    final completedTransactions = state.transactions
+        .where((t) => t.isCompleted)
+        .toList();
+
+    List<Transaction> filteredTransactions;
+
+    switch (_selectedFilter) {
+      case TransactionFilter.all:
+        filteredTransactions = completedTransactions;
+        break;
+      case TransactionFilter.lent:
+        filteredTransactions = completedTransactions
+            .where((t) => t.isLent)
+            .toList();
+        break;
+      case TransactionFilter.borrowed:
+        filteredTransactions = completedTransactions
+            .where((t) => t.isBorrowed)
+            .toList();
+        break;
+    }
+
+    return filteredTransactions
+      ..sort((a, b) {
+        if (a.completedAt == null && b.completedAt == null) return 0;
+        if (a.completedAt == null) return 1;
+        if (b.completedAt == null) return -1;
+        return b.completedAt!.compareTo(a.completedAt!);
+      });
+  }
+
   Widget _buildEmptyState(ThemeData theme) {
+    String message;
+    String subtitle;
+
+    switch (_selectedFilter) {
+      case TransactionFilter.all:
+        message = 'No Completed Transactions';
+        subtitle = 'Transactions you mark as completed will appear here.';
+        break;
+      case TransactionFilter.lent:
+        message = 'No Completed Lending';
+        subtitle = 'Completed lending transactions will appear here.';
+        break;
+      case TransactionFilter.borrowed:
+        message = 'No Completed Borrowing';
+        subtitle = 'Completed borrowing transactions will appear here.';
+        break;
+    }
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -265,7 +333,7 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'No Completed Transactions',
+              message,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: theme.colorScheme.onSurface,
@@ -273,7 +341,7 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Transactions you mark as completed will appear here.',
+              subtitle,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),

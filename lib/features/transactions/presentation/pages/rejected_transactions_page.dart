@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
+import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_list_item.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_search_delegate.dart';
+
+enum TransactionFilter { 
+  all, 
+  lent, 
+  borrowed,
+}
 
 class RejectedTransactionsPage extends StatefulWidget {
   const RejectedTransactionsPage({super.key});
@@ -15,6 +22,7 @@ class RejectedTransactionsPage extends StatefulWidget {
 
 class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
   final ScrollController _scrollController = ScrollController();
+  TransactionFilter _selectedFilter = TransactionFilter.all;
 
   @override
   void dispose() {
@@ -38,6 +46,7 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
             child: Column(
               children: [
                 _buildStatsSection(theme, state),
+                _buildFilterSection(theme),
                 Expanded(
                   child: _buildTransactionsList(state, theme),
                 ),
@@ -208,26 +217,84 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
     );
   }
 
+  // CHANGE 4: Add filter section
+  Widget _buildFilterSection(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          _buildFilterChip('All', TransactionFilter.all, theme),
+          const SizedBox(width: 8),
+          _buildFilterChip('Lent', TransactionFilter.lent, theme),
+          const SizedBox(width: 8),
+          _buildFilterChip('Borrowed', TransactionFilter.borrowed, theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, TransactionFilter filter, ThemeData theme) {
+    final isSelected = _selectedFilter == filter;
+    
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilter = filter;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? theme.colorScheme.primary.withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: isSelected 
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: isSelected 
+                ? theme.colorScheme.primary
+                : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTransactionsList(TransactionState state, ThemeData theme) {
     switch (state) {
       case TransactionLoading():
         return const Center(child: CircularProgressIndicator());
 
       case TransactionLoaded():
-        final rejectedTransactions = state.transactions
-            .where((t) => t.isRejected)
-            .toList()
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        final filteredTransactions = _getFilteredTransactions(state);
 
-        if (rejectedTransactions.isEmpty) {
+        if (filteredTransactions.isEmpty) {
           return _buildEmptyState(theme);
         }
 
         return ListView.builder(
           controller: _scrollController,
-          itemCount: rejectedTransactions.length,
+          itemCount: filteredTransactions.length,
           itemBuilder: (context, index) {
-            final transaction = rejectedTransactions[index];
+            final transaction = filteredTransactions[index];
             return GestureDetector(
               onTap: () => context.push(
                 Routes.transactionDetail,
@@ -246,7 +313,53 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
     }
   }
 
+  // CHANGE 4: Add filtered transactions method
+  List<Transaction> _getFilteredTransactions(TransactionLoaded state) {
+    final rejectedTransactions = state.transactions
+        .where((t) => t.isRejected)
+        .toList();
+
+    List<Transaction> filteredTransactions;
+
+    switch (_selectedFilter) {
+      case TransactionFilter.all:
+        filteredTransactions = rejectedTransactions;
+        break;
+      case TransactionFilter.lent:
+        filteredTransactions = rejectedTransactions
+            .where((t) => t.isLent)
+            .toList();
+        break;
+      case TransactionFilter.borrowed:
+        filteredTransactions = rejectedTransactions
+            .where((t) => t.isBorrowed)
+            .toList();
+        break;
+    }
+
+    return filteredTransactions
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
   Widget _buildEmptyState(ThemeData theme) {
+    String message;
+    String subtitle;
+
+    switch (_selectedFilter) {
+      case TransactionFilter.all:
+        message = 'No Rejected Transactions';
+        subtitle = 'Great! You don\'t have any rejected transactions.';
+        break;
+      case TransactionFilter.lent:
+        message = 'No Rejected Lending';
+        subtitle = 'No rejected lending transactions found.';
+        break;
+      case TransactionFilter.borrowed:
+        message = 'No Rejected Borrowing';
+        subtitle = 'No rejected borrowing transactions found.';
+        break;
+    }
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -260,7 +373,7 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'No Rejected Transactions',
+              message,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: theme.colorScheme.onSurface,
@@ -268,7 +381,7 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Great! You don\'t have any rejected transactions.',
+              subtitle,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),

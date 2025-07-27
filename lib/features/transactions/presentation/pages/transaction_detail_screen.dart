@@ -656,7 +656,10 @@ class TransactionDetailScreen extends StatelessWidget {
   }
 
   bool _canCompleteTransaction() {
-    return transaction.isVerified;
+    // Only allow completion if:
+    // 1. Transaction is verified
+    // 2. Current user is the lender (created a lent transaction)
+    return transaction.isVerified && transaction.isLent;
   }
 
   void _showRejectDialog(BuildContext context, TransactionCubit cubit) {

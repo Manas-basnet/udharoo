@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:udharoo/features/auth/presentation/bloc/signin_cubit.dart';
 import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
@@ -107,7 +106,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   Row(
                     children: [
                       IconButton(
-                        onPressed: () => context.pop(),
+                        onPressed: () => Navigator.of(context).pop(),
                         icon: const Icon(Icons.arrow_back),
                         style: IconButton.styleFrom(
                           backgroundColor: theme.colorScheme.surface,
@@ -603,7 +602,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           
                           Center(
                             child: TextButton(
-                              onPressed: () => context.pop(),
+                              onPressed: () => Navigator.of(context).pop(),
                               child: RichText(
                                 text: TextSpan(
                                   style: theme.textTheme.bodySmall?.copyWith(

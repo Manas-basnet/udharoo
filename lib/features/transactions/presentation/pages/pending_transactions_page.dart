@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
+import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_list_item.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_search_delegate.dart';
+
+enum TransactionFilter { 
+  all, 
+  lent, 
+  borrowed,
+}
 
 class PendingTransactionsPage extends StatefulWidget {
   const PendingTransactionsPage({super.key});
@@ -15,6 +22,7 @@ class PendingTransactionsPage extends StatefulWidget {
 
 class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
   final ScrollController _scrollController = ScrollController();
+  TransactionFilter _selectedFilter = TransactionFilter.all;
 
   @override
   void dispose() {
@@ -38,6 +46,7 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
             child: Column(
               children: [
                 _buildStatsSection(theme, state),
+                _buildFilterSection(theme),
                 Expanded(
                   child: _buildTransactionsList(state, theme),
                 ),
@@ -122,53 +131,8 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
         ),
       ),
       child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.orange.withValues(alpha: 0.3),
-                    width: 1,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.schedule,
-                  color: Colors.orange,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Pending Verification',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.orange.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Text(
-                      '${pendingTransactions.length} transactions awaiting action',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.orange.shade800,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          
+        children: [          
           if (lentCount > 0 || borrowedCount > 0) ...[
-            const SizedBox(height: 16),
             Row(
               children: [
                 if (lentCount > 0)
@@ -203,24 +167,84 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
     );
   }
 
+  // CHANGE 4: Add filter section
+  Widget _buildFilterSection(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          _buildFilterChip('All', TransactionFilter.all, theme),
+          const SizedBox(width: 8),
+          _buildFilterChip('Lent', TransactionFilter.lent, theme),
+          const SizedBox(width: 8),
+          _buildFilterChip('Borrowed', TransactionFilter.borrowed, theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, TransactionFilter filter, ThemeData theme) {
+    final isSelected = _selectedFilter == filter;
+    
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilter = filter;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? theme.colorScheme.primary.withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: isSelected 
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: isSelected 
+                ? theme.colorScheme.primary
+                : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTransactionsList(TransactionState state, ThemeData theme) {
     switch (state) {
       case TransactionLoading():
         return const Center(child: CircularProgressIndicator());
 
       case TransactionLoaded():
-        final pendingTransactions = state.pendingTransactions
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        final filteredTransactions = _getFilteredTransactions(state);
 
-        if (pendingTransactions.isEmpty) {
+        if (filteredTransactions.isEmpty) {
           return _buildEmptyState(theme);
         }
 
         return ListView.builder(
           controller: _scrollController,
-          itemCount: pendingTransactions.length,
+          itemCount: filteredTransactions.length,
           itemBuilder: (context, index) {
-            final transaction = pendingTransactions[index];
+            final transaction = filteredTransactions[index];
             return GestureDetector(
               onTap: () => context.push(
                 Routes.transactionDetail,
@@ -239,7 +263,51 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
     }
   }
 
+  // CHANGE 4: Add filtered transactions method
+  List<Transaction> _getFilteredTransactions(TransactionLoaded state) {
+    final pendingTransactions = state.pendingTransactions;
+
+    List<Transaction> filteredTransactions;
+
+    switch (_selectedFilter) {
+      case TransactionFilter.all:
+        filteredTransactions = pendingTransactions;
+        break;
+      case TransactionFilter.lent:
+        filteredTransactions = pendingTransactions
+            .where((t) => t.isLent)
+            .toList();
+        break;
+      case TransactionFilter.borrowed:
+        filteredTransactions = pendingTransactions
+            .where((t) => t.isBorrowed)
+            .toList();
+        break;
+    }
+
+    return filteredTransactions
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
   Widget _buildEmptyState(ThemeData theme) {
+    String message;
+    String subtitle;
+
+    switch (_selectedFilter) {
+      case TransactionFilter.all:
+        message = 'All Caught Up!';
+        subtitle = 'No pending transactions require your attention.';
+        break;
+      case TransactionFilter.lent:
+        message = 'No Pending Lending';
+        subtitle = 'No pending lending transactions found.';
+        break;
+      case TransactionFilter.borrowed:
+        message = 'No Pending Borrowing';
+        subtitle = 'No pending borrowing transactions found.';
+        break;
+    }
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -253,7 +321,7 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'All Caught Up!',
+              message,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: theme.colorScheme.onSurface,
@@ -261,7 +329,7 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'No pending transactions require your attention.',
+              subtitle,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),

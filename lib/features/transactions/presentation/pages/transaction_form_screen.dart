@@ -68,7 +68,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         otherPartyUid: _selectedUser!.uid,
         otherPartyName: _selectedUser!.displayName ?? _selectedUser!.fullName ?? '',
         otherPartyPhone: _selectedPhoneNumber!,
-        description: description.isEmpty ? 'Transaction' : description,
+        description: description,
         type: _selectedType!,
       );
     }

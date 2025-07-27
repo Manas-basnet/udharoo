@@ -44,6 +44,31 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
     return ExceptionHandler.handleExceptions(() async {
       final transactionId = _generateTransactionId();
       final deviceInfo = await _getCurrentDeviceInfo();
+      final now = DateTime.now();
+      
+      final initialStatus = type == TransactionType.borrowed 
+          ? TransactionStatus.verified 
+          : TransactionStatus.pendingVerification;
+      
+      final activities = <TransactionActivityModel>[
+        TransactionActivityModel(
+          action: TransactionStatus.pendingVerification,
+          timestamp: now,
+          performedBy: _currentUserId,
+          deviceInfo: deviceInfo,
+        ),
+      ];
+      
+      if (type == TransactionType.borrowed) {
+        activities.add(
+          TransactionActivityModel(
+            action: TransactionStatus.verified,
+            timestamp: now,
+            performedBy: _currentUserId,
+            deviceInfo: deviceInfo,
+          ),
+        );
+      }
       
       final transactionModel = TransactionModel(
         transactionId: transactionId,
@@ -55,18 +80,12 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
           phoneNumber: otherPartyPhone,
         ),
         description: description,
-        status: TransactionStatus.pendingVerification,
-        createdAt: DateTime.now(),
+        status: initialStatus,
+        createdAt: now,
+        verifiedAt: type == TransactionType.borrowed ? now : null,
         createdBy: _currentUserId,
         createdFromDevice: deviceInfo,
-        activities: [
-          TransactionActivityModel(
-            action: TransactionStatus.pendingVerification,
-            timestamp: DateTime.now(),
-            performedBy: _currentUserId,
-            deviceInfo: deviceInfo,
-          ),
-        ],
+        activities: activities,
       );
 
       await _remoteDatasource.createTransaction(transactionModel);
@@ -110,10 +129,33 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
 
   @override
   Future<ApiResult<void>> completeTransaction(String transactionId) async {
-    return updateTransactionStatus(
-      transactionId: transactionId,
-      status: TransactionStatus.completed,
-    );
+    return ExceptionHandler.handleExceptions(() async {
+      // CHANGE 2: Validate that only lender can complete transactions
+      final transaction = await _remoteDatasource.getTransactionById(transactionId);
+      
+      if (transaction == null) {
+        return ApiResult.failure(
+          'Transaction not found',
+          FailureType.notFound,
+        );
+      }
+
+      // Check if current user is the lender (created a lent transaction)
+      final isLender = transaction.type == TransactionType.lent && 
+                      transaction.createdBy == _currentUserId;
+      
+      if (!isLender) {
+        return ApiResult.failure(
+          'Only the lender can complete this transaction',
+          FailureType.auth,
+        );
+      }
+
+      return updateTransactionStatus(
+        transactionId: transactionId,
+        status: TransactionStatus.completed,
+      );
+    });
   }
 
   @override
