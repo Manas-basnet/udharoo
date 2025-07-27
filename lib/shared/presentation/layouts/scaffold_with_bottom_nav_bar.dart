@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:udharoo/core/di/di.dart' as di;
-import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/shared/presentation/bloc/shorebird_update/shorebird_update_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/shorebird_update_bottomsheet.dart';
 
@@ -228,7 +226,7 @@ class _CreateActionBottomSheet extends StatelessWidget {
               subtitle: 'Add a new lending or borrowing record',
               onTap: () {
                 Navigator.of(context).pop();
-                _showCreateTransactionDialog(context);
+                context.go(Routes.transactionForm);;
               },
             ),
             const SizedBox(height: 16),
@@ -250,16 +248,6 @@ class _CreateActionBottomSheet extends StatelessWidget {
             const SizedBox(height: 16),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showCreateTransactionDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => BlocProvider(
-        create: (_) => di.sl<TransactionCubit>(),
-        child: _CreateTransactionDialog(),
       ),
     );
   }
@@ -354,228 +342,5 @@ class _CreateActionItem extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-// Reuse the existing create transaction dialog from the previous implementation
-class _CreateTransactionDialog extends StatefulWidget {
-  @override
-  State<_CreateTransactionDialog> createState() =>
-      _CreateTransactionDialogState();
-}
-
-class _CreateTransactionDialogState extends State<_CreateTransactionDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final _amountController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _otherPartyNameController = TextEditingController();
-  final _otherPartyUidController = TextEditingController();
-
-  TransactionType _selectedType = TransactionType.lent;
-
-  @override
-  void dispose() {
-    _amountController.dispose();
-    _descriptionController.dispose();
-    _otherPartyNameController.dispose();
-    _otherPartyUidController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Dialog(
-      backgroundColor: theme.colorScheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Create Transaction',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-
-                // Transaction Type
-                Text('Transaction Type', style: theme.textTheme.titleSmall),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: RadioListTile<TransactionType>(
-                        title: const Text('Lent'),
-                        subtitle: const Text('I gave money'),
-                        value: TransactionType.lent,
-                        groupValue: _selectedType,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedType = value!;
-                          });
-                        },
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    Expanded(
-                      child: RadioListTile<TransactionType>(
-                        title: const Text('Borrowed'),
-                        subtitle: const Text('I took money'),
-                        value: TransactionType.borrowed,
-                        groupValue: _selectedType,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedType = value!;
-                          });
-                        },
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // Amount
-                TextFormField(
-                  controller: _amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    hintText: 'Enter amount',
-                    prefixText: 'Rs. ',
-                  ),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) {
-                      return 'Amount is required';
-                    }
-                    final amount = double.tryParse(value!);
-                    if (amount == null || amount <= 0) {
-                      return 'Enter a valid amount';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                // Other Party Name
-                TextFormField(
-                  controller: _otherPartyNameController,
-                  decoration: InputDecoration(
-                    labelText: _selectedType == TransactionType.lent
-                        ? 'Borrower Name'
-                        : 'Lender Name',
-                    hintText: 'Enter name',
-                  ),
-                  validator: (value) {
-                    if (value?.trim().isEmpty ?? true) {
-                      return 'Name is required';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                // Other Party UID
-                TextFormField(
-                  controller: _otherPartyUidController,
-                  decoration: const InputDecoration(
-                    labelText: 'User ID',
-                    hintText: 'Enter user ID',
-                  ),
-                  validator: (value) {
-                    if (value?.trim().isEmpty ?? true) {
-                      return 'User ID is required';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                // Description
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    hintText: 'What was this for?',
-                  ),
-                  maxLines: 2,
-                  validator: (value) {
-                    if (value?.trim().isEmpty ?? true) {
-                      return 'Description is required';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 24),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Cancel'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: BlocBuilder<TransactionCubit, TransactionState>(
-                        builder: (context, state) {
-                          final isLoading = state is TransactionCreating;
-
-                          return FilledButton(
-                            onPressed: isLoading
-                                ? null
-                                : _handleCreateTransaction,
-                            child: isLoading
-                                ? const SizedBox(
-                                    height: 16,
-                                    width: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Text('Create'),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _handleCreateTransaction() {
-    if (_formKey.currentState?.validate() ?? false) {
-      final cubit = context.read<TransactionCubit>();
-
-      cubit.createTransaction(
-        amount: double.parse(_amountController.text),
-        otherPartyUid: _otherPartyUidController.text.trim(),
-        otherPartyName: _otherPartyNameController.text.trim(),
-        description: _descriptionController.text.trim(),
-        type: _selectedType,
-      );
-
-      Navigator.of(context).pop();
-    }
   }
 }

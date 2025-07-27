@@ -642,6 +642,38 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<ApiResult<AuthUser?>> getUserByPhoneNumber(String phoneNumber) async {
+    return ExceptionHandler.handleExceptions(() async {
+      final usersWithPhone = await _remoteDatasource.getUsersWithPhoneNumber(phoneNumber);
+      
+      if (usersWithPhone.isEmpty) {
+        return ApiResult.success(null);
+      }
+      
+      final userModel = usersWithPhone.firstWhere(
+        (user) => user.phoneVerified,
+        orElse: () => usersWithPhone.first,
+      );
+      
+      final authUser = AuthUser(
+        uid: userModel.uid,
+        email: userModel.email,
+        displayName: userModel.displayName,
+        fullName: userModel.fullName,
+        birthDate: userModel.birthDate,
+        phoneNumber: userModel.phoneNumber,
+        photoURL: userModel.photoURL,
+        emailVerified: userModel.emailVerified,
+        phoneVerified: userModel.phoneVerified,
+        providers: userModel.providers,
+        isProfileComplete: userModel.isProfileComplete,
+      );
+      
+      return ApiResult.success(authUser);
+    });
+  }
+
+  @override
   Future<ApiResult<AuthUser>> createUserWithFullInfo({
     required String fullName,
     required String email,

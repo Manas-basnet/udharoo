@@ -5,6 +5,7 @@ import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_list_item.dart';
+import 'package:udharoo/features/transactions/presentation/widgets/transaction_search_delegate.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 enum TransactionFilter { 
@@ -23,21 +24,15 @@ class TransactionsPage extends StatefulWidget {
 }
 
 class _TransactionsPageState extends State<TransactionsPage> {
-  final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   
-  String _searchQuery = '';
   TransactionFilter _selectedFilter = TransactionFilter.all;
-  bool _isSearchExpanded = false;
+  bool _showScrollToTop = false;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text;
-      });
-    });
+    _scrollController.addListener(_onScroll);
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TransactionCubit>().loadTransactions();
@@ -46,49 +41,60 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.offset > 300 && !_showScrollToTop) {
+      setState(() {
+        _showScrollToTop = true;
+      });
+    } else if (_scrollController.offset <= 300 && _showScrollToTop) {
+      setState(() {
+        _showScrollToTop = false;
+      });
+    }
+  }
+
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: BlocConsumer<TransactionCubit, TransactionState>(
-        listener: (context, state) {
-          switch (state) {
-            case TransactionCreated():
-              CustomToast.show(
-                context,
-                message: 'Transaction created successfully',
-                isSuccess: true,
-              );
-              context.read<TransactionCubit>().resetActionState();
-              break;
-            case TransactionActionSuccess():
-              CustomToast.show(
-                context,
-                message: state.message,
-                isSuccess: true,
-              );
-              context.read<TransactionCubit>().resetActionState();
-              break;
-            case TransactionError():
-              CustomToast.show(
-                context,
-                message: state.message,
-                isSuccess: false,
-              );
-              break;
-            default:
-              break;
-          }
-        },
-        builder: (context, state) {
-          return RefreshIndicator(
+    return BlocConsumer<TransactionCubit, TransactionState>(
+      listener: (context, state) {
+        switch (state) {
+          case TransactionActionSuccess():
+            CustomToast.show(
+              context,
+              message: state.message,
+              isSuccess: true,
+            );
+            context.read<TransactionCubit>().resetActionState();
+            break;
+          case TransactionError():
+            CustomToast.show(
+              context,
+              message: state.message,
+              isSuccess: false,
+            );
+            break;
+          default:
+            break;
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          body: RefreshIndicator(
             onRefresh: () async {
               context.read<TransactionCubit>().loadTransactions();
             },
@@ -97,55 +103,63 @@ class _TransactionsPageState extends State<TransactionsPage> {
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 _buildSliverAppBar(theme, state),
-                _buildFilterChips(theme),
+                _buildSummarySection(theme, state),
+                _buildFilterSection(theme),
                 _buildTransactionsList(state, theme),
               ],
             ),
-          );
-        },
-      ),
+          ),
+          floatingActionButton: _showScrollToTop
+              ? FloatingActionButton.small(
+                  onPressed: _scrollToTop,
+                  backgroundColor: theme.colorScheme.surface,
+                  foregroundColor: theme.colorScheme.primary,
+                  elevation: 4,
+                  child: const Icon(Icons.keyboard_arrow_up),
+                )
+              : null,
+          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+        );
+      },
     );
   }
 
   Widget _buildSliverAppBar(ThemeData theme, TransactionState state) {
     return SliverAppBar(
-      expandedHeight: _isSearchExpanded ? 400 : 320,
+      expandedHeight: 120,
       floating: true,
       pinned: true,
       snap: false,
-      stretch: true,
-      backgroundColor: theme.colorScheme.surface,
-      surfaceTintColor: theme.colorScheme.surface,
+      backgroundColor: theme.scaffoldBackgroundColor,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
       leading: Container(),
       flexibleSpace: FlexibleSpaceBar(
-        stretchModes: const [
-          StretchMode.zoomBackground,
-          StretchMode.blurBackground,
-        ],
-        background: Container(
-          color: theme.colorScheme.surface,
-          child: _buildExpandedHeader(theme, state),
+        titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
+        title: Text(
+          'Transactions',
+          style: theme.textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: theme.colorScheme.onSurface,
+          ),
         ),
       ),
       actions: [
         IconButton(
           onPressed: () {
-            setState(() {
-              _isSearchExpanded = !_isSearchExpanded;
-              if (!_isSearchExpanded) {
-                _searchController.clear();
-              }
-            });
+            if (state is TransactionLoaded) {
+              showSearch(
+                context: context,
+                delegate: TransactionSearchDelegate(
+                  transactions: state.transactions,
+                ),
+              );
+            }
           },
-          icon: Icon(_isSearchExpanded ? Icons.search_off : Icons.search),
+          icon: const Icon(Icons.search),
           style: IconButton.styleFrom(
-            backgroundColor: _isSearchExpanded 
-                ? theme.colorScheme.primary.withValues(alpha: 0.1)
-                : theme.colorScheme.surface,
-            foregroundColor: _isSearchExpanded 
-                ? theme.colorScheme.primary
-                : theme.colorScheme.onSurface,
+            backgroundColor: theme.colorScheme.surface,
+            foregroundColor: theme.colorScheme.onSurface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -163,114 +177,31 @@ class _TransactionsPageState extends State<TransactionsPage> {
             ),
           ),
         ),
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: () => context.push(Routes.rejectedTransactions),
+          icon: const Icon(Icons.cancel),
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.red.withValues(alpha: 0.1),
+            foregroundColor: Colors.red,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
         const SizedBox(width: 16),
       ],
     );
   }
 
-  Widget _buildExpandedHeader(ThemeData theme, TransactionState state) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 60, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Transactions',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Manage your lending and borrowing',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 20),
-          
-          // Transaction Summary Cards
-          _buildSummaryCards(theme, state),
-          
-          const SizedBox(height: 20),
-          
-          // Search Bar (only when expanded)
-          if (_isSearchExpanded) ...[
-            TextField(
-              controller: _searchController,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: 'Search by name, description, or amount...',
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        onPressed: () {
-                          _searchController.clear();
-                        },
-                        icon: const Icon(Icons.clear),
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: theme.colorScheme.primary,
-                    width: 2,
-                  ),
-                ),
-                filled: true,
-                fillColor: theme.scaffoldBackgroundColor,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-          
-          _buildQuickActions(theme),
-          
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryCards(ThemeData theme, TransactionState state) {
+  Widget _buildSummarySection(ThemeData theme, TransactionState state) {
     if (state is! TransactionLoaded) {
-      return const SizedBox.shrink();
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
-    
+
     double totalLent = 0;
     double totalBorrowed = 0;
+    int pendingCount = 0;
     
     for (final transaction in state.transactions) {
       if (transaction.isLent) {
@@ -278,70 +209,88 @@ class _TransactionsPageState extends State<TransactionsPage> {
       } else {
         totalBorrowed += transaction.amount;
       }
+      if (transaction.isPending) {
+        pendingCount++;
+      }
     }
 
-    return Row(
-      children: [
-        Expanded(
-          child: _SummaryCard(
-            title: 'Total Lent',
-            amount: totalLent,
-            color: theme.colorScheme.primary,
-            icon: Icons.arrow_upward,
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _SummaryCard(
-            title: 'Total Borrowed',
-            amount: totalBorrowed,
-            color: theme.colorScheme.error,
-            icon: Icons.arrow_downward,
-          ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _SummaryItem(
+                    title: 'Total Lent',
+                    amount: totalLent,
+                    color: theme.colorScheme.primary,
+                    icon: Icons.trending_up,
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                ),
+                Expanded(
+                  child: _SummaryItem(
+                    title: 'Total Borrowed',
+                    amount: totalBorrowed,
+                    color: theme.colorScheme.error,
+                    icon: Icons.trending_down,
+                  ),
+                ),
+              ],
+            ),
+            if (pendingCount > 0) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.pending,
+                      size: 16,
+                      color: Colors.orange.shade700,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$pendingCount pending verification',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.orange.shade700,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildQuickActions(ThemeData theme) {
-    return Row(
-      children: [
-        Expanded(
-          child: _QuickActionCard(
-            title: 'Completed',
-            subtitle: 'View completed transactions',
-            icon: Icons.check_circle_outline,
-            color: Colors.green,
-            onTap: () => context.push(Routes.completedTransactions),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _QuickActionCard(
-            title: 'Rejected',
-            subtitle: 'View rejected transactions',
-            icon: Icons.cancel_outlined,
-            color: Colors.red,
-            onTap: () => context.push(Routes.rejectedTransactions),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFilterChips(ThemeData theme) {
+  Widget _buildFilterSection(ThemeData theme) {
     return SliverToBoxAdapter(
       child: Container(
         height: 60,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          border: Border(
-            bottom: BorderSide(
-              color: theme.colorScheme.outline.withValues(alpha: 0.1),
-            ),
-          ),
-        ),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: ListView(
           scrollDirection: Axis.horizontal,
           children: [
@@ -374,6 +323,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
         }
       },
       selectedColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+      backgroundColor: theme.colorScheme.surface,
       checkmarkColor: theme.colorScheme.primary,
       labelStyle: TextStyle(
         color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
@@ -383,6 +333,9 @@ class _TransactionsPageState extends State<TransactionsPage> {
         color: isSelected 
             ? theme.colorScheme.primary 
             : theme.colorScheme.outline.withValues(alpha: 0.3),
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
       ),
     );
   }
@@ -452,52 +405,40 @@ class _TransactionsPageState extends State<TransactionsPage> {
         break;
     }
 
-    // Apply search filter
-    if (_searchQuery.isNotEmpty) {
-      transactions = transactions.where((transaction) {
-        return transaction.otherParty.name
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()) ||
-            transaction.description
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()) ||
-            transaction.amount.toString().contains(_searchQuery);
-      }).toList();
-    }
-
     return transactions;
   }
 
   Widget _buildEmptyState(ThemeData theme) {
     String message;
+    String subtitle;
     IconData icon;
 
-    if (_searchQuery.isNotEmpty) {
-      message = 'No transactions found';
-      icon = Icons.search_off;
-    } else {
-      switch (_selectedFilter) {
-        case TransactionFilter.all:
-          message = 'No transactions yet';
-          icon = Icons.receipt_long;
-          break;
-        case TransactionFilter.pending:
-          message = 'No pending transactions';
-          icon = Icons.schedule;
-          break;
-        case TransactionFilter.verified:
-          message = 'No verified transactions';
-          icon = Icons.verified;
-          break;
-        case TransactionFilter.lent:
-          message = 'No money lent yet';
-          icon = Icons.arrow_upward;
-          break;
-        case TransactionFilter.borrowed:
-          message = 'No money borrowed yet';
-          icon = Icons.arrow_downward;
-          break;
-      }
+    switch (_selectedFilter) {
+      case TransactionFilter.all:
+        message = 'No transactions yet';
+        subtitle = 'Create your first transaction to get started';
+        icon = Icons.receipt_long;
+        break;
+      case TransactionFilter.pending:
+        message = 'No pending transactions';
+        subtitle = 'All your transactions are up to date';
+        icon = Icons.schedule;
+        break;
+      case TransactionFilter.verified:
+        message = 'No verified transactions';
+        subtitle = 'Verified transactions will appear here';
+        icon = Icons.verified;
+        break;
+      case TransactionFilter.lent:
+        message = 'No lending records';
+        subtitle = 'Money you lend will appear here';
+        icon = Icons.trending_up;
+        break;
+      case TransactionFilter.borrowed:
+        message = 'No borrowing records';
+        subtitle = 'Money you borrow will appear here';
+        icon = Icons.trending_down;
+        break;
     }
 
     return Center(
@@ -513,23 +454,25 @@ class _TransactionsPageState extends State<TransactionsPage> {
             ),
             child: Icon(icon, size: 40, color: theme.colorScheme.primary),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
             message,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
             ),
           ),
-          if (_searchQuery.isEmpty && _selectedFilter == TransactionFilter.all) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Create your first transaction to get started',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              subtitle,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -553,27 +496,32 @@ class _TransactionsPageState extends State<TransactionsPage> {
               color: theme.colorScheme.error,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
-            'Error loading transactions',
-            style: theme.textTheme.titleMedium?.copyWith(
+            'Something went wrong',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
               color: theme.colorScheme.error,
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            message,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              message,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
-          TextButton(
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
             onPressed: () {
               context.read<TransactionCubit>().loadTransactions();
             },
-            child: const Text('Retry'),
+            icon: const Icon(Icons.refresh),
+            label: const Text('Try Again'),
           ),
         ],
       ),
@@ -581,13 +529,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 }
 
-class _SummaryCard extends StatelessWidget {
+class _SummaryItem extends StatelessWidget {
   final String title;
   final double amount;
   final Color color;
   final IconData icon;
 
-  const _SummaryCard({
+  const _SummaryItem({
     required this.title,
     required this.amount,
     required this.color,
@@ -598,125 +546,41 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 16, color: color),
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Text(
+              title,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                fontWeight: FontWeight.w500,
               ),
-              const Spacer(),
-              Text(
-                'Rs. ${amount.toStringAsFixed(0)}',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Rs. ${_formatAmount(amount)}',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: color,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
-}
 
-class _QuickActionCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickActionCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: theme.scaffoldBackgroundColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: theme.colorScheme.outline.withValues(alpha: 0.1),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 16, color: color),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 12,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  String _formatAmount(double amount) {
+    if (amount >= 1000000) {
+      return '${(amount / 1000000).toStringAsFixed(1)}M';
+    } else if (amount >= 1000) {
+      return '${(amount / 1000).toStringAsFixed(0)}K';
+    } else {
+      return amount.toStringAsFixed(0);
+    }
   }
 }

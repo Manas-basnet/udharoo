@@ -16,6 +16,8 @@ import 'package:udharoo/features/profile/presentation/pages/profile_screen.dart'
 import 'package:udharoo/features/profile/presentation/pages/edit_profile_screen.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_detail_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transactions_page.dart';
 import 'package:udharoo/features/transactions/presentation/pages/completed_transactions_page.dart';
@@ -139,6 +141,15 @@ class AppRouter {
 
       // Non-tabbed routes
       GoRoute(
+        path: Routes.transactionForm,
+        name: 'transactionForm',
+        builder: (context, state) => BlocProvider(
+          create: (_) => di.sl<TransactionFormCubit>(),
+          child: const TransactionFormScreen(),
+        ),
+      ),
+
+      GoRoute(
         path: Routes.profileCompletion,
         name: 'profileCompletion',
         builder: (context, state) => const ProfileCompletionScreen(),
@@ -204,35 +215,6 @@ class AppRouter {
         name: 'editProfile',
         builder: (context, state) => const EditProfileScreen(),
       ),
-
-      // Standalone transaction routes (for deep linking or external access)
-      // GoRoute(
-      //   path: '/completed-transactions-standalone',
-      //   name: 'completedTransactionsStandalone',
-      //   builder: (context, state) => BlocProvider(
-      //     create: (_) => di.sl<TransactionCubit>(),
-      //     child: const CompletedTransactionsPage(),
-      //   ),
-      // ),
-      // GoRoute(
-      //   path: '/rejected-transactions-standalone',
-      //   name: 'rejectedTransactionsStandalone',
-      //   builder: (context, state) => BlocProvider(
-      //     create: (_) => di.sl<TransactionCubit>(),
-      //     child: const RejectedTransactionsPage(),
-      //   ),
-      // ),
-      // GoRoute(
-      //   path: '/transaction-detail-standalone',
-      //   name: 'transactionDetailStandalone',
-      //   builder: (context, state) {
-      //     final transaction = state.extra as Transaction;
-      //     return BlocProvider(
-      //       create: (_) => di.sl<TransactionCubit>(),
-      //       child: TransactionDetailScreen(transaction: transaction),
-      //     );
-      //   },
-      // ),
     ],
   );
 }

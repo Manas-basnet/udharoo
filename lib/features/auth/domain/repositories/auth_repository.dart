@@ -42,6 +42,7 @@ abstract class AuthRepository {
   Future<ApiResult<bool>> checkDeviceVerification();
   Future<ApiResult<void>> saveUserToFirestore(AuthUser user);
   Future<ApiResult<AuthUser?>> getUserFromFirestore(String uid);
+  Future<ApiResult<AuthUser?>> getUserByPhoneNumber(String phoneNumber);
   
   Future<ApiResult<void>> changePassword({
     required String currentPassword,

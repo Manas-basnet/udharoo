@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:udharoo/features/auth/domain/usecases/get_user_by_phone_usecase.dart';
 import 'package:udharoo/features/transactions/data/datasources/remote/transaction_remote_datasource.dart';
 import 'package:udharoo/features/transactions/data/repositories/transaction_repository_impl.dart';
 import 'package:udharoo/features/transactions/domain/repositories/transaction_repository.dart';
@@ -8,6 +9,7 @@ import 'package:udharoo/features/transactions/domain/usecases/verify_transaction
 import 'package:udharoo/features/transactions/domain/usecases/complete_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/reject_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
 
 Future<void> initTransactions(GetIt sl) async {
   // Use cases
@@ -16,6 +18,7 @@ Future<void> initTransactions(GetIt sl) async {
   sl.registerLazySingleton(() => VerifyTransactionUseCase(sl()));
   sl.registerLazySingleton(() => CompleteTransactionUseCase(sl()));
   sl.registerLazySingleton(() => RejectTransactionUseCase(sl()));
+  sl.registerLazySingleton(() => GetUserByPhoneUseCase(sl()));
 
   // Repository
   sl.registerLazySingleton<TransactionRepository>(
@@ -33,7 +36,7 @@ Future<void> initTransactions(GetIt sl) async {
     ),
   );
 
-  // Cubit
+  // Cubits
   sl.registerFactory(
     () => TransactionCubit(
       createTransactionUseCase: sl(),
@@ -41,6 +44,13 @@ Future<void> initTransactions(GetIt sl) async {
       verifyTransactionUseCase: sl(),
       completeTransactionUseCase: sl(),
       rejectTransactionUseCase: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => TransactionFormCubit(
+      getUserByPhoneUseCase: sl(),
+      createTransactionUseCase: sl(),
     ),
   );
 }
