@@ -1,5 +1,109 @@
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 
+class DeviceInfoModel extends DeviceInfo {
+  const DeviceInfoModel({
+    required super.deviceId,
+    required super.deviceName,
+    required super.platform,
+    super.model,
+  });
+
+  factory DeviceInfoModel.fromJson(Map<String, dynamic> json) {
+    return DeviceInfoModel(
+      deviceId: json['deviceId'] as String,
+      deviceName: json['deviceName'] as String,
+      platform: json['platform'] as String,
+      model: json['model'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'deviceId': deviceId,
+      'deviceName': deviceName,
+      'platform': platform,
+      'model': model,
+    };
+  }
+
+  factory DeviceInfoModel.fromEntity(DeviceInfo entity) {
+    return DeviceInfoModel(
+      deviceId: entity.deviceId,
+      deviceName: entity.deviceName,
+      platform: entity.platform,
+      model: entity.model,
+    );
+  }
+}
+
+class TransactionActivityModel extends TransactionActivity {
+  const TransactionActivityModel({
+    required super.action,
+    required super.timestamp,
+    required super.performedBy,
+    super.deviceInfo,
+  });
+
+  factory TransactionActivityModel.fromJson(Map<String, dynamic> json) {
+    return TransactionActivityModel(
+      action: TransactionActivityModel._parseTransactionStatus(json['action'] as String),
+      timestamp: DateTime.parse(json['timestamp'] as String),
+      performedBy: json['performedBy'] as String,
+      deviceInfo: json['deviceInfo'] != null 
+          ? DeviceInfoModel.fromJson(json['deviceInfo'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'action': TransactionActivityModel._transactionStatusToString(action),
+      'timestamp': timestamp.toIso8601String(),
+      'performedBy': performedBy,
+      'deviceInfo': deviceInfo != null 
+          ? DeviceInfoModel.fromEntity(deviceInfo!).toJson()
+          : null,
+    };
+  }
+
+  factory TransactionActivityModel.fromEntity(TransactionActivity entity) {
+    return TransactionActivityModel(
+      action: entity.action,
+      timestamp: entity.timestamp,
+      performedBy: entity.performedBy,
+      deviceInfo: entity.deviceInfo,
+    );
+  }
+
+  static TransactionStatus _parseTransactionStatus(String status) {
+    switch (status.toUpperCase()) {
+      case 'PENDING_VERIFICATION':
+        return TransactionStatus.pendingVerification;
+      case 'VERIFIED':
+        return TransactionStatus.verified;
+      case 'COMPLETED':
+        return TransactionStatus.completed;
+      case 'REJECTED':
+        return TransactionStatus.rejected;
+      default:
+        throw ArgumentError('Unknown transaction status: $status');
+    }
+  }
+
+  static String _transactionStatusToString(TransactionStatus status) {
+    switch (status) {
+      case TransactionStatus.pendingVerification:
+        return 'PENDING_VERIFICATION';
+      case TransactionStatus.verified:
+        return 'VERIFIED';
+      case TransactionStatus.completed:
+        return 'COMPLETED';
+      case TransactionStatus.rejected:
+        return 'REJECTED';
+    }
+  }
+}
+
 class OtherPartyModel extends OtherParty {
   const OtherPartyModel({
     required super.uid,
@@ -40,6 +144,8 @@ class TransactionModel extends Transaction {
     super.verifiedAt,
     super.completedAt,
     required super.createdBy,
+    super.createdFromDevice,
+    super.activities = const [],
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
@@ -58,6 +164,13 @@ class TransactionModel extends Transaction {
           ? DateTime.parse(json['completedAt'] as String) 
           : null,
       createdBy: json['createdBy'] as String,
+      createdFromDevice: json['createdFromDevice'] != null
+          ? DeviceInfoModel.fromJson(json['createdFromDevice'] as Map<String, dynamic>)
+          : null,
+      activities: (json['activities'] as List<dynamic>?)
+              ?.map((activity) => TransactionActivityModel.fromJson(activity as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
 
@@ -73,6 +186,12 @@ class TransactionModel extends Transaction {
       'verifiedAt': verifiedAt?.toIso8601String(),
       'completedAt': completedAt?.toIso8601String(),
       'createdBy': createdBy,
+      'createdFromDevice': createdFromDevice != null
+          ? DeviceInfoModel.fromEntity(createdFromDevice!).toJson()
+          : null,
+      'activities': activities
+          .map((activity) => TransactionActivityModel.fromEntity(activity).toJson())
+          .toList(),
     };
   }
 
@@ -88,6 +207,8 @@ class TransactionModel extends Transaction {
       verifiedAt: entity.verifiedAt,
       completedAt: entity.completedAt,
       createdBy: entity.createdBy,
+      createdFromDevice: entity.createdFromDevice,
+      activities: entity.activities,
     );
   }
 

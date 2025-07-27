@@ -7,7 +7,7 @@ import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 abstract class TransactionRemoteDatasource {
   Future<void> createTransaction(TransactionModel transaction);
   Stream<List<TransactionModel>> getTransactions();
-  Future<void> updateTransactionStatus(String transactionId, TransactionStatus status);
+  Future<void> updateTransactionStatus(String transactionId, TransactionStatus status, TransactionActivityModel activity);
   Future<TransactionModel?> getTransactionById(String transactionId);
   Future<List<TransactionModel>> getTransactionsByType(TransactionType type);
   Future<List<TransactionModel>> getTransactionsByStatus(TransactionStatus status);
@@ -58,7 +58,7 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
   }
 
   @override
-  Future<void> updateTransactionStatus(String transactionId, TransactionStatus status) async {
+  Future<void> updateTransactionStatus(String transactionId, TransactionStatus status, TransactionActivityModel activity) async {
     final updateData = <String, dynamic>{
       'status': TransactionUtils.transactionStatusToString(status),
     };
@@ -80,6 +80,17 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         updateData['verifiedAt'] = null;
         updateData['completedAt'] = null;
         break;
+    }
+
+    // Get current transaction to append activity
+    final transactionDoc = await _userTransactionsCollection.doc(transactionId).get();
+    if (transactionDoc.exists && transactionDoc.data() != null) {
+      final currentData = transactionDoc.data()!;
+      final activities = (currentData['activities'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? <Map<String, dynamic>>[];
+      
+      // Add new activity
+      activities.add(activity.toJson());
+      updateData['activities'] = activities;
     }
 
     await _userTransactionsCollection

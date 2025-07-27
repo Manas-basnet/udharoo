@@ -22,15 +22,8 @@ class TransactionListItem extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.shadow.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -91,6 +84,10 @@ class TransactionListItem extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: _getStatusColor(theme).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: _getStatusColor(theme).withValues(alpha: 0.3),
+                          width: 1,
+                        ),
                       ),
                       child: Text(
                         _getStatusText(),
@@ -107,16 +104,19 @@ class TransactionListItem extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Text(
-                    _getFormattedDate(),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                    ),
+                Text(
+                  _getFormattedDate(),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
-                if (_shouldShowActionButtons()) ..._buildActionButtons(context, theme),
+                if (_shouldShowActionButtons()) 
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: _buildActionButtons(context, theme),
+                  ),
               ],
             ),
           ],
@@ -188,31 +188,23 @@ class TransactionListItem extends StatelessWidget {
   }
 
   bool _shouldShowActionButtons() {
-    // Show action buttons for pending transactions that the user didn't create
-    // or for verified transactions that can be completed
     return (transaction.isPending && !_isCreatedByCurrentUser()) ||
            (transaction.isVerified && _canCompleteTransaction());
   }
 
   bool _isCreatedByCurrentUser() {
-    // This would need to be passed from the parent or accessed via a service
-    // For now, we'll assume it's determined by the transaction type
     return transaction.isLent;
   }
 
   bool _canCompleteTransaction() {
-    // Lent transactions can be marked as completed by the lender
-    // Borrowed transactions can be marked as completed by the borrower
     return transaction.isVerified;
   }
 
   List<Widget> _buildActionButtons(BuildContext context, ThemeData theme) {
     final cubit = context.read<TransactionCubit>();
-    
     final buttons = <Widget>[];
 
     if (transaction.isPending && !_isCreatedByCurrentUser()) {
-      // Borrower can verify or reject
       buttons.addAll([
         _ActionButton(
           label: 'Verify',
@@ -230,7 +222,6 @@ class TransactionListItem extends StatelessWidget {
         ),
       ]);
     } else if (transaction.isVerified && _canCompleteTransaction()) {
-      // Either party can mark as completed
       buttons.add(
         _ActionButton(
           label: 'Complete',
@@ -286,17 +277,17 @@ class _ActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: 28,
-      child: ElevatedButton(
+      child: OutlinedButton(
         onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: color,
+          side: BorderSide(color: color, width: 1),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(6),
           ),
-          elevation: 0,
+          minimumSize: Size.zero,
         ),
         child: Text(label),
       ),

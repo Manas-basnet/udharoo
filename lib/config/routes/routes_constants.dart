@@ -4,6 +4,9 @@ class Routes {
   static const String signUp = '/sign-up';
   static const String home = '/home';
   static const String transactions = '/transactions';
+  static const String transactionDetail = '/transactions/transaction-detail';
+  static const String completedTransactions = '/transactions/completed-transactions';
+  static const String rejectedTransactions = '/transactions/rejected-transactions';
   static const String contacts = '/contacts';
   static const String profile = '/profile';
   static const String editProfile = '/edit-profile';
@@ -14,6 +17,6 @@ class Routes {
   static const String changePhoneVerification = '/change-phone-verification';
   static const String qrScanner = '/qr-scanner';
   static const String qrGenerator = '/qr-generator';
-  
+ 
   Routes._();
 }

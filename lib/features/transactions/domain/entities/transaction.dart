@@ -22,6 +22,40 @@ class OtherParty extends Equatable {
   List<Object?> get props => [uid, name];
 }
 
+class DeviceInfo extends Equatable {
+  final String deviceId;
+  final String deviceName;
+  final String platform;
+  final String? model;
+
+  const DeviceInfo({
+    required this.deviceId,
+    required this.deviceName,
+    required this.platform,
+    this.model,
+  });
+
+  @override
+  List<Object?> get props => [deviceId, deviceName, platform, model];
+}
+
+class TransactionActivity extends Equatable {
+  final TransactionStatus action;
+  final DateTime timestamp;
+  final String performedBy;
+  final DeviceInfo? deviceInfo;
+
+  const TransactionActivity({
+    required this.action,
+    required this.timestamp,
+    required this.performedBy,
+    this.deviceInfo,
+  });
+
+  @override
+  List<Object?> get props => [action, timestamp, performedBy, deviceInfo];
+}
+
 class Transaction extends Equatable {
   final String transactionId;
   final TransactionType type;
@@ -33,6 +67,8 @@ class Transaction extends Equatable {
   final DateTime? verifiedAt;
   final DateTime? completedAt;
   final String createdBy;
+  final DeviceInfo? createdFromDevice;
+  final List<TransactionActivity> activities;
 
   const Transaction({
     required this.transactionId,
@@ -45,6 +81,8 @@ class Transaction extends Equatable {
     this.verifiedAt,
     this.completedAt,
     required this.createdBy,
+    this.createdFromDevice,
+    this.activities = const [],
   });
 
   Transaction copyWith({
@@ -58,6 +96,8 @@ class Transaction extends Equatable {
     DateTime? verifiedAt,
     DateTime? completedAt,
     String? createdBy,
+    DeviceInfo? createdFromDevice,
+    List<TransactionActivity>? activities,
   }) {
     return Transaction(
       transactionId: transactionId ?? this.transactionId,
@@ -70,6 +110,8 @@ class Transaction extends Equatable {
       verifiedAt: verifiedAt ?? this.verifiedAt,
       completedAt: completedAt ?? this.completedAt,
       createdBy: createdBy ?? this.createdBy,
+      createdFromDevice: createdFromDevice ?? this.createdFromDevice,
+      activities: activities ?? this.activities,
     );
   }
 
@@ -80,6 +122,20 @@ class Transaction extends Equatable {
   
   bool get isLent => type == TransactionType.lent;
   bool get isBorrowed => type == TransactionType.borrowed;
+
+  DeviceInfo? getDeviceForAction(TransactionStatus action) {
+    final activities = this.activities.where((a) => a.action == action).toList();
+    if (activities.isEmpty) return null;
+    return activities.last.deviceInfo;
+  }
+
+  String getDeviceDisplayName(DeviceInfo? device) {
+    if (device == null) return 'Unknown Device';
+    // if (device.model != null && device.model!.isNotEmpty) {
+    //   return device.model!;
+    // }
+    return device.deviceName;
+  }
 
   @override
   List<Object?> get props => [
@@ -93,5 +149,7 @@ class Transaction extends Equatable {
         verifiedAt,
         completedAt,
         createdBy,
+        createdFromDevice,
+        activities,
       ];
 }
