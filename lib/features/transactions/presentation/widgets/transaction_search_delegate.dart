@@ -145,32 +145,34 @@ class TransactionSearchDelegate extends SearchDelegate<Transaction?> {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.search,
-              size: 48,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Search ${_getSearchTypeText()}',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.search,
+                size: 48,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Search by contact name, phone number, description, or amount',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              const SizedBox(height: 16),
+              Text(
+                'Search ${_getSearchTypeText()}',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            _buildSearchSuggestions(context,theme),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                'Search by contact name, phone number, description, or amount',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              _buildSearchSuggestions(context,theme),
+            ],
+          ),
         ),
       ),
     );

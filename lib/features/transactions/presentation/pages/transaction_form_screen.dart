@@ -27,6 +27,17 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   AuthUser? _selectedUser;
   String? _selectedPhoneNumber;
 
+  bool _canSubmit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _amountController.addListener(_updateSubmitButtonState);
+    _phoneController.addListener(_updateSubmitButtonState);
+    _nameController.addListener(_updateSubmitButtonState);
+  }
+
   @override
   void dispose() {
     _amountController.dispose();
@@ -36,11 +47,32 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     super.dispose();
   }
 
+  void _updateSubmitButtonState() {
+    final newCanSubmit = _selectedUser != null && 
+                        _selectedType != null && 
+                        _amountController.text.trim().isNotEmpty &&
+                        _selectedPhoneNumber != null;
+    
+    if (newCanSubmit != _canSubmit) {
+      setState(() {
+        _canSubmit = newCanSubmit;
+      });
+    }
+  }
+
   void _onUserSelected(AuthUser? user, String? phoneNumber) {
     setState(() {
       _selectedUser = user;
       _selectedPhoneNumber = phoneNumber;
     });
+    _updateSubmitButtonState();
+  }
+
+  void _onTypeChanged(TransactionType? type) {
+    setState(() {
+      _selectedType = type;
+    });
+    _updateSubmitButtonState();
   }
 
   void _handleSubmit() {
@@ -93,6 +125,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               _selectedUser = null;
               _selectedPhoneNumber = null;
             });
+            _updateSubmitButtonState();
             break;
           default:
             break;
@@ -139,11 +172,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                             const SizedBox(height: 12),
                             TransactionTypeSelector(
                               selectedType: _selectedType,
-                              onTypeChanged: (type) {
-                                setState(() {
-                                  _selectedType = type;
-                                });
-                              },
+                              onTypeChanged: _onTypeChanged,
                             ),
                           ],
                         ),
@@ -313,15 +342,12 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 child: BlocBuilder<TransactionFormCubit, TransactionFormState>(
                   builder: (context, state) {
                     final isLoading = state is TransactionFormLoading;
-                    final canSubmit = _selectedUser != null && 
-                                    _selectedType != null && 
-                                    _amountController.text.isNotEmpty;
 
                     return SizedBox(
                       width: double.infinity,
                       height: 44,
                       child: FilledButton(
-                        onPressed: (isLoading || !canSubmit) ? null : _handleSubmit,
+                        onPressed: (isLoading || !_canSubmit) ? null : _handleSubmit,
                         style: FilledButton.styleFrom(
                           backgroundColor: theme.colorScheme.primary,
                           foregroundColor: theme.colorScheme.onPrimary,

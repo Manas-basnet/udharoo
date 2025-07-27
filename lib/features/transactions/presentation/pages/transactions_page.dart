@@ -70,18 +70,16 @@ class _TransactionsPageState extends State<TransactionsPage> {
       builder: (context, state) {
         return Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
-          appBar: _buildAppBar(theme, state),
           body: RefreshIndicator(
             onRefresh: () async {
               context.read<TransactionCubit>().loadTransactions();
             },
-            child: Column(
-              children: [
-                _buildSummarySection(theme, state),
-                _buildFilterSection(theme),
-                Expanded(
-                  child: _buildTransactionsList(state, theme),
-                ),
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                _buildSliverAppBar(theme, state),
+                _buildFilterSliver(theme),
+                _buildTransactionsSliver(state, theme),
               ],
             ),
           ),
@@ -90,17 +88,27 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(ThemeData theme, TransactionState state) {
-    return AppBar(
-      title: Text(
-        'Transactions',
-        style: theme.textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+  Widget _buildSliverAppBar(ThemeData theme, TransactionState state) {
+    return SliverAppBar(
       backgroundColor: theme.colorScheme.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
+      floating: true,
+      snap: true,
+      pinned: false,
+      expandedHeight: 160,
+      leadingWidth: 200,
+      leading: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Text(
+          'Transactions',
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+      ),
+      titleSpacing: 0,
       actions: [
         IconButton(
           onPressed: () {
@@ -114,33 +122,50 @@ class _TransactionsPageState extends State<TransactionsPage> {
               );
             }
           },
-          icon: const Icon(Icons.search, size: 20),
+          icon: const Icon(Icons.search_rounded, size: 22),
+          tooltip: 'Search',
         ),
-        IconButton(
-          onPressed: () => context.push(Routes.pendingTransactions),
-          icon: const Icon(Icons.schedule, size: 20),
-        ),
+        _buildPendingIconWithBadge(state, theme),
         IconButton(
           onPressed: () => context.push(Routes.completedTransactions),
-          icon: const Icon(Icons.check_circle_outline, size: 20),
+          icon: const Icon(Icons.done_all_rounded, size: 22),
+          tooltip: 'Completed',
         ),
         IconButton(
           onPressed: () => context.push(Routes.rejectedTransactions),
-          icon: const Icon(Icons.cancel_outlined, size: 20),
+          icon: const Icon(Icons.cancel_rounded, size: 22),
+          tooltip: 'Rejected',
         ),
         const SizedBox(width: 8),
       ],
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          color: theme.colorScheme.surface,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 80, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                Text(
+                  'Manage your money flows',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (state is TransactionLoaded) _buildSummaryInAppBar(theme, state),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildSummarySection(ThemeData theme, TransactionState state) {
-    if (state is! TransactionLoaded) {
-      return const SizedBox.shrink();
-    }
-
+  Widget _buildSummaryInAppBar(ThemeData theme, TransactionLoaded state) {
     double totalLent = 0;
     double totalBorrowed = 0;
-    int pendingCount = state.pendingTransactions.length;
     
     for (final transaction in state.lentTransactions) {
       totalLent += transaction.amount;
@@ -150,90 +175,110 @@ class _TransactionsPageState extends State<TransactionsPage> {
       totalBorrowed += transaction.amount;
     }
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: theme.colorScheme.outline.withValues(alpha: 0.1),
-            width: 1,
-          ),
-        ),
-      ),
-      child: Column(
-        children: [
-          // Breakdown
-          Row(
-            children: [
-              Expanded(
-                child: _SummaryItem(
-                  title: 'Lent',
-                  amount: totalLent,
-                  color: Colors.green,
-                ),
+    return Column(
+      children: [
+        // Main breakdown
+        Row(
+          children: [
+            Expanded(
+              child: _SummaryItem(
+                title: 'Lent',
+                amount: totalLent,
+                color: Colors.green,
               ),
-              Container(
-                width: 1,
-                height: 32,
-                color: theme.colorScheme.outline.withValues(alpha: 0.2),
-              ),
-              Expanded(
-                child: _SummaryItem(
-                  title: 'Borrowed',
-                  amount: totalBorrowed,
-                  color: Colors.red,
-                ),
-              ),
-            ],
-          ),
-          
-          if (pendingCount > 0) ...[
-            const SizedBox(height: 12),
+            ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: Colors.orange.withValues(alpha: 0.3),
-                  width: 0.5,
-                ),
-              ),
-              child: Text(
-                '$pendingCount pending verification',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.orange.shade700,
-                  fontWeight: FontWeight.w500,
-                ),
+              width: 1,
+              height: 32,
+              color: theme.colorScheme.outline.withValues(alpha: 0.2),
+            ),
+            Expanded(
+              child: _SummaryItem(
+                title: 'Borrowed',
+                amount: totalBorrowed,
+                color: Colors.red,
               ),
             ),
           ],
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildFilterSection(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: theme.colorScheme.outline.withValues(alpha: 0.1),
-            width: 1,
+  Widget _buildPendingIconWithBadge(TransactionState state, ThemeData theme) {
+    int pendingCount = 0;
+    if (state is TransactionLoaded) {
+      pendingCount = state.pendingTransactions.length;
+    }
+
+    return Stack(
+      children: [
+        IconButton(
+          onPressed: () => context.push(Routes.pendingTransactions),
+          icon: const Icon(Icons.pending_actions_rounded, size: 22),
+          tooltip: 'Pending',
+        ),
+        if (pendingCount > 0)
+          Positioned(
+            right: 6,
+            top: 6,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: theme.colorScheme.surface,
+                  width: 1,
+                ),
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 16,
+                minHeight: 16,
+              ),
+              child: Text(
+                pendingCount > 99 ? '99+' : pendingCount.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildFilterSliver(ThemeData theme) {
+    return SliverPersistentHeader(
+      pinned: true,
+      delegate: _FilterSliverDelegate(
+        minHeight: 56.0,
+        maxHeight: 56.0,
+        theme: theme,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            border: Border(
+              bottom: BorderSide(
+                color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                width: 1,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              _buildFilterChip('All', TransactionFilter.all, theme),
+              const SizedBox(width: 8),
+              _buildFilterChip('Lent', TransactionFilter.lent, theme),
+              const SizedBox(width: 8),
+              _buildFilterChip('Borrowed', TransactionFilter.borrowed, theme),
+            ],
           ),
         ),
-      ),
-      child: Row(
-        children: [
-          _buildFilterChip('All', TransactionFilter.all, theme),
-          const SizedBox(width: 8),
-          _buildFilterChip('Lent', TransactionFilter.lent, theme),
-          const SizedBox(width: 8),
-          _buildFilterChip('Borrowed', TransactionFilter.borrowed, theme),
-        ],
       ),
     );
   }
@@ -274,38 +319,47 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
-  Widget _buildTransactionsList(TransactionState state, ThemeData theme) {
+  Widget _buildTransactionsSliver(TransactionState state, ThemeData theme) {
     switch (state) {
       case TransactionLoading():
-        return const Center(child: CircularProgressIndicator());
+        return const SliverFillRemaining(
+          child: Center(child: CircularProgressIndicator()),
+        );
 
       case TransactionLoaded():
         final filteredTransactions = _getFilteredTransactions(state);
 
         if (filteredTransactions.isEmpty) {
-          return _buildEmptyState(theme);
+          return SliverFillRemaining(
+            child: _buildEmptyState(theme),
+          );
         }
 
-        return ListView.builder(
-          controller: _scrollController,
-          itemCount: filteredTransactions.length,
-          itemBuilder: (context, index) {
-            final transaction = filteredTransactions[index];
-            return GestureDetector(
-              onTap: () => context.push(
-                Routes.transactionDetail,
-                extra: transaction,
-              ),
-              child: TransactionListItem(transaction: transaction),
-            );
-          },
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final transaction = filteredTransactions[index];
+              return GestureDetector(
+                onTap: () => context.push(
+                  Routes.transactionDetail,
+                  extra: transaction,
+                ),
+                child: TransactionListItem(transaction: transaction),
+              );
+            },
+            childCount: filteredTransactions.length,
+          ),
         );
 
       case TransactionError():
-        return _buildErrorState(state.message, theme);
+        return SliverFillRemaining(
+          child: _buildErrorState(state.message, theme),
+        );
 
       default:
-        return _buildEmptyState(theme);
+        return SliverFillRemaining(
+          child: _buildEmptyState(theme),
+        );
     }
   }
 
@@ -468,5 +522,45 @@ class _SummaryItem extends StatelessWidget {
     } else {
       return amount.toStringAsFixed(0);
     }
+  }
+}
+
+// Custom delegate for pinned filter section
+class _FilterSliverDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final double minHeight;
+  final double maxHeight;
+  final ThemeData theme;
+
+  _FilterSliverDelegate({
+    required this.child, 
+    required this.minHeight, 
+    required this.maxHeight,
+    required this.theme,
+  });
+
+  @override
+  double get minExtent => minHeight;
+
+  @override
+  double get maxExtent => maxHeight;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return SizedBox(
+      height: maxHeight,
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
+    if (oldDelegate is! _FilterSliverDelegate) return true;
+    
+    return oldDelegate.minHeight != minHeight ||
+           oldDelegate.maxHeight != maxHeight ||
+           oldDelegate.theme.brightness != theme.brightness ||
+           oldDelegate.theme.colorScheme != theme.colorScheme ||
+           oldDelegate.child != child;
   }
 }

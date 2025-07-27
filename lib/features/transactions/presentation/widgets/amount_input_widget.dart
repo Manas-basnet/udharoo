@@ -25,6 +25,7 @@ class _AmountInputWidgetState extends State<AmountInputWidget> {
     if (widget.onChanged != null) {
       widget.onChanged!(amount.toString());
     }
+    setState(() {});
   }
 
   String _formatQuickAmount(int amount) {
