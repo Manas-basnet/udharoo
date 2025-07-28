@@ -53,6 +53,7 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
             },
             child: CustomScrollView(
               controller: _scrollController,
+              physics: AlwaysScrollableScrollPhysics(),
               slivers: [
                 _buildResponsiveSliverAppBar(
                   theme, 
@@ -189,7 +190,7 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
   }
 
   Widget _buildResponsiveSummary(ThemeData theme, TransactionState state) {
-    if (state is! TransactionLoaded) {
+    if (state is! TransactionBaseState) {
       return const SizedBox.shrink();
     }
 
@@ -216,7 +217,7 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        return Container(
+        return SizedBox(
           width: double.infinity,
           child: IntrinsicHeight(
             child: Row(
@@ -337,7 +338,12 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
           child: Center(child: CircularProgressIndicator()),
         );
 
-      case TransactionLoaded():
+      case TransactionInitialError():
+        return SliverFillRemaining(
+          child: _buildErrorState(state.message, theme),
+        );
+
+      case TransactionBaseState():
         final filteredTransactions = _getFilteredTransactions(state);
 
         if (filteredTransactions.isEmpty) {
@@ -362,11 +368,6 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
           ),
         );
 
-      case TransactionError():
-        return SliverFillRemaining(
-          child: _buildErrorState(state.message, theme),
-        );
-
       default:
         return SliverFillRemaining(
           child: _buildEmptyState(theme),
@@ -374,7 +375,7 @@ class _PendingTransactionsPageState extends State<PendingTransactionsPage> {
     }
   }
 
-  List<Transaction> _getFilteredTransactions(TransactionLoaded state) {
+  List<Transaction> _getFilteredTransactions(TransactionBaseState state) {
     final pendingTransactions = state.pendingTransactions;
 
     List<Transaction> filteredTransactions;

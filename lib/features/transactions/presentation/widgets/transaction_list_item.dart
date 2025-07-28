@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
-import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class TransactionListItem extends StatelessWidget {
   final Transaction transaction;
@@ -162,7 +161,6 @@ class TransactionListItem extends StatelessWidget {
           color: Colors.green,
           onPressed: () {
             cubit.verifyTransaction(transaction.transactionId);
-            CustomToast.show(context, message: 'Transaction verified', isSuccess: true);
           },
         ),
         const SizedBox(width: 8),
@@ -179,7 +177,6 @@ class TransactionListItem extends StatelessWidget {
           color: theme.colorScheme.primary,
           onPressed: () {
             cubit.completeTransaction(transaction.transactionId);
-            CustomToast.show(context, message: 'Transaction completed', isSuccess: true);
           },
         ),
       );
@@ -294,7 +291,6 @@ class TransactionListItem extends StatelessWidget {
             onPressed: () {
               cubit.rejectTransaction(transaction.transactionId);
               Navigator.of(dialogContext).pop();
-              CustomToast.show(context, message: 'Transaction rejected', isSuccess: true);
             },
             child: const Text(
               'Reject',

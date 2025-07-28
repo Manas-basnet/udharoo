@@ -140,9 +140,7 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
         );
       }
 
-      // Check if current user is the lender (created a lent transaction)
-      final isLender = transaction.type == TransactionType.lent && 
-                      transaction.createdBy == _currentUserId;
+      final isLender = transaction.type == TransactionType.lent;
       
       if (!isLender) {
         return ApiResult.failure(

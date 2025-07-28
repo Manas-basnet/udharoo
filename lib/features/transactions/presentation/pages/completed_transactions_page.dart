@@ -53,6 +53,7 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
             },
             child: CustomScrollView(
               controller: _scrollController,
+              physics: AlwaysScrollableScrollPhysics(),
               slivers: [
                 _buildResponsiveSliverAppBar(
                   theme, 

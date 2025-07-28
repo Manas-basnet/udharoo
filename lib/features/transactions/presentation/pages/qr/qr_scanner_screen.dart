@@ -134,7 +134,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         listener: (context, state) {
           switch (state) {
             case QRScannerSuccess():
-              context.push(Routes.transactionForm, extra: {
+              context.pushReplacement(Routes.transactionForm, extra: {
                 'qrData': state.qrData,
                 'source': 'qr_scan',
               });

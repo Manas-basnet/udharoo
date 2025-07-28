@@ -52,6 +52,7 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
             },
             child: CustomScrollView(
               controller: _scrollController,
+              physics: AlwaysScrollableScrollPhysics(),
               slivers: [
                 _buildResponsiveSliverAppBar(
                   theme, 

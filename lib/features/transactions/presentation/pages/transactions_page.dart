@@ -71,6 +71,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
               isSuccess: false,
             );
             break;
+          case TransactionInitialError():
+            CustomToast.show(
+              context,
+              message: state.message,
+              isSuccess: false,
+            );
+            break;
           default:
             break;
         }
@@ -84,6 +91,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
             },
             child: CustomScrollView(
               controller: _scrollController,
+              physics: AlwaysScrollableScrollPhysics(),
               slivers: [
                 _buildResponsiveSliverAppBar(
                   theme, 
@@ -130,7 +138,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
       leading: Row(
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 8.0),
+            padding: const EdgeInsets.only(left: 16.0),
             child: Text(
               'Transactions',
               style: theme.textTheme.headlineSmall?.copyWith(
@@ -208,7 +216,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   Widget _buildResponsiveSummary(ThemeData theme, TransactionState state) {
-    if (state is! TransactionLoaded) {
+    if (state is! TransactionBaseState) {
       return const SizedBox.shrink();
     }
 
@@ -314,12 +322,19 @@ class _TransactionsPageState extends State<TransactionsPage> {
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: horizontalPadding, 
+            vertical: 8,
           ),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
+            border: Border(
+              bottom: BorderSide(
+                color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                width: 1,
+              ),
+            ),
           ),
           child: SafeArea(
-            top: true,
+            top: false,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -381,7 +396,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
           child: Center(child: CircularProgressIndicator()),
         );
 
-      case TransactionLoaded():
+      case TransactionInitialError():
+        return SliverFillRemaining(
+          child: _buildErrorState(state.message, theme),
+        );
+
+      case TransactionBaseState():
         final filteredTransactions = _getFilteredTransactions(state);
 
         if (filteredTransactions.isEmpty) {
@@ -406,11 +426,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
           ),
         );
 
-      case TransactionError():
-        return SliverFillRemaining(
-          child: _buildErrorState(state.message, theme),
-        );
-
       default:
         return SliverFillRemaining(
           child: _buildEmptyState(theme),
@@ -418,7 +433,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     }
   }
 
-  List<Transaction> _getFilteredTransactions(TransactionLoaded state) {
+  List<Transaction> _getFilteredTransactions(TransactionBaseState state) {
     List<Transaction> transactions;
 
     switch (_selectedFilter) {

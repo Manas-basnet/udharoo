@@ -2,9 +2,33 @@ part of 'transaction_cubit.dart';
 
 sealed class TransactionState extends Equatable {
   const TransactionState();
-
   @override
   List<Object?> get props => [];
+}
+
+abstract class TransactionBaseState extends TransactionState {
+  final List<Transaction> transactions;
+  final List<Transaction> lentTransactions;
+  final List<Transaction> borrowedTransactions;
+  final List<Transaction> pendingTransactions;
+  final List<Transaction> completedTransactions;
+
+  const TransactionBaseState({
+    required this.transactions,
+    required this.lentTransactions,
+    required this.borrowedTransactions,
+    required this.pendingTransactions,
+    required this.completedTransactions,
+  });
+
+  @override
+  List<Object?> get props => [
+        transactions,
+        lentTransactions,
+        borrowedTransactions,
+        pendingTransactions,
+        completedTransactions,
+      ];
 }
 
 final class TransactionInitial extends TransactionState {
@@ -15,58 +39,99 @@ final class TransactionLoading extends TransactionState {
   const TransactionLoading();
 }
 
-final class TransactionLoaded extends TransactionState {
-  final List<Transaction> transactions;
-  final List<Transaction> lentTransactions;
-  final List<Transaction> borrowedTransactions;
-  final List<Transaction> pendingTransactions;
-  final List<Transaction> completedTransactions;
-
+// States with loaded data
+final class TransactionLoaded extends TransactionBaseState {
   const TransactionLoaded({
-    required this.transactions,
-    required this.lentTransactions,
-    required this.borrowedTransactions,
-    required this.pendingTransactions,
-    required this.completedTransactions,
+    required super.transactions,
+    required super.lentTransactions,
+    required super.borrowedTransactions,
+    required super.pendingTransactions,
+    required super.completedTransactions,
   });
-
-  @override
-  List<Object?> get props => [transactions, lentTransactions, borrowedTransactions, pendingTransactions];
 }
 
-final class TransactionError extends TransactionState {
-  final String message;
-  final FailureType type;
-
-  const TransactionError(this.message, this.type);
-
-  @override
-  List<Object?> get props => [message, type];
+final class TransactionCreating extends TransactionBaseState {
+  const TransactionCreating({
+    required super.transactions,
+    required super.lentTransactions,
+    required super.borrowedTransactions,
+    required super.pendingTransactions,
+    required super.completedTransactions,
+  });
 }
 
-final class TransactionActionLoading extends TransactionState {
+final class TransactionCreated extends TransactionBaseState {
+  const TransactionCreated({
+    required super.transactions,
+    required super.lentTransactions,
+    required super.borrowedTransactions,
+    required super.pendingTransactions,
+    required super.completedTransactions,
+  });
+}
+
+final class TransactionActionLoading extends TransactionBaseState {
   final String transactionId;
   final String action;
 
-  const TransactionActionLoading(this.transactionId, this.action);
+  const TransactionActionLoading({
+    required this.transactionId,
+    required this.action,
+    required super.transactions,
+    required super.lentTransactions,
+    required super.borrowedTransactions,
+    required super.pendingTransactions,
+    required super.completedTransactions,
+  });
 
   @override
-  List<Object?> get props => [transactionId, action];
+  List<Object?> get props => [
+        transactionId,
+        action,
+        ...super.props,
+      ];
 }
 
-final class TransactionActionSuccess extends TransactionState {
+final class TransactionActionSuccess extends TransactionBaseState {
   final String message;
 
-  const TransactionActionSuccess(this.message);
+  const TransactionActionSuccess({
+    required this.message,
+    required super.transactions,
+    required super.lentTransactions,
+    required super.borrowedTransactions,
+    required super.pendingTransactions,
+    required super.completedTransactions,
+  });
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, ...super.props];
 }
 
-final class TransactionCreating extends TransactionState {
-  const TransactionCreating();
+final class TransactionError extends TransactionBaseState {
+  final String message;
+  final FailureType type;
+
+  const TransactionError({
+    required this.message,
+    required this.type,
+    required super.transactions,
+    required super.lentTransactions,
+    required super.borrowedTransactions,
+    required super.pendingTransactions,
+    required super.completedTransactions,
+  });
+
+  @override
+  List<Object?> get props => [message, type, ...super.props];
 }
 
-final class TransactionCreated extends TransactionState {
-  const TransactionCreated();
+final class TransactionInitialError extends TransactionState {
+  final String message;
+  final FailureType type;
+
+  const TransactionInitialError(this.message, this.type);
+
+  @override
+  List<Object?> get props => [message, type];
 }
