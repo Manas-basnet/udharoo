@@ -221,7 +221,7 @@ class _CreateActionBottomSheet extends StatelessWidget {
               subtitle: 'Add a new lending or borrowing record',
               onTap: () {
                 Navigator.of(context).pop();
-                context.push(Routes.transactionForm);;
+                context.push(Routes.transactionForm);
               },
             ),
             const SizedBox(height: 16),
