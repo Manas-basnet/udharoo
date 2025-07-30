@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/shared/presentation/widgets/confirmation_dialog.dart';
 
 class TransactionListItem extends StatelessWidget {
   final Transaction transaction;
@@ -26,163 +27,245 @@ class TransactionListItem extends StatelessWidget {
           ),
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            // Transaction type indicator
-            Container(
-              width: 4,
-              height: 48,
-              decoration: BoxDecoration(
-                color: _getTransactionColor(theme),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            
-            const SizedBox(width: 16),
-            
-            // Main content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Name and amount row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          transaction.otherParty.name,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
+      child: BlocBuilder<TransactionCubit, TransactionState>(
+        builder: (context, state) {
+          final isProcessing = state is TransactionBaseState && 
+                              state.isTransactionProcessing(transaction.transactionId);
+          
+          return Padding(
+            padding: const EdgeInsets.all(20), 
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 5,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: _getTransactionColor(theme),
+                        borderRadius: BorderRadius.circular(2.5),
+                      ),
+                    ),
+                    
+                    const SizedBox(width: 20), 
+                    
+                    // Main content
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Name and amount row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  transaction.otherParty.name,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Text(
+                                'Rs. ${_formatAmount(transaction.amount)}',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: _getTransactionColor(theme),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Text(
-                        'Rs. ${_formatAmount(transaction.amount)}',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: _getTransactionColor(theme),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 4),
-                  
-                  // Phone and description row
-                  Row(
-                    children: [
-                      Text(
-                        transaction.otherParty.phoneNumber,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        ' • ',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          transaction.description,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          
+                          const SizedBox(height: 6), 
+                          
+                          // Phone and description row
+                          Row(
+                            children: [
+                              Text(
+                                transaction.otherParty.phoneNumber,
+                                style: theme.textTheme.bodyMedium?.copyWith( 
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              if (transaction.description.isNotEmpty) ...[
+                                Text(
+                                  ' • ',
+                                  style: theme.textTheme.bodyMedium?.copyWith( 
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    transaction.description,
+                                    style: theme.textTheme.bodyMedium?.copyWith( 
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  // Bottom row with date, status, and actions
-                  Row(
-                    children: [
-                      Text(
-                        _getFormattedDate(),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                          fontSize: 11,
-                        ),
-                      ),
-                      
-                      const SizedBox(width: 8),
-                      
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(theme).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: _getStatusColor(theme).withValues(alpha: 0.3),
-                            width: 0.5,
+                          
+                          const SizedBox(height: 12),
+                          
+                          // Bottom row with date, status, and actions
+                          Row(
+                            children: [
+                              Text(
+                                _getFormattedDate(),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                  fontSize: 12, 
+                                ),
+                              ),
+                              
+                              const SizedBox(width: 10),
+                              
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), 
+                                decoration: BoxDecoration(
+                                  color: _getStatusColor(theme).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(5),
+                                  border: Border.all(
+                                    color: _getStatusColor(theme).withValues(alpha: 0.3),
+                                    width: 0.5,
+                                  ),
+                                ),
+                                child: Text(
+                                  _getStatusText(),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: _getStatusColor(theme),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                              
+                              const Spacer(),
+                              
+                              // Processing indicator
+                              if (isProcessing)
+                                _buildProcessingIndicator(theme),
+                            ],
                           ),
-                        ),
-                        child: Text(
-                          _getStatusText(),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: _getStatusColor(theme),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 10,
-                          ),
-                        ),
+                        ],
                       ),
-                      
-                      const Spacer(),
-                      
-                      if (_shouldShowActionButtons()) 
-                        ..._buildActionButtons(context, theme),
-                    ],
-                  ),
+                    ),
+                  ],
+                ),
+                
+                // Expanded action buttons for better UX (only when actions are available)
+                if (_shouldShowActionButtons() && !isProcessing) ...[
+                  const SizedBox(height: 16), 
+                  _buildExpandedActionButtons(context, theme),
                 ],
-              ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  List<Widget> _buildActionButtons(BuildContext context, ThemeData theme) {
+  Widget _buildProcessingIndicator(ThemeData theme) {
+    return SizedBox(
+      width: 22, 
+      height: 22,
+      child: CircularProgressIndicator(
+        strokeWidth: 2.5,
+        valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+      ),
+    );
+  }
+
+  Widget _buildExpandedActionButtons(BuildContext context, ThemeData theme) {
     final cubit = context.read<TransactionCubit>();
     final buttons = <Widget>[];
 
     if (transaction.isPending && !_isCreatedByCurrentUser()) {
       buttons.addAll([
-        _ActionButton(
-          label: 'Verify',
-          color: Colors.green,
-          onPressed: () {
-            cubit.verifyTransaction(transaction.transactionId);
-          },
+        Expanded(
+          child: _ExpandedActionButton(
+            label: 'Verify',
+            icon: Icons.verified_rounded,
+            color: Colors.green,
+            onPressed: () => _handleVerifyTransaction(context, cubit),
+          ),
         ),
-        const SizedBox(width: 8),
-        _ActionButton(
-          label: 'Reject',
-          color: Colors.red,
-          onPressed: () => _showRejectDialog(context, cubit),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _ExpandedActionButton(
+            label: 'Reject',
+            icon: Icons.cancel_rounded,
+            color: Colors.red,
+            onPressed: () => _handleRejectTransaction(context, cubit),
+          ),
         ),
       ]);
     } else if (transaction.isVerified && _canCompleteTransaction()) {
       buttons.add(
-        _ActionButton(
-          label: 'Complete',
-          color: theme.colorScheme.primary,
-          onPressed: () {
-            cubit.completeTransaction(transaction.transactionId);
-          },
+        Expanded(
+          child: _ExpandedActionButton(
+            label: 'Mark Complete',
+            icon: Icons.check_circle_rounded,
+            color: theme.colorScheme.primary,
+            onPressed: () => _handleCompleteTransaction(context, cubit),
+          ),
         ),
       );
     }
 
-    return buttons;
+    if (buttons.isEmpty) return const SizedBox.shrink();
+
+    return Row(children: buttons);
+  }
+
+  Future<void> _handleVerifyTransaction(BuildContext context, TransactionCubit cubit) async {
+    final confirmed = await ConfirmationDialog.show(
+      context: context,
+      data: ConfirmationDialogData.forTransactionAction(
+        ConfirmationDialogType.verify,
+        transaction.otherParty.name,
+        transaction.amount,
+      ),
+    );
+
+    if (confirmed) {
+      cubit.verifyTransaction(transaction.transactionId);
+    }
+  }
+
+  Future<void> _handleCompleteTransaction(BuildContext context, TransactionCubit cubit) async {
+    final confirmed = await ConfirmationDialog.show(
+      context: context,
+      data: ConfirmationDialogData.forTransactionAction(
+        ConfirmationDialogType.complete,
+        transaction.otherParty.name,
+        transaction.amount,
+      ),
+    );
+
+    if (confirmed) {
+      cubit.completeTransaction(transaction.transactionId);
+    }
+  }
+
+  Future<void> _handleRejectTransaction(BuildContext context, TransactionCubit cubit) async {
+    final confirmed = await ConfirmationDialog.show(
+      context: context,
+      data: ConfirmationDialogData.forTransactionAction(
+        ConfirmationDialogType.reject,
+        transaction.otherParty.name,
+        transaction.amount,
+      ),
+    );
+
+    if (confirmed) {
+      cubit.rejectTransaction(transaction.transactionId);
+    }
   }
 
   String _formatAmount(double amount) {
@@ -194,9 +277,7 @@ class TransactionListItem extends StatelessWidget {
   }
 
   Color _getTransactionColor(ThemeData theme) {
-    return transaction.isLent 
-        ? Colors.green 
-        : Colors.red;
+    return transaction.isLent ? Colors.green : Colors.red;
   }
 
   Color _getStatusColor(ThemeData theme) {
@@ -251,86 +332,41 @@ class TransactionListItem extends StatelessWidget {
   }
 
   bool _canCompleteTransaction() {
-    // Only allow completion if:
-    // 1. Transaction is verified
-    // 2. Current user is the lender (created a lent transaction)
     return transaction.isVerified && transaction.isLent;
-  }
-
-  void _showRejectDialog(BuildContext context, TransactionCubit cubit) {
-    final theme = Theme.of(context);
-    
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: theme.colorScheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        title: Text(
-          'Reject Transaction',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: Text(
-          'Are you sure you want to reject this transaction?',
-          style: theme.textTheme.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              cubit.rejectTransaction(transaction.transactionId);
-              Navigator.of(dialogContext).pop();
-            },
-            child: const Text(
-              'Reject',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
-class _ActionButton extends StatelessWidget {
+class _ExpandedActionButton extends StatelessWidget {
   final String label;
+  final IconData icon;
   final Color color;
   final VoidCallback onPressed;
 
-  const _ActionButton({
+  const _ExpandedActionButton({
     required this.label,
+    required this.icon,
     required this.color,
     required this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
+    
     return SizedBox(
-      height: 24,
-      child: OutlinedButton(
+      height: 48,
+      child: FilledButton.icon(
         onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: color,
-          side: BorderSide(color: color, width: 1),
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+        style: FilledButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(10),
           ),
-          minimumSize: Size.zero,
         ),
-        child: Text(label),
+        icon: Icon(icon, size: 20),
+        label: Text(label),
       ),
     );
   }

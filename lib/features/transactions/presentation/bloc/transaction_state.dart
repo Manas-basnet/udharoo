@@ -12,6 +12,7 @@ abstract class TransactionBaseState extends TransactionState {
   final List<Transaction> borrowedTransactions;
   final List<Transaction> pendingTransactions;
   final List<Transaction> completedTransactions;
+  final Set<String> processingTransactionIds;
 
   const TransactionBaseState({
     required this.transactions,
@@ -19,7 +20,12 @@ abstract class TransactionBaseState extends TransactionState {
     required this.borrowedTransactions,
     required this.pendingTransactions,
     required this.completedTransactions,
+    this.processingTransactionIds = const {},
   });
+
+  bool isTransactionProcessing(String transactionId) {
+    return processingTransactionIds.contains(transactionId);
+  }
 
   @override
   List<Object?> get props => [
@@ -28,6 +34,7 @@ abstract class TransactionBaseState extends TransactionState {
         borrowedTransactions,
         pendingTransactions,
         completedTransactions,
+        processingTransactionIds,
       ];
 }
 
@@ -47,7 +54,19 @@ final class TransactionLoaded extends TransactionBaseState {
     required super.borrowedTransactions,
     required super.pendingTransactions,
     required super.completedTransactions,
+    super.processingTransactionIds,
   });
+
+  TransactionLoaded copyWithProcessingIds(Set<String> processingIds) {
+    return TransactionLoaded(
+      transactions: transactions,
+      lentTransactions: lentTransactions,
+      borrowedTransactions: borrowedTransactions,
+      pendingTransactions: pendingTransactions,
+      completedTransactions: completedTransactions,
+      processingTransactionIds: processingIds,
+    );
+  }
 }
 
 final class TransactionCreating extends TransactionBaseState {
@@ -57,6 +76,7 @@ final class TransactionCreating extends TransactionBaseState {
     required super.borrowedTransactions,
     required super.pendingTransactions,
     required super.completedTransactions,
+    super.processingTransactionIds,
   });
 }
 
@@ -67,45 +87,50 @@ final class TransactionCreated extends TransactionBaseState {
     required super.borrowedTransactions,
     required super.pendingTransactions,
     required super.completedTransactions,
+    super.processingTransactionIds,
   });
-}
-
-final class TransactionActionLoading extends TransactionBaseState {
-  final String transactionId;
-  final String action;
-
-  const TransactionActionLoading({
-    required this.transactionId,
-    required this.action,
-    required super.transactions,
-    required super.lentTransactions,
-    required super.borrowedTransactions,
-    required super.pendingTransactions,
-    required super.completedTransactions,
-  });
-
-  @override
-  List<Object?> get props => [
-        transactionId,
-        action,
-        ...super.props,
-      ];
 }
 
 final class TransactionActionSuccess extends TransactionBaseState {
   final String message;
+  final String actionType;
 
   const TransactionActionSuccess({
     required this.message,
+    required this.actionType,
     required super.transactions,
     required super.lentTransactions,
     required super.borrowedTransactions,
     required super.pendingTransactions,
     required super.completedTransactions,
+    super.processingTransactionIds,
   });
 
   @override
-  List<Object?> get props => [message, ...super.props];
+  List<Object?> get props => [message, actionType, ...super.props];
+}
+
+final class TransactionActionError extends TransactionBaseState {
+  final String message;
+  final String transactionId;
+  final String actionType;
+  final FailureType type;
+
+  const TransactionActionError({
+    required this.message,
+    required this.transactionId,
+    required this.actionType,
+    required this.type,
+    required super.transactions,
+    required super.lentTransactions,
+    required super.borrowedTransactions,
+    required super.pendingTransactions,
+    required super.completedTransactions,
+    super.processingTransactionIds,
+  });
+
+  @override
+  List<Object?> get props => [message, transactionId, actionType, type, ...super.props];
 }
 
 final class TransactionError extends TransactionBaseState {
@@ -120,6 +145,7 @@ final class TransactionError extends TransactionBaseState {
     required super.borrowedTransactions,
     required super.pendingTransactions,
     required super.completedTransactions,
+    super.processingTransactionIds,
   });
 
   @override

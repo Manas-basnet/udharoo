@@ -10,6 +10,7 @@ import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 enum TransactionFilter { 
   all, 
+  pending,
   lent, 
   borrowed,
 }
@@ -23,13 +24,11 @@ class TransactionsPage extends StatefulWidget {
 
 class _TransactionsPageState extends State<TransactionsPage> {
   final ScrollController _scrollController = ScrollController();
-  
   TransactionFilter _selectedFilter = TransactionFilter.all;
 
   @override
   void initState() {
     super.initState();
-    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TransactionCubit>().loadTransactions();
     });
@@ -49,38 +48,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
     final screenWidth = mediaQuery.size.width;
     final topPadding = mediaQuery.padding.top;
 
+    // Responsive calculations
+    final horizontalPadding = _getResponsiveHorizontalPadding(screenWidth);
     final expandedHeight = _calculateExpandedHeight(screenHeight, topPadding);
-    final horizontalPadding = screenWidth * 0.04;
-    final verticalSpacing = screenHeight * 0.01;
 
     return BlocConsumer<TransactionCubit, TransactionState>(
       listener: (context, state) {
-        switch (state) {
-          case TransactionActionSuccess():
-            CustomToast.show(
-              context,
-              message: state.message,
-              isSuccess: true,
-            );
-            context.read<TransactionCubit>().resetActionState();
-            break;
-          case TransactionError():
-            CustomToast.show(
-              context,
-              message: state.message,
-              isSuccess: false,
-            );
-            break;
-          case TransactionInitialError():
-            CustomToast.show(
-              context,
-              message: state.message,
-              isSuccess: false,
-            );
-            break;
-          default:
-            break;
-        }
+        _handleStateChanges(context, state);
       },
       builder: (context, state) {
         return Scaffold(
@@ -91,17 +65,15 @@ class _TransactionsPageState extends State<TransactionsPage> {
             },
             child: CustomScrollView(
               controller: _scrollController,
-              physics: AlwaysScrollableScrollPhysics(),
+              physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                _buildResponsiveSliverAppBar(
+                _buildDynamicSliverAppBar(
                   theme, 
                   state, 
                   expandedHeight, 
                   horizontalPadding,
-                  verticalSpacing,
-                  topPadding,
                 ),
-                _buildFilterSliver(theme, horizontalPadding),
+                _buildImprovedFilterSliver(theme, horizontalPadding, state),
                 _buildTransactionsSliver(state, theme),
               ],
             ),
@@ -111,20 +83,69 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
+  void _handleStateChanges(BuildContext context, TransactionState state) {
+    switch (state) {
+      case TransactionActionSuccess():
+        CustomToast.show(
+          context,
+          message: state.message,
+          isSuccess: true,
+        );
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            context.read<TransactionCubit>().clearActionMessages();
+          }
+        });
+        break;
+      case TransactionActionError():
+        CustomToast.show(
+          context,
+          message: state.message,
+          isSuccess: false,
+        );
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            context.read<TransactionCubit>().clearActionMessages();
+          }
+        });
+        break;
+      case TransactionError():
+        CustomToast.show(
+          context,
+          message: state.message,
+          isSuccess: false,
+        );
+        break;
+      case TransactionInitialError():
+        CustomToast.show(
+          context,
+          message: state.message,
+          isSuccess: false,
+        );
+        break;
+      default:
+        break;
+    }
+  }
+
+  double _getResponsiveHorizontalPadding(double screenWidth) {
+    if (screenWidth < 360) return 12.0;
+    if (screenWidth < 600) return 16.0;
+    if (screenWidth < 840) return 24.0;
+    return 32.0;
+  }
+
   double _calculateExpandedHeight(double screenHeight, double topPadding) {
-    // Base height + responsive calculation
     final baseHeight = kToolbarHeight + topPadding;
-    final additionalHeight = screenHeight * 0.08; // 8% of screen height
+    final additionalHeight = (screenHeight * 0.16).clamp(80.0, 130.0);
     return baseHeight + additionalHeight;
   }
 
-  Widget _buildResponsiveSliverAppBar(
+  Widget _buildDynamicSliverAppBar(
     ThemeData theme, 
     TransactionState state, 
     double expandedHeight,
     double horizontalPadding,
-    double verticalSpacing,
-    double topPadding,
   ) {
     return SliverAppBar(
       backgroundColor: theme.colorScheme.surface,
@@ -135,47 +156,74 @@ class _TransactionsPageState extends State<TransactionsPage> {
       pinned: false,
       expandedHeight: expandedHeight,
       automaticallyImplyLeading: false,
-      leading: Row(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 16.0),
-            child: Text(
-              'Transactions',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-          ),
-        ],
+      centerTitle: true,
+      title: Text(
+        'Transactions',
+        style: theme.textTheme.headlineMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: theme.colorScheme.onSurface,
+        ),
       ),
-      leadingWidth: double.infinity,
-      actions: _buildAppBarActions(state, theme),
+      actions: [
+        IconButton(
+          onPressed: () {
+            if (state is TransactionBaseState) {
+              showSearch(
+                context: context,
+                delegate: TransactionSearchDelegate(
+                  transactions: state.transactions,
+                  searchType: 'all',
+                ),
+              );
+            }
+          },
+          icon: const Icon(Icons.search_rounded, size: 22),
+          tooltip: 'Search',
+        ),
+        IconButton(
+          onPressed: () => context.push(Routes.completedTransactions),
+          icon: const Icon(Icons.done_all_rounded, size: 22),
+          tooltip: 'Completed',
+        ),
+        IconButton(
+          onPressed: () => context.push(Routes.rejectedTransactions),
+          icon: const Icon(Icons.cancel_rounded, size: 22),
+          tooltip: 'Rejected',
+        ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         background: SafeArea(
           child: Container(
             color: theme.colorScheme.surface,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Space for the toolbar
-                SizedBox(height: kToolbarHeight + verticalSpacing),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
                 
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: _buildResponsiveSummary(theme, state),
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: kToolbarHeight),
+                    
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: horizontalPadding,
+                          vertical: 12,
                         ),
-                      ],
+                        child: LayoutBuilder(
+                          builder: (context, summaryConstraints) {
+                            return _buildDynamicSummary(
+                              theme, 
+                              state, 
+                              summaryConstraints,
+                            );
+                          },
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ],
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -183,39 +231,11 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
-  List<Widget> _buildAppBarActions(TransactionState state, ThemeData theme) {
-    return [
-      IconButton(
-        onPressed: () {
-          if (state is TransactionLoaded) {
-            showSearch(
-              context: context,
-              delegate: TransactionSearchDelegate(
-                transactions: state.transactions,
-                searchType: 'all',
-              ),
-            );
-          }
-        },
-        icon: const Icon(Icons.search_rounded, size: 22),
-        tooltip: 'Search',
-      ),
-      _buildPendingIconWithBadge(state, theme),
-      IconButton(
-        onPressed: () => context.push(Routes.completedTransactions),
-        icon: const Icon(Icons.done_all_rounded, size: 22),
-        tooltip: 'Completed',
-      ),
-      IconButton(
-        onPressed: () => context.push(Routes.rejectedTransactions),
-        icon: const Icon(Icons.cancel_rounded, size: 22),
-        tooltip: 'Rejected',
-      ),
-      SizedBox(width: MediaQuery.of(context).size.width * 0.02), // 2% spacing
-    ];
-  }
-
-  Widget _buildResponsiveSummary(ThemeData theme, TransactionState state) {
+  Widget _buildDynamicSummary(
+    ThemeData theme, 
+    TransactionState state, 
+    BoxConstraints constraints,
+  ) {
     if (state is! TransactionBaseState) {
       return const SizedBox.shrink();
     }
@@ -231,98 +251,47 @@ class _TransactionsPageState extends State<TransactionsPage> {
       totalBorrowed += transaction.amount;
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SizedBox(
-          width: double.infinity,
-          child: IntrinsicHeight(
-            child: Row(
-              children: [
-                Expanded(
-                  child: _ResponsiveSummaryItem(
-                    title: 'Lent',
-                    amount: totalLent,
-                    color: Colors.green,
-                    constraints: constraints,
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                ),
-                Expanded(
-                  child: _ResponsiveSummaryItem(
-                    title: 'Borrowed',
-                    amount: totalBorrowed,
-                    color: Colors.red,
-                    constraints: constraints,
-                  ),
-                ),
-              ],
+    return SizedBox(
+      width: double.infinity,
+      height: constraints.maxHeight,
+      child: Row(
+        children: [
+          Expanded(
+            child: _DynamicSummaryItem(
+              title: 'Lent',
+              amount: totalLent,
+              color: Colors.green,
+              constraints: constraints,
             ),
           ),
-        );
-      },
+          Container(
+            width: 1,
+            height: constraints.maxHeight * 0.8,
+            color: theme.colorScheme.outline.withValues(alpha: 0.2),
+          ),
+          Expanded(
+            child: _DynamicSummaryItem(
+              title: 'Borrowed',
+              amount: totalBorrowed,
+              color: Colors.red,
+              constraints: constraints,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildPendingIconWithBadge(TransactionState state, ThemeData theme) {
-    int pendingCount = 0;
-    if (state is TransactionLoaded) {
-      pendingCount = state.pendingTransactions.length;
-    }
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        IconButton(
-          onPressed: () => context.push(Routes.pendingTransactions),
-          icon: const Icon(Icons.pending_actions_rounded, size: 22),
-          tooltip: 'Pending',
-        ),
-        if (pendingCount > 0)
-          Positioned(
-            right: 6,
-            top: 6,
-            child: Container(
-              constraints: const BoxConstraints(
-                minWidth: 16,
-                minHeight: 16,
-              ),
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: theme.colorScheme.surface,
-                  width: 1,
-                ),
-              ),
-              child: Text(
-                pendingCount > 99 ? '99+' : pendingCount.toString(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildFilterSliver(ThemeData theme, double horizontalPadding) {
+  Widget _buildImprovedFilterSliver(ThemeData theme, double horizontalPadding, TransactionState state) {
     return SliverPersistentHeader(
       pinned: true,
-      delegate: _ResponsiveFilterSliverDelegate(
+      delegate: _ImprovedFilterSliverDelegate(
         theme: theme,
         horizontalPadding: horizontalPadding,
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: horizontalPadding, 
-            vertical: 8,
+            vertical: 12,
           ),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
@@ -339,11 +308,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildFilterChip('All', TransactionFilter.all, theme),
-                  SizedBox(width: horizontalPadding * 0.5),
-                  _buildFilterChip('Lent', TransactionFilter.lent, theme),
-                  SizedBox(width: horizontalPadding * 0.5),
-                  _buildFilterChip('Borrowed', TransactionFilter.borrowed, theme),
+                  _buildImprovedFilterChip('All', TransactionFilter.all, theme, state),
+                  const SizedBox(width: 12),
+                  _buildImprovedFilterChip('Pending', TransactionFilter.pending, theme, state),
+                  const SizedBox(width: 12),
+                  _buildImprovedFilterChip('Lent', TransactionFilter.lent, theme, state),
+                  const SizedBox(width: 12),
+                  _buildImprovedFilterChip('Borrowed', TransactionFilter.borrowed, theme, state),
                 ],
               ),
             ),
@@ -353,8 +324,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
-  Widget _buildFilterChip(String label, TransactionFilter filter, ThemeData theme) {
+  Widget _buildImprovedFilterChip(String label, TransactionFilter filter, ThemeData theme, TransactionState state) {
     final isSelected = _selectedFilter == filter;
+    int? badgeCount;
+    
+    if (filter == TransactionFilter.pending && state is TransactionBaseState) {
+      badgeCount = state.pendingTransactions.length;
+    }
     
     return GestureDetector(
       onTap: () {
@@ -363,12 +339,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
         });
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected 
-              ? theme.colorScheme.primary.withValues(alpha: 0.1)
+              ? theme.colorScheme.primary
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: isSelected 
                 ? theme.colorScheme.primary
@@ -376,14 +352,41 @@ class _TransactionsPageState extends State<TransactionsPage> {
             width: 1,
           ),
         ),
-        child: Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: isSelected 
-                ? theme.colorScheme.primary
-                : theme.colorScheme.onSurface.withValues(alpha: 0.7),
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (filter == TransactionFilter.pending && badgeCount != null && badgeCount > 0) ...[
+              Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.white : Colors.orange,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Center(
+                  child: Text(
+                    badgeCount > 99 ? '99+' : badgeCount.toString(),
+                    style: TextStyle(
+                      color: isSelected ? theme.colorScheme.primary : Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isSelected 
+                    ? Colors.white
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -441,6 +444,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
         transactions = [...state.lentTransactions, ...state.borrowedTransactions]
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
+      case TransactionFilter.pending:
+        transactions = state.pendingTransactions
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
       case TransactionFilter.lent:
         transactions = state.lentTransactions
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -457,30 +464,39 @@ class _TransactionsPageState extends State<TransactionsPage> {
   Widget _buildEmptyState(ThemeData theme) {
     String message;
     String subtitle;
+    IconData icon;
 
     switch (_selectedFilter) {
       case TransactionFilter.all:
         message = 'No transactions yet';
         subtitle = 'Create your first transaction to get started';
+        icon = Icons.receipt_long_outlined;
+        break;
+      case TransactionFilter.pending:
+        message = 'All caught up!';
+        subtitle = 'No pending transactions require your attention';
+        icon = Icons.check_circle_outline;
         break;
       case TransactionFilter.lent:
         message = 'No lending records';
         subtitle = 'Money you lend will appear here';
+        icon = Icons.trending_up;
         break;
       case TransactionFilter.borrowed:
         message = 'No borrowing records';
         subtitle = 'Money you borrow will appear here';
+        icon = Icons.trending_down;
         break;
     }
 
     return Center(
       child: Padding(
-        padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.08),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.receipt_long_outlined,
+              icon,
               size: 48,
               color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
@@ -488,9 +504,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
             Text(
               message,
               style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
               ),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
@@ -509,7 +526,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
   Widget _buildErrorState(String message, ThemeData theme) {
     return Center(
       child: Padding(
-        padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.08),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -548,13 +565,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 }
 
-class _ResponsiveSummaryItem extends StatelessWidget {
+class _DynamicSummaryItem extends StatelessWidget {
   final String title;
   final double amount;
   final Color color;
   final BoxConstraints constraints;
 
-  const _ResponsiveSummaryItem({
+  const _DynamicSummaryItem({
     required this.title,
     required this.amount,
     required this.color,
@@ -564,37 +581,42 @@ class _ResponsiveSummaryItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final screenWidth = MediaQuery.of(context).size.width;
     
-    // Responsive font sizes based on available width
-    final titleFontSize = (constraints.maxWidth * 0.08).clamp(12.0, 16.0);
-    final amountFontSize = (constraints.maxWidth * 0.12).clamp(14.0, 20.0);
-
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: screenWidth * 0.02),
+    // Dynamic font sizing based on available space
+    final maxHeight = constraints.maxHeight;
+    final maxWidth = constraints.maxWidth;
+    
+    // Scale font sizes based on available space
+    final titleFontSize = (maxHeight * 0.12).clamp(12.0, 16.0);
+    final amountFontSize = (maxHeight * 0.25).clamp(18.0, 28.0);
+    
+    return SizedBox(
+      width: maxWidth,
+      height: maxHeight,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             title,
-            style: theme.textTheme.bodySmall?.copyWith(
+            style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
               fontSize: titleFontSize,
             ),
-            overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(height: screenWidth * 0.01),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              'Rs. ${_formatAmount(amount)}',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: color,
-                fontSize: amountFontSize,
+          SizedBox(height: maxHeight * 0.08),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Rs. ${_formatAmount(amount)}',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                  fontSize: amountFontSize,
+                ),
+                textAlign: TextAlign.center,
               ),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -611,22 +633,22 @@ class _ResponsiveSummaryItem extends StatelessWidget {
   }
 }
 
-class _ResponsiveFilterSliverDelegate extends SliverPersistentHeaderDelegate {
+class _ImprovedFilterSliverDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
   final ThemeData theme;
   final double horizontalPadding;
 
-  _ResponsiveFilterSliverDelegate({
+  _ImprovedFilterSliverDelegate({
     required this.child, 
     required this.theme,
     required this.horizontalPadding,
   });
 
   @override
-  double get minExtent => 56.0;
+  double get minExtent => 60.0;
 
   @override
-  double get maxExtent => 56.0;
+  double get maxExtent => 60.0;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
@@ -638,11 +660,6 @@ class _ResponsiveFilterSliverDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
-    if (oldDelegate is! _ResponsiveFilterSliverDelegate) return true;
-    
-    return oldDelegate.theme.brightness != theme.brightness ||
-           oldDelegate.theme.colorScheme != theme.colorScheme ||
-           oldDelegate.horizontalPadding != horizontalPadding ||
-           oldDelegate.child != child;
+    return oldDelegate != this;
   }
 }
