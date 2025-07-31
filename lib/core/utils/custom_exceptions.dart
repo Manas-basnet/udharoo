@@ -10,6 +10,11 @@ abstract class CustomException implements Exception {
   String toString() => '$runtimeType: $message';
 }
 
+class NetworkException extends CustomException {
+  const NetworkException(String message) 
+      : super(message, FailureType.network);
+}
+
 class ValidationException extends CustomException {
   const ValidationException(String message) 
       : super(message, FailureType.validation);

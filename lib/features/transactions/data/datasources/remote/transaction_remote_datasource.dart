@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:udharoo/core/network/network_info.dart';
+import 'package:udharoo/core/utils/custom_exceptions.dart';
 import 'package:udharoo/features/transactions/data/models/transaction_model.dart';
 import 'package:udharoo/features/transactions/data/utils/transaction_extensions.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
@@ -44,9 +45,7 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
 
   @override
   Future<void> createTransaction(TransactionModel transaction) async {
-    if (!await _networkInfo.isConnected) {
-      throw Exception('No internet connection. Please check your network and try again.');
-    }
+    await checkInternetAndThrow();
     
     await _userTransactionsCollection
         .doc(transaction.transactionId)
@@ -68,10 +67,7 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
 
   @override
   Future<void> updateTransactionStatus(String transactionId, TransactionStatus status, TransactionActivityModel activity) async {
-    if (!await _networkInfo.isConnected) {
-      throw Exception('No internet connection. Please check your network and try again.');
-    }
-    
+    await checkInternetAndThrow();
     final updateData = <String, dynamic>{
       'status': TransactionUtils.transactionStatusToString(status),
     };
@@ -145,5 +141,11 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
     return snapshot.docs.map((doc) {
       return TransactionModel.fromJson(doc.data());
     }).toList();
+  }
+
+  checkInternetAndThrow() async {
+    if (!await _networkInfo.isConnected) {
+      throw NetworkException('No internet connection. Please check your network and try again.');
+    }
   }
 }
