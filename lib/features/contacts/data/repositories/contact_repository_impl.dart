@@ -135,10 +135,7 @@ class ContactRepositoryImpl extends BaseRepository implements ContactRepository 
       await _localDatasource.deleteContact(contactId, _currentUserId);
 
       if (await networkInfo.isConnected) {
-        try {
-          await _remoteDatasource.deleteContact(contactId, _currentUserId);
-        } catch (e) {
-        }
+        await _remoteDatasource.deleteContact(contactId, _currentUserId);
       }
 
       return ApiResult.success(null);
@@ -154,22 +151,6 @@ class ContactRepositoryImpl extends BaseRepository implements ContactRepository 
       }
 
       return ApiResult.success(<Transaction>[]);
-    });
-  }
-
-  @override
-  Future<ApiResult<void>> syncContacts() async {
-    return ExceptionHandler.handleExceptions(() async {
-      if (await networkInfo.isConnected) {
-        try {
-          final remoteContacts = await _remoteDatasource.getContacts(_currentUserId);
-          await _localDatasource.saveContacts(remoteContacts, _currentUserId);
-        } catch (e) {
-          return ApiResult.failure('Failed to sync contacts', FailureType.network);
-        }
-      }
-
-      return ApiResult.success(null);
     });
   }
 }

@@ -23,5 +23,4 @@ abstract class ContactRepository {
 
   Future<ApiResult<List<Transaction>>> getContactTransactions(String contactUserId);
 
-  Future<ApiResult<void>> syncContacts();
 }
