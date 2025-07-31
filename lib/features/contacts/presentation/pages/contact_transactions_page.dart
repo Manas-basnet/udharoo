@@ -64,12 +64,6 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _createNewTransaction(context),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
-        child: const Icon(Icons.add_rounded),
-      ),
     );
   }
 
@@ -360,7 +354,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
   }
 
   void _createNewTransaction(BuildContext context) {
-    context.push(
+    context.go(
       Routes.transactionForm,
       extra: {
         'prefilledContact': widget.contact,
@@ -369,7 +363,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
   }
 
   void _navigateToTransactionDetail(Transaction transaction) {
-    context.push(
+    context.go(
       Routes.transactionDetail,
       extra: transaction,
     );

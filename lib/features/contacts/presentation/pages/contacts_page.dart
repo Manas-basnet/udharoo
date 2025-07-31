@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:udharoo/core/di/di.dart' as di;
+import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/contacts/domain/entities/contact.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
-import 'package:udharoo/features/contacts/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
-import 'package:udharoo/features/contacts/presentation/pages/contact_transactions_page.dart';
 import 'package:udharoo/features/contacts/presentation/widgets/add_contact_dialog.dart';
 import 'package:udharoo/features/contacts/presentation/widgets/contact_list_item.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
@@ -72,12 +71,6 @@ class _ContactsPageState extends State<ContactsPage> {
                 _buildContactsSliver(state, theme, horizontalPadding),
               ],
             ),
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => _showAddContactDialog(context),
-            backgroundColor: theme.colorScheme.primary,
-            foregroundColor: theme.colorScheme.onPrimary,
-            child: const Icon(Icons.person_add_rounded),
           ),
         );
       },
@@ -372,14 +365,7 @@ class _ContactsPageState extends State<ContactsPage> {
   }
 
   void _navigateToContactTransactions(Contact contact) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => BlocProvider(
-          create: (_) => di.sl<ContactTransactionsCubit>(),
-          child: ContactTransactionsPage(contact: contact),
-        ),
-      ),
-    );
+    context.push(Routes.contactTransactions, extra: contact);
   }
 }
 
