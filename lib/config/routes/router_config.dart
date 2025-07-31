@@ -6,12 +6,13 @@ import 'package:udharoo/core/di/di.dart' as di;
 import 'package:udharoo/features/auth/presentation/pages/login_screen.dart';
 import 'package:udharoo/features/auth/presentation/pages/profile_completion_screen.dart';
 import 'package:udharoo/features/auth/presentation/pages/sign_up_screen.dart';
+import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
+import 'package:udharoo/features/contacts/presentation/pages/contacts_page.dart';
 import 'package:udharoo/features/phone_verification/presentation/pages/phone_setup_screen.dart';
 import 'package:udharoo/features/phone_verification/presentation/pages/phone_verification_screen.dart';
 import 'package:udharoo/features/phone_verification/presentation/pages/change_phone_setup_screen.dart';
 import 'package:udharoo/features/phone_verification/presentation/pages/change_phone_verification_screen.dart';
 import 'package:udharoo/features/home/presentation/pages/home_screen.dart';
-import 'package:udharoo/features/contacts/presentation/pages/contacts_screen.dart';
 import 'package:udharoo/features/profile/presentation/pages/profile_screen.dart';
 import 'package:udharoo/features/profile/presentation/pages/edit_profile_screen.dart';
 import 'package:udharoo/features/transactions/domain/entities/qr_transaction_data.dart';
@@ -54,7 +55,12 @@ class AppRouter {
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return AuthWrapper(
-            child: ScaffoldWithBottomNavBar(navigationShell: navigationShell),
+            child: MultiBlocProvider(
+              providers: [
+                BlocProvider(create: (_) => di.sl<ContactCubit>()),
+              ],
+              child: ScaffoldWithBottomNavBar(navigationShell: navigationShell),
+            ),
           );
         },
         branches: [
@@ -98,6 +104,30 @@ class AppRouter {
                     builder: (context, state) => const TransactionsPage(),
                     routes: [
                       GoRoute(
+                        path: '/transaction-form',
+                        name: 'transactionForm',
+                        builder: (context, state) {
+                          QRTransactionData? qrData;
+                          String? source;
+
+                          final extra = state.extra;
+                          if (extra is Map<String, dynamic>) {
+                            qrData = extra['qrData'] as QRTransactionData?;
+                            source = extra['source'] as String?;
+                          } else if (extra is TransactionFormExtra) {
+                            qrData = extra.qrData;
+                            source = extra.source;
+                          }
+
+                          return MultiBlocProvider(
+                            providers: [
+                              BlocProvider(create: (_) => di.sl<TransactionFormCubit>()),
+                            ],
+                            child: TransactionFormScreen(qrData: qrData, source: source),
+                          );
+                        },
+                      ),
+                      GoRoute(
                         path: '/completed-transactions',
                         name: 'completedTransactions',
                         builder: (context, state) =>
@@ -129,10 +159,17 @@ class AppRouter {
           StatefulShellBranch(
             navigatorKey: _contactsNavigatorKey,
             routes: [
-              GoRoute(
-                path: Routes.contacts,
-                name: 'contacts',
-                builder: (context, state) => const ContactsScreen(),
+              ShellRoute(
+                builder: (context, state, child) {
+                  return child;
+                },
+                routes: [
+                  GoRoute(
+                    path: Routes.contacts,
+                    name: 'contacts',
+                    builder: (context, state) => const ContactsPage(),
+                  ),
+                ],
               ),
             ],
           ),
@@ -151,30 +188,6 @@ class AppRouter {
       ),
 
       // Non-tabbed routes
-      GoRoute(
-        path: Routes.transactionForm,
-        name: 'transactionForm',
-        builder: (context, state) {
-          QRTransactionData? qrData;
-          String? source;
-
-          final extra = state.extra;
-          if (extra is Map<String, dynamic>) {
-            qrData = extra['qrData'] as QRTransactionData?;
-            source = extra['source'] as String?;
-          } else if (extra is TransactionFormExtra) {
-            qrData = extra.qrData;
-            source = extra.source;
-          }
-
-          return MultiBlocProvider(
-            providers: [
-              BlocProvider(create: (_) => di.sl<TransactionFormCubit>()),
-            ],
-            child: TransactionFormScreen(qrData: qrData, source: source),
-          );
-        },
-      ),
 
       // QR Generator Route
       GoRoute(

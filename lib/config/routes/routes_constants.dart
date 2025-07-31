@@ -4,7 +4,7 @@ class Routes {
   static const String signUp = '/sign-up';
   static const String home = '/home';
   static const String transactions = '/transactions';
-  static const String transactionForm = '/transaction-form';
+  static const String transactionForm = '$transactions/transaction-form';
   static const String transactionDetail = '/transactions/transaction-detail';
   static const String pendingTransactions = '/transactions/pending-transactions';
   static const String completedTransactions = '/transactions/completed-transactions';

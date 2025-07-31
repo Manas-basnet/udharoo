@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:udharoo/features/auth/domain/entities/auth_user.dart';
 import 'package:udharoo/features/transactions/domain/entities/qr_transaction_data.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/contact_history/contact_history_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/amount_input_widget.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/contact_selector_widget.dart';
@@ -194,12 +193,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       listener: (context, state) {
         switch (state) {
           case TransactionFormSuccess():
-            if (_selectedUser != null && _selectedPhoneNumber != null) {
-              context.read<ContactHistoryCubit>().saveContact(
-                phoneNumber: _selectedPhoneNumber!,
-                name: _selectedUser!.displayName ?? _selectedUser!.fullName ?? '',
-              );
-            }
             
             CustomToast.show(context, message: 'Transaction created successfully', isSuccess: true);
             context.pop();

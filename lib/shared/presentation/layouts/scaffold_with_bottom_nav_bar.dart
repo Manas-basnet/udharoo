@@ -14,6 +14,10 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    
+    // Check if current route is transaction form
+    final currentPath = GoRouterState.of(context).uri.path;
+    final shouldHideBottomNav = currentPath == Routes.transactionForm;
 
     return BlocListener<ShorebirdUpdateCubit, ShorebirdUpdateState>(
       listener: (context, state) {
@@ -23,7 +27,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
       },
       child: Scaffold(
         body: navigationShell,
-        bottomNavigationBar: Container(
+        bottomNavigationBar: shouldHideBottomNav ? null : Container(
           decoration: BoxDecoration(
             color: colorScheme.surface,
             border: Border(
@@ -167,7 +171,6 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
   }
 
   void _onItemTapped(int index, BuildContext context) {
-    // Direct mapping - no adjustment needed since we handle the + button separately
     navigationShell.goBranch(
       index,
       initialLocation: index == navigationShell.currentIndex,
@@ -221,7 +224,7 @@ class _CreateActionBottomSheet extends StatelessWidget {
               subtitle: 'Add a new lending or borrowing record',
               onTap: () {
                 Navigator.of(context).pop();
-                context.push(Routes.transactionForm);
+                context.go(Routes.transactionForm);
               },
             ),
             const SizedBox(height: 16),

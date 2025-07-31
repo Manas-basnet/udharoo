@@ -5,7 +5,6 @@ import 'package:udharoo/config/routes/router_config.dart';
 import 'package:udharoo/core/di/di.dart' as di;
 import 'package:udharoo/features/auth/presentation/bloc/signin_cubit.dart';
 import 'package:udharoo/features/phone_verification/presentation/bloc/phone_verification_cubit.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/contact_history/contact_history_cubit.dart';
 import 'package:udharoo/shared/presentation/bloc/shorebird_update/shorebird_update_cubit.dart';
 import 'package:udharoo/shared/presentation/bloc/theme_cubit/theme_cubit.dart';
 import 'package:udharoo/core/theme/app_theme.dart';
@@ -24,7 +23,6 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider(create: (_) => di.sl<SignInCubit>()),
         BlocProvider(create: (_) => di.sl<PhoneVerificationCubit>()),
-        BlocProvider(create: (context) => di.sl<ContactHistoryCubit>()),
 
         BlocProvider<ShorebirdUpdateCubit>(
           create: (context) =>

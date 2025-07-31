@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/features/auth/domain/entities/auth_user.dart';
-import 'package:udharoo/features/transactions/domain/entities/contact_history.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/contact_history/contact_history_cubit.dart';
+import 'package:udharoo/features/contacts/domain/entities/contact.dart';
+import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
 
 class ContactSelectorWidget extends StatefulWidget {
@@ -62,7 +62,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
       _phoneFocusNode.addListener(_onFocusChanged);
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.read<ContactHistoryCubit>().loadContactHistory();
+        context.read<ContactCubit>().loadContacts();
       });
     }
   }
@@ -81,9 +81,9 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
 
   void _onFocusChanged() {
     if (_phoneFocusNode.hasFocus && !widget.readOnly) {
-      _showContactHistoryDropdown();
+      _showContactsDropdown();
     } else {
-      _hideContactHistoryDropdown();
+      _hideContactsDropdown();
     }
   }
 
@@ -99,9 +99,9 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
       }
 
       if (phone.isNotEmpty) {
-        context.read<ContactHistoryCubit>().searchContacts(phone);
+        context.read<ContactCubit>().searchContacts(phone);
       } else {
-        context.read<ContactHistoryCubit>().loadContactHistory();
+        context.read<ContactCubit>().loadContacts();
       }
     });
   }
@@ -122,18 +122,19 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
       widget.onUserSelected!(user, formattedPhone);
     }
     
-    _hideContactHistoryDropdown();
+    _hideContactsDropdown();
     _phoneFocusNode.unfocus();
+
+    _autoSaveContact(user, formattedPhone);
   }
 
-  void _selectFromHistory(ContactHistory contact) {
+  void _selectFromContact(Contact contact) {
     widget.phoneController.text = contact.phoneNumber.replaceFirst('+977', '');
     widget.nameController.text = contact.name;
     
-    // Try to look up the user
     context.read<TransactionFormCubit>().lookupUserByPhone(contact.phoneNumber);
     
-    _hideContactHistoryDropdown();
+    _hideContactsDropdown();
     _phoneFocusNode.unfocus();
   }
 
@@ -160,7 +161,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
     }
   }
 
-  void _showContactHistoryDropdown() {
+  void _showContactsDropdown() {
     if (!_showSuggestions) {
       setState(() {
         _showSuggestions = true;
@@ -169,7 +170,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
     }
   }
 
-  void _hideContactHistoryDropdown() {
+  void _hideContactsDropdown() {
     if (_showSuggestions) {
       _animationController.reverse().then((_) {
         if (mounted) {
@@ -178,6 +179,18 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
           });
         }
       });
+    }
+  }
+
+  void _autoSaveContact(AuthUser user, String phoneNumber) {
+    if (user.uid.isNotEmpty && user.displayName?.isNotEmpty == true) {
+      context.read<ContactCubit>().addContact(
+        contactUserId: user.uid,
+        name: user.displayName ?? user.fullName ?? '',
+        phoneNumber: phoneNumber,
+        email: user.email,
+        photoUrl: user.photoURL,
+      );
     }
   }
 
@@ -298,9 +311,9 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
                         ),
                       ),
                     ),
-                    child: BlocBuilder<ContactHistoryCubit, ContactHistoryState>(
+                    child: BlocBuilder<ContactCubit, ContactState>(
                       builder: (context, state) {
-                        return _buildContactHistoryDropdown(state, theme);
+                        return _buildContactsDropdown(state, theme);
                       },
                     ),
                   ),
@@ -361,10 +374,10 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
     );
   }
 
-  Widget _buildContactHistoryDropdown(ContactHistoryState state, ThemeData theme) {
+  Widget _buildContactsDropdown(ContactState state, ThemeData theme) {
     switch (state) {
-      case ContactHistoryLoading():
-      case ContactHistorySearching():
+      case ContactLoading():
+      case ContactSearching():
         return Container(
           height: 60,
           padding: const EdgeInsets.all(16),
@@ -373,11 +386,11 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
           ),
         );
         
-      case ContactHistoryLoaded():
-      case ContactHistorySearchResults():
-        final contacts = state is ContactHistoryLoaded 
+      case ContactLoaded():
+      case ContactSearchResults():
+        final contacts = state is ContactLoaded 
             ? state.contacts 
-            : (state as ContactHistorySearchResults).contacts;
+            : (state as ContactSearchResults).contacts;
             
         if (contacts.isEmpty) {
           return Container(
@@ -385,7 +398,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
             padding: const EdgeInsets.all(16),
             child: Center(
               child: Text(
-                'No recent contacts',
+                'No contacts found',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
@@ -404,11 +417,11 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
           ),
           itemBuilder: (context, index) {
             final contact = contacts[index];
-            return _buildContactHistoryItem(contact, theme);
+            return _buildContactItem(contact, theme);
           },
         );
         
-      case ContactHistoryError():
+      case ContactError():
         return Container(
           height: 60,
           padding: const EdgeInsets.all(16),
@@ -427,11 +440,11 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
     }
   }
 
-  Widget _buildContactHistoryItem(ContactHistory contact, ThemeData theme) {
+  Widget _buildContactItem(Contact contact, ThemeData theme) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _selectFromHistory(contact),
+        onTap: () => _selectFromContact(contact),
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -447,10 +460,16 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
                     color: theme.colorScheme.primary.withValues(alpha: 0.3),
                   ),
                 ),
-                child: Icon(
-                  Icons.history_rounded,
-                  size: 18,
-                  color: theme.colorScheme.primary,
+                child: Center(
+                  child: Text(
+                    contact.displayName.isNotEmpty 
+                        ? contact.displayName[0].toUpperCase()
+                        : '?',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -477,26 +496,19 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        Text(
-                          ' • ${contact.transactionCount} transactions',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        if (contact.totalTransactions > 0)
+                          Text(
+                            ' • ${contact.totalTransactions} transactions',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                contact.formattedLastUsed,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                  fontSize: 11,
-                ),
-              ),
-              const SizedBox(width: 4),
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 12,
