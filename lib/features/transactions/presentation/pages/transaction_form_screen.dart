@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/features/auth/domain/entities/auth_user.dart';
+import 'package:udharoo/features/contacts/domain/entities/contact.dart';
 import 'package:udharoo/features/transactions/domain/entities/qr_transaction_data.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
@@ -23,11 +24,13 @@ class TransactionFormExtra {
 class TransactionFormScreen extends StatefulWidget {
   final QRTransactionData? qrData;
   final String? source;
+  final Contact? prefilledContact;
 
   const TransactionFormScreen({
     super.key,
     this.qrData,
     this.source,
+    this.prefilledContact,
   });
 
   @override
@@ -46,6 +49,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   String? _selectedPhoneNumber;
   bool _canSubmit = false;
   bool _isQRSource = false;
+  bool _isContactPrefilled = false;
 
   @override
   void initState() {
@@ -55,9 +59,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     _phoneController.addListener(_updateSubmitButtonState);
     _nameController.addListener(_updateSubmitButtonState);
     
-    // Handle QR data if provided
     if (widget.qrData != null) {
       _initializeFromQRData(widget.qrData!);
+    } else if (widget.prefilledContact != null) {
+      _initializeFromContact(widget.prefilledContact!);
     }
   }
 
@@ -75,11 +80,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       _isQRSource = true;
     });
 
-    // Pre-fill contact information
     _phoneController.text = qrData.phoneNumber.replaceFirst('+977', '');
     _nameController.text = qrData.userName;
     
-    // Create a pseudo AuthUser from QR data
     final qrUser = AuthUser(
       uid: qrData.userId,
       displayName: qrData.userName,
@@ -93,7 +96,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     _selectedUser = qrUser;
     _selectedPhoneNumber = qrData.phoneNumber;
     
-    // Set transaction type constraint if specified
     if (qrData.hasTransactionConstraint) {
       _selectedType = _getConstrainedTransactionType(qrData.transactionTypeConstraint!);
     }
@@ -101,14 +103,36 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     _updateSubmitButtonState();
   }
 
+  void _initializeFromContact(Contact contact) {
+    setState(() {
+      _isContactPrefilled = true;
+    });
+
+    _phoneController.text = contact.phoneNumber.replaceFirst('+977', '');
+    _nameController.text = contact.displayName;
+    
+    final contactUser = AuthUser(
+      uid: contact.contactUserId,
+      displayName: contact.displayName,
+      phoneNumber: contact.phoneNumber,
+      email: contact.email,
+      emailVerified: false,
+      phoneVerified: true,
+      isProfileComplete: true,
+    );
+    
+    _selectedUser = contactUser;
+    _selectedPhoneNumber = contact.phoneNumber;
+    
+    _updateSubmitButtonState();
+  }
+
   TransactionType _getConstrainedTransactionType(TransactionType constraint) {
-    // If QR says "lent only", that means the QR creator only wants to lend
-    // So from the scanner's perspective, they can only borrow
     switch (constraint) {
       case TransactionType.lent:
-        return TransactionType.borrowed; // Scanner borrows from QR creator
+        return TransactionType.borrowed;
       case TransactionType.borrowed:
-        return TransactionType.lent; // Scanner lends to QR creator
+        return TransactionType.lent;
     }
   }
 
@@ -134,7 +158,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   }
 
   void _onTypeChanged(TransactionType? type) {
-    // Don't allow type change if QR has constraint
     if (_isQRSource && widget.qrData?.hasTransactionConstraint == true) {
       return;
     }
@@ -176,13 +199,16 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     }
   }
 
-  String _getQRSourceText() {
-    if (!_isQRSource) return '';
-    
-    if (widget.qrData?.hasTransactionConstraint == true) {
-      return 'From QR • ${widget.qrData!.constraintDisplayText}';
+  String _getSourceText() {
+    if (_isQRSource) {
+      if (widget.qrData?.hasTransactionConstraint == true) {
+        return 'From QR • ${widget.qrData!.constraintDisplayText}';
+      }
+      return 'From QR Code';
+    } else if (_isContactPrefilled) {
+      return 'From Contact';
     }
-    return 'From QR Code';
+    return '';
   }
 
   @override
@@ -193,7 +219,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       listener: (context, state) {
         switch (state) {
           case TransactionFormSuccess():
-            
             CustomToast.show(context, message: 'Transaction created successfully', isSuccess: true);
             context.pop();
             break;
@@ -201,11 +226,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             CustomToast.show(context, message: state.message, isSuccess: false);
             break;
           case TransactionFormUserNotFound():
-            setState(() {
-              _selectedUser = null;
-              _selectedPhoneNumber = null;
-            });
-            _updateSubmitButtonState();
+            if (!_isContactPrefilled) {
+              setState(() {
+                _selectedUser = null;
+                _selectedPhoneNumber = null;
+              });
+              _updateSubmitButtonState();
+            }
             break;
           default:
             break;
@@ -214,7 +241,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
-          title: Text(_isQRSource ? 'QR Transaction' : 'New Transaction'),
+          title: Text(_getAppBarTitle()),
           backgroundColor: theme.colorScheme.surface,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
@@ -227,10 +254,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      // QR Info Banner
-                      if (_isQRSource) _buildQRInfoBanner(theme),
+                      if (_isQRSource || _isContactPrefilled) _buildSourceBanner(theme),
                       
-                      // Transaction Type
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -273,7 +298,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         ),
                       ),
     
-                      // Amount
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -316,7 +340,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         ),
                       ),
     
-                      // Contact
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -343,8 +366,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                               phoneController: _phoneController,
                               nameController: _nameController,
                               onUserSelected: _onUserSelected,
-                              readOnly: _isQRSource,
-                              qrSourceIndicator: _isQRSource ? _getQRSourceText() : null,
+                              readOnly: _isQRSource || _isContactPrefilled,
+                              qrSourceIndicator: (_isQRSource || _isContactPrefilled) ? _getSourceText() : null,
                               phoneValidator: (value) {
                                 if (value?.isEmpty ?? true) {
                                   return 'Phone number is required';
@@ -365,7 +388,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         ),
                       ),
     
-                      // Description
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -424,7 +446,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 ),
               ),
               
-              // Submit Button
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -479,7 +500,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     );
   }
 
-  Widget _buildQRInfoBanner(ThemeData theme) {
+  String _getAppBarTitle() {
+    if (_isQRSource) return 'QR Transaction';
+    if (_isContactPrefilled) return 'New Transaction';
+    return 'New Transaction';
+  }
+
+  Widget _buildSourceBanner(ThemeData theme) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -501,7 +528,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              Icons.qr_code_scanner,
+              _isQRSource ? Icons.qr_code_scanner : Icons.person,
               color: theme.colorScheme.primary,
               size: 20,
             ),
@@ -512,14 +539,16 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'QR Code Transaction',
+                  _isQRSource ? 'QR Code Transaction' : 'Contact Transaction',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: theme.colorScheme.primary,
                   ),
                 ),
                 Text(
-                  'Contact details pre-filled from QR code',
+                  _isQRSource 
+                      ? 'Contact details pre-filled from QR code'
+                      : 'Contact details pre-filled from ${widget.prefilledContact?.displayName}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.primary.withValues(alpha: 0.8),
                   ),
@@ -527,7 +556,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               ],
             ),
           ),
-          if (widget.qrData?.expiresAt != null)
+          if (_isQRSource && widget.qrData?.expiresAt != null)
             Icon(
               Icons.schedule,
               size: 16,

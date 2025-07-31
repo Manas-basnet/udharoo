@@ -76,7 +76,6 @@ class ContactRepositoryImpl extends BaseRepository implements ContactRepository 
         try {
           await _remoteDatasource.saveContact(contact);
         } catch (e) {
-          // Continue with local save if remote fails
         }
       }
 
@@ -95,7 +94,6 @@ class ContactRepositoryImpl extends BaseRepository implements ContactRepository 
           await _localDatasource.saveContacts(remoteContacts, _currentUserId);
           contacts = remoteContacts;
         } catch (e) {
-          // Use local data if remote fails
         }
       }
 
@@ -140,54 +138,6 @@ class ContactRepositoryImpl extends BaseRepository implements ContactRepository 
         try {
           await _remoteDatasource.deleteContact(contactId, _currentUserId);
         } catch (e) {
-          // Continue with local delete if remote fails
-        }
-      }
-
-      return ApiResult.success(null);
-    });
-  }
-
-  @override
-  Future<ApiResult<void>> updateContactStats(String contactId) async {
-    return ExceptionHandler.handleExceptions(() async {
-      final contact = await _localDatasource.getContactById(contactId, _currentUserId);
-      if (contact == null) {
-        return ApiResult.failure('Contact not found', FailureType.notFound);
-      }
-
-      if (await networkInfo.isConnected) {
-        try {
-          final transactions = await _remoteDatasource.getContactTransactions(
-            contact.contactUserId, 
-            _currentUserId,
-          );
-
-          double totalLent = 0;
-          double totalBorrowed = 0;
-          int totalTransactions = transactions.length;
-
-          for (final transaction in transactions) {
-            if (transaction.isCompleted) {
-              if (transaction.isLent) {
-                totalLent += transaction.amount;
-              } else {
-                totalBorrowed += transaction.amount;
-              }
-            }
-          }
-
-          final updatedContact = contact.copyWith(
-            totalTransactions: totalTransactions,
-            totalLent: totalLent,
-            totalBorrowed: totalBorrowed,
-            lastInteractionAt: DateTime.now(),
-          );
-
-          await _localDatasource.saveContact(updatedContact);
-          await _remoteDatasource.saveContact(updatedContact);
-        } catch (e) {
-          // Handle error gracefully
         }
       }
 
@@ -215,7 +165,7 @@ class ContactRepositoryImpl extends BaseRepository implements ContactRepository 
           final remoteContacts = await _remoteDatasource.getContacts(_currentUserId);
           await _localDatasource.saveContacts(remoteContacts, _currentUserId);
         } catch (e) {
-          // Handle sync error
+          return ApiResult.failure('Failed to sync contacts', FailureType.network);
         }
       }
 

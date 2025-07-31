@@ -10,6 +10,7 @@ class Routes {
   static const String completedTransactions = '/transactions/completed-transactions';
   static const String rejectedTransactions = '/transactions/rejected-transactions';
   static const String contacts = '/contacts';
+  static const String contactTransactions = '$contacts/contact-transactions';
   static const String profile = '/profile';
   static const String editProfile = '/edit-profile';
   static const String profileCompletion = '/profile-completion';

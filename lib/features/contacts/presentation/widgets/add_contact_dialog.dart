@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/features/auth/domain/entities/auth_user.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
@@ -15,8 +16,9 @@ class _AddContactDialogState extends State<AddContactDialog> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   
-  bool _isSearching = false;
+  bool _isProcessing = false;
   AuthUser? _foundUser;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -30,11 +32,26 @@ class _AddContactDialogState extends State<AddContactDialog> {
 
     return BlocListener<ContactCubit, ContactState>(
       listener: (context, state) {
-        if (state is ContactAddSuccess) {
+        if (state is ContactUserLookupSuccess) {
+          setState(() {
+            _foundUser = state.user;
+            _errorMessage = null;
+          });
+          _addContactToList(state.user);
+        } else if (state is ContactAddSuccess) {
           CustomToast.show(context, message: 'Contact added successfully', isSuccess: true);
           Navigator.of(context).pop();
         } else if (state is ContactError) {
-          CustomToast.show(context, message: state.message, isSuccess: false);
+          setState(() {
+            _isProcessing = false;
+            _errorMessage = state.message;
+            _foundUser = null;
+          });
+        } else if (state is ContactAdding) {
+          setState(() {
+            _isProcessing = true;
+            _errorMessage = null;
+          });
         }
       },
       child: AlertDialog(
@@ -59,18 +76,14 @@ class _AddContactDialogState extends State<AddContactDialog> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  suffixIcon: _isSearching
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : IconButton(
-                          icon: const Icon(Icons.search),
-                          onPressed: _searchUser,
-                        ),
+                  errorText: _errorMessage,
+                  errorMaxLines: 2
                 ),
                 keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(10),
+                ],
                 validator: (value) {
                   if (value?.isEmpty ?? true) {
                     return 'Phone number is required';
@@ -81,9 +94,12 @@ class _AddContactDialogState extends State<AddContactDialog> {
                   return null;
                 },
                 onChanged: (_) {
-                  setState(() {
-                    _foundUser = null;
-                  });
+                  if (_errorMessage != null || _foundUser != null) {
+                    setState(() {
+                      _errorMessage = null;
+                      _foundUser = null;
+                    });
+                  }
                 },
               ),
               
@@ -138,96 +154,66 @@ class _AddContactDialogState extends State<AddContactDialog> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: _isProcessing ? null : () => Navigator.of(context).pop(),
             child: Text(
               'Cancel',
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                color: _isProcessing 
+                    ? theme.colorScheme.onSurface.withValues(alpha: 0.3)
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ),
-          BlocBuilder<ContactCubit, ContactState>(
-            builder: (context, state) {
-              final isLoading = state is ContactAdding;
-              
-              return FilledButton(
-                onPressed: (isLoading || _foundUser == null) ? null : _addContact,
-                style: FilledButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                ),
-                child: isLoading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Add Contact'),
-              );
-            },
+          FilledButton(
+            onPressed: _isProcessing ? null : _handleAddContact,
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+            ),
+            child: _isProcessing
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text('Add Contact'),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _searchUser() async {
+
+  Future<void> _handleAddContact() async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
 
     setState(() {
-      _isSearching = true;
+      _isProcessing = true;
+      _errorMessage = null;
       _foundUser = null;
     });
 
-    try {
-      final phone = _phoneController.text.trim();
-      final formattedPhone = phone.startsWith('+') ? phone : '+977$phone';
-      
-      // This would need to be injected properly
-      // For now, we'll simulate the search
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // You would call the actual use case here
-      // final result = await getUserByPhoneUseCase(formattedPhone);
-      
-      setState(() {
-        // Simulate found user - replace with actual logic
-        _foundUser = AuthUser(
-          uid: 'test_uid',
-          displayName: 'Test User',
-          phoneNumber: formattedPhone,
-          email: 'test@example.com',
-          emailVerified: true,
-          phoneVerified: true,
-          isProfileComplete: true,
-        );
-        _isSearching = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isSearching = false;
-      });
-      
-      if (mounted) {
-        CustomToast.show(context, message: 'User not found', isSuccess: false);
-      }
-    }
+    final phone = _phoneController.text.trim();
+    final formattedPhone = phone.startsWith('+') ? phone : '+977$phone';
+    
+    context.read<ContactCubit>().lookupUserByPhone(formattedPhone);
   }
 
-  void _addContact() {
-    if (_foundUser == null) return;
-
+  void _addContactToList(AuthUser user) {
+    final phone = _phoneController.text.trim();
+    final formattedPhone = phone.startsWith('+') ? phone : '+977$phone';
+    
     context.read<ContactCubit>().addContact(
-      contactUserId: _foundUser!.uid,
-      name: _foundUser!.displayName ?? _foundUser!.fullName ?? '',
-      phoneNumber: _foundUser!.phoneNumber ?? '',
-      email: _foundUser!.email,
-      photoUrl: _foundUser!.photoURL,
+      contactUserId: user.uid,
+      name: user.displayName ?? user.fullName ?? '',
+      phoneNumber: formattedPhone,
+      email: user.email,
+      photoUrl: user.photoURL,
     );
   }
 }

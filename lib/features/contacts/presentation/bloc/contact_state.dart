@@ -46,6 +46,11 @@ final class ContactAddSuccess extends ContactState {
   const ContactAddSuccess();
 }
 
+final class ContactUserLookupSuccess extends ContactState {
+  final AuthUser user;
+  const ContactUserLookupSuccess(this.user);
+}
+
 final class ContactDeleteSuccess extends ContactState {
   const ContactDeleteSuccess();
 }

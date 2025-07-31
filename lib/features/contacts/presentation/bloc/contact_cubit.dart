@@ -1,6 +1,9 @@
 import 'package:equatable/equatable.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/core/network/api_result.dart';
+import 'package:udharoo/features/auth/domain/entities/auth_user.dart';
+import 'package:udharoo/features/auth/domain/usecases/get_user_by_phone_usecase.dart';
 import 'package:udharoo/features/contacts/domain/entities/contact.dart';
 import 'package:udharoo/features/contacts/domain/usecases/add_contact_usecase.dart';
 import 'package:udharoo/features/contacts/domain/usecases/delete_contact_usecase.dart';
@@ -16,6 +19,8 @@ class ContactCubit extends Cubit<ContactState> {
   final AddContactUseCase _addContactUseCase;
   final DeleteContactUseCase _deleteContactUseCase;
   final GetContactByUserIdUseCase _getContactByUserIdUseCase;
+  final GetUserByPhoneUseCase _getUserByPhoneUseCase;
+  final FirebaseAuth _firebaseAuth;
 
   ContactCubit({
     required GetContactsUseCase getContactsUseCase,
@@ -23,12 +28,19 @@ class ContactCubit extends Cubit<ContactState> {
     required AddContactUseCase addContactUseCase,
     required DeleteContactUseCase deleteContactUseCase,
     required GetContactByUserIdUseCase getContactByUserIdUseCase,
+    required GetUserByPhoneUseCase getUserByPhoneUseCase,
+    required FirebaseAuth firebaseAuth,
   })  : _getContactsUseCase = getContactsUseCase,
         _searchContactsUseCase = searchContactsUseCase,
         _addContactUseCase = addContactUseCase,
         _deleteContactUseCase = deleteContactUseCase,
         _getContactByUserIdUseCase = getContactByUserIdUseCase,
+        _getUserByPhoneUseCase = getUserByPhoneUseCase,
+        _firebaseAuth = firebaseAuth,
         super(const ContactInitial());
+
+
+  String? get _currentUserPhone => _firebaseAuth.currentUser?.phoneNumber;
 
   Future<void> loadContacts() async {
     if (!isClosed) {
@@ -60,6 +72,34 @@ class ContactCubit extends Cubit<ContactState> {
     if (!isClosed) {
       result.fold(
         onSuccess: (contacts) => emit(ContactSearchResults(contacts, query)),
+        onFailure: (message, type) => emit(ContactError(message, type)),
+      );
+    }
+  }
+
+  Future<void> lookupUserByPhone(String phoneNumber) async {
+    final trimmedPhoneNumber = phoneNumber.trim();
+
+    if (trimmedPhoneNumber.isEmpty) {
+      return;
+    }
+
+    if(_currentUserPhone != null && trimmedPhoneNumber == _currentUserPhone) {
+      emit(ContactError('You cannot create a contact with yourself.', FailureType.validation));
+      return;
+    }
+
+    final result = await _getUserByPhoneUseCase(trimmedPhoneNumber);
+
+    if (!isClosed) {
+      result.fold(
+        onSuccess: (user) {
+          if (user != null) {
+            emit(ContactUserLookupSuccess(user));
+          } else {
+            emit(const ContactError('User not found.', FailureType.validation));
+          }
+        },
         onFailure: (message, type) => emit(ContactError(message, type)),
       );
     }

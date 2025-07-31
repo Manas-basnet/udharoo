@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:udharoo/features/auth/presentation/bloc/signin_cubit.dart';
-import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
+import 'package:udharoo/features/auth/presentation/bloc/sign_in/signin_cubit.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session/auth_session_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class SignUpScreen extends StatefulWidget {

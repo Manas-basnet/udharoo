@@ -10,6 +10,7 @@ import 'package:udharoo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:udharoo/features/auth/domain/services/auth_service.dart';
 import 'package:udharoo/features/auth/domain/usecases/check_phone_availability_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/get_current_user_usecase.dart';
+import 'package:udharoo/features/auth/domain/usecases/get_user_by_phone_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/link_google_account_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/link_password_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/send_password_reset_email_usecase.dart';
@@ -30,8 +31,8 @@ import 'package:udharoo/features/auth/domain/usecases/check_phone_verification_s
 import 'package:udharoo/features/auth/domain/usecases/check_email_verification_status_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/change_password_usecase.dart';
 import 'package:udharoo/features/auth/domain/usecases/send_email_verification_usecase.dart';
-import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
-import 'package:udharoo/features/auth/presentation/bloc/signin_cubit.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session/auth_session_cubit.dart';
+import 'package:udharoo/features/auth/presentation/bloc/sign_in/signin_cubit.dart';
 import 'package:udharoo/features/phone_verification/presentation/bloc/phone_verification_cubit.dart';
 
 Future<void> initAuth(GetIt sl) async {
@@ -59,6 +60,7 @@ Future<void> initAuth(GetIt sl) async {
   sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
   sl.registerLazySingleton(() => UpdateDisplayNameUseCase(sl()));
   sl.registerLazySingleton(() => CheckPhoneAvailabilityUseCase(sl()));
+  sl.registerLazySingleton(() => GetUserByPhoneUseCase(sl()));
 
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(

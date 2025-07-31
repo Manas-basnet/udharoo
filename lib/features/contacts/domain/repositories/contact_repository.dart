@@ -21,8 +21,6 @@ abstract class ContactRepository {
 
   Future<ApiResult<void>> deleteContact(String contactId);
 
-  Future<ApiResult<void>> updateContactStats(String contactId);
-
   Future<ApiResult<List<Transaction>>> getContactTransactions(String contactUserId);
 
   Future<ApiResult<void>> syncContacts();

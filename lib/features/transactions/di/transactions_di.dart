@@ -1,5 +1,4 @@
 import 'package:get_it/get_it.dart';
-import 'package:udharoo/features/auth/domain/usecases/get_user_by_phone_usecase.dart';
 import 'package:udharoo/features/transactions/data/datasources/remote/transaction_remote_datasource.dart';
 import 'package:udharoo/features/transactions/data/repositories/transaction_repository_impl.dart';
 import 'package:udharoo/features/transactions/domain/repositories/transaction_repository.dart';
@@ -12,15 +11,12 @@ import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubi
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
 
 Future<void> initTransactions(GetIt sl) async {
-  // Use cases
   sl.registerLazySingleton(() => CreateTransactionUseCase(sl()));
   sl.registerLazySingleton(() => GetTransactionsUseCase(sl()));
   sl.registerLazySingleton(() => VerifyTransactionUseCase(sl()));
   sl.registerLazySingleton(() => CompleteTransactionUseCase(sl()));
   sl.registerLazySingleton(() => RejectTransactionUseCase(sl()));
-  sl.registerLazySingleton(() => GetUserByPhoneUseCase(sl()));
 
-  // Repository
   sl.registerLazySingleton<TransactionRepository>(
     () => TransactionRepositoryImpl(
       remoteDatasource: sl(),
@@ -28,7 +24,6 @@ Future<void> initTransactions(GetIt sl) async {
     ),
   );
 
-  // Datasource
   sl.registerLazySingleton<TransactionRemoteDatasource>(
     () => TransactionRemoteDatasourceImpl(
       firestore: sl(),
@@ -37,7 +32,6 @@ Future<void> initTransactions(GetIt sl) async {
     ),
   );
 
-  // Cubits
   sl.registerFactory(
     () => TransactionCubit(
       createTransactionUseCase: sl(),

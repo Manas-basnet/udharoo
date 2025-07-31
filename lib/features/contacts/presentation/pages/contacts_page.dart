@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:udharoo/core/di/di.dart' as di;
 import 'package:udharoo/features/contacts/domain/entities/contact.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
+import 'package:udharoo/features/contacts/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
+import 'package:udharoo/features/contacts/presentation/pages/contact_transactions_page.dart';
 import 'package:udharoo/features/contacts/presentation/widgets/add_contact_dialog.dart';
 import 'package:udharoo/features/contacts/presentation/widgets/contact_list_item.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
@@ -359,20 +362,23 @@ class _ContactsPageState extends State<ContactsPage> {
   void _showAddContactDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (dialogContext) => BlocProvider.value(
-        value: context.read<ContactCubit>(),
+      builder: (dialogContext) => MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: context.read<ContactCubit>()),
+        ],
         child: const AddContactDialog(),
       ),
     );
   }
 
   void _navigateToContactTransactions(Contact contact) {
-    // Navigate to contact transactions page
-    // context.push(Routes.contactTransactions, extra: contact);
-    CustomToast.show(
-      context,
-      message: 'Contact transactions page coming soon',
-      isSuccess: false,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => BlocProvider(
+          create: (_) => di.sl<ContactTransactionsCubit>(),
+          child: ContactTransactionsPage(contact: contact),
+        ),
+      ),
     );
   }
 }

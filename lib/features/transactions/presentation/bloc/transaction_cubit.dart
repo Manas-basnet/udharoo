@@ -118,7 +118,9 @@ class TransactionCubit extends Cubit<TransactionState> {
       emit(state.copyWith(isCreatingTransaction: false));
 
       result.fold(
-        onSuccess: (_) => emit(state.copyWith(successMessage: 'Transaction created successfully')),
+        onSuccess: (_) {
+          emit(state.copyWith(successMessage: 'Transaction created successfully'));
+        },
         onFailure: (message, _) => emit(state.copyWith(errorMessage: message)),
       );
     } catch (error) {
@@ -178,7 +180,9 @@ class TransactionCubit extends Cubit<TransactionState> {
       emit(state.copyWith(processingTransactionIds: finalProcessingIds));
 
       result.fold(
-        onSuccess: (_) => emit(state.copyWith(successMessage: successMessage)),
+        onSuccess: (_) {
+          emit(state.copyWith(successMessage: successMessage));
+        },
         onFailure: (message, _) => emit(state.copyWith(errorMessage: message)),
       );
     } catch (error) {

@@ -1,5 +1,5 @@
 import 'package:get_it/get_it.dart';
-import 'package:udharoo/core/di/auth_di.dart';
+import 'package:udharoo/features/auth/di/auth_di.dart';
 import 'package:udharoo/core/di/core_di.dart';
 import 'package:udharoo/features/contacts/di/contacts_di.dart';
 import 'package:udharoo/features/transactions/di/qr_di.dart';

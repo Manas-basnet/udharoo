@@ -10,9 +10,9 @@ import 'package:udharoo/features/contacts/domain/usecases/get_contact_transactio
 import 'package:udharoo/features/contacts/domain/usecases/get_contacts_usecase.dart';
 import 'package:udharoo/features/contacts/domain/usecases/search_contacts_usecase.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
+import 'package:udharoo/features/contacts/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
 
 Future<void> initContacts(GetIt sl) async {
-  // Use cases
   sl.registerLazySingleton(() => GetContactsUseCase(sl()));
   sl.registerLazySingleton(() => SearchContactsUseCase(sl()));
   sl.registerLazySingleton(() => AddContactUseCase(sl()));
@@ -20,17 +20,14 @@ Future<void> initContacts(GetIt sl) async {
   sl.registerLazySingleton(() => GetContactByUserIdUseCase(sl()));
   sl.registerLazySingleton(() => GetContactTransactionsUseCase(sl()));
 
-  // Repository
   sl.registerLazySingleton<ContactRepository>(
     () => ContactRepositoryImpl(
       localDatasource: sl(),
       remoteDatasource: sl(),
-      // getUserByPhoneUseCase: sl(),
       networkInfo: sl(),
     ),
   );
 
-  // Datasources
   sl.registerLazySingleton<ContactLocalDatasource>(
     () => ContactLocalDatasourceImpl(),
   );
@@ -42,14 +39,21 @@ Future<void> initContacts(GetIt sl) async {
     ),
   );
 
-  // Cubit
   sl.registerFactory(
     () => ContactCubit(
+      firebaseAuth: sl(),
       getContactsUseCase: sl(),
       searchContactsUseCase: sl(),
       addContactUseCase: sl(),
       deleteContactUseCase: sl(),
       getContactByUserIdUseCase: sl(),
+      getUserByPhoneUseCase: sl()
+    ),
+  );
+
+  sl.registerFactory(
+    () => ContactTransactionsCubit(
+      getContactTransactionsUseCase: sl(),
     ),
   );
 }

@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:udharoo/features/phone_verification/presentation/bloc/phone_verification_cubit.dart';
-import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session/auth_session_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class ChangePhoneVerificationScreen extends StatefulWidget {

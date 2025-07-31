@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:udharoo/features/auth/presentation/bloc/auth_session_cubit.dart';
+import 'package:udharoo/features/auth/presentation/bloc/auth_session/auth_session_cubit.dart';
 
 class LogoutDialog {
   static Future<void> show(BuildContext context) {
