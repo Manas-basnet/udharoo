@@ -59,7 +59,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
 
   String? _getDateValidationError(String dateText) {
     if (dateText.length < 10) {
-      return null; // Don't show error while typing
+      return null; // not showing error while typing
     }
 
     try {

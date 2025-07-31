@@ -15,7 +15,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     
-    // Check if current route is transaction form
+    // Hiding bottom nav for specific routes
     final currentPath = GoRouterState.of(context).uri.path;
     final shouldHideBottomNav = 
       currentPath == Routes.transactionForm || 

@@ -61,7 +61,7 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
     });
 
     try {
-      // Request storage permission
+
       PermissionStatus status;
       if (Platform.isAndroid) {
         if (await _getAndroidVersion() >= 33) {
@@ -217,17 +217,14 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // QR Code Display - Now at the top for prominence
                   _buildQRCodeDisplay(state, theme),
                   
                   const SizedBox(height: 24),
                   
-                  // Settings Card
                   _buildSettingsCard(theme),
                   
                   const SizedBox(height: 24),
-                  
-                  // Instructions
+
                   _buildInstructions(theme),
                 ],
               ),

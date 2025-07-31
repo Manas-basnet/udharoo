@@ -160,17 +160,14 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
           return Stack(
             children: [
-              // Camera view
               if (_isScanning)
                 MobileScanner(
                   controller: _cameraController,
                   onDetect: _onDetect,
                 ),
               
-              // Overlay
               _buildScannerOverlay(state, theme),
               
-              // Bottom controls
               _buildBottomControls(state, theme),
             ],
           );

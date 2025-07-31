@@ -39,7 +39,6 @@ class ContactHistoryModel extends ContactHistory {
     );
   }
 
-  // Create a storage key for SharedPreferences
   String get storageKey {
     final userPrefix = userId != null ? '${userId}_' : '';
     return '${userPrefix}contact_$phoneNumber';

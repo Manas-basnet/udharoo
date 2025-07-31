@@ -208,5 +208,3 @@ class ContactListItem extends StatelessWidget {
     );
   }
 }
-
-// add_contact_dialog.dart
