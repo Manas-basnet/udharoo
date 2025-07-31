@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:udharoo/core/network/network_info.dart';
 import 'package:udharoo/features/transactions/data/models/transaction_model.dart';
 import 'package:udharoo/features/transactions/data/utils/transaction_extensions.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
@@ -16,12 +17,15 @@ abstract class TransactionRemoteDatasource {
 class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _firebaseAuth;
+  final NetworkInfo _networkInfo;
 
   TransactionRemoteDatasourceImpl({
     FirebaseFirestore? firestore,
     FirebaseAuth? firebaseAuth,
+    required NetworkInfo networkInfo,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
+        _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
+        _networkInfo = networkInfo;
 
   String get _currentUserId {
     final user = _firebaseAuth.currentUser;
@@ -40,6 +44,10 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
 
   @override
   Future<void> createTransaction(TransactionModel transaction) async {
+    if (!await _networkInfo.isConnected) {
+      throw Exception('No internet connection. Please check your network and try again.');
+    }
+    
     await _userTransactionsCollection
         .doc(transaction.transactionId)
         .set(transaction.toJson());
@@ -49,7 +57,8 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
   Stream<List<TransactionModel>> getTransactions() {
     return _userTransactionsCollection
         .orderBy('createdAt', descending: true)
-        .snapshots()
+        .snapshots(includeMetadataChanges: true)
+        .where((snapshot) => !snapshot.metadata.hasPendingWrites)
         .map((snapshot) {
       return snapshot.docs.map((doc) {
         return TransactionModel.fromJson(doc.data());
@@ -59,11 +68,14 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
 
   @override
   Future<void> updateTransactionStatus(String transactionId, TransactionStatus status, TransactionActivityModel activity) async {
+    if (!await _networkInfo.isConnected) {
+      throw Exception('No internet connection. Please check your network and try again.');
+    }
+    
     final updateData = <String, dynamic>{
       'status': TransactionUtils.transactionStatusToString(status),
     };
 
-    // Add timestamp based on status
     final now = DateTime.now().toIso8601String();
     switch (status) {
       case TransactionStatus.verified:
@@ -73,22 +85,18 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
         updateData['completedAt'] = now;
         break;
       case TransactionStatus.rejected:
-        // Keep the original timestamps
         break;
       case TransactionStatus.pendingVerification:
-        // Reset timestamps if going back to pending
         updateData['verifiedAt'] = null;
         updateData['completedAt'] = null;
         break;
     }
 
-    // Get current transaction to append activity
     final transactionDoc = await _userTransactionsCollection.doc(transactionId).get();
     if (transactionDoc.exists && transactionDoc.data() != null) {
       final currentData = transactionDoc.data()!;
       final activities = (currentData['activities'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? <Map<String, dynamic>>[];
       
-      // Add new activity
       activities.add(activity.toJson());
       updateData['activities'] = activities;
     }

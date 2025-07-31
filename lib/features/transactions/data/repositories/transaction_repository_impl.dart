@@ -130,7 +130,6 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
   @override
   Future<ApiResult<void>> completeTransaction(String transactionId) async {
     return ExceptionHandler.handleExceptions(() async {
-      // CHANGE 2: Validate that only lender can complete transactions
       final transaction = await _remoteDatasource.getTransactionById(transactionId);
       
       if (transaction == null) {

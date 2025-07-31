@@ -201,7 +201,6 @@ class TransactionCubit extends Cubit<TransactionState> {
   }) async {
     _processingTransactionIds.add(transactionId);
     
-    
     if (!isClosed && state is TransactionLoaded) {
       emit((state as TransactionLoaded).copyWithProcessingIds(Set.from(_processingTransactionIds)));
     }
@@ -212,51 +211,28 @@ class TransactionCubit extends Cubit<TransactionState> {
       _processingTransactionIds.remove(transactionId);
 
       if (!isClosed) {
-        final updatedData = _getCurrentTransactionData();
-        
         result.fold(
           onSuccess: (_) => emit(TransactionActionSuccess(
             message: successMessage,
             actionType: actionType,
-            transactions: updatedData.transactions,
-            lentTransactions: updatedData.lentTransactions,
-            borrowedTransactions: updatedData.borrowedTransactions,
-            pendingTransactions: updatedData.pendingTransactions,
-            completedTransactions: updatedData.completedTransactions,
-            processingTransactionIds: Set.from(_processingTransactionIds),
           )),
           onFailure: (message, type) => emit(TransactionActionError(
             message: message,
             transactionId: transactionId,
             actionType: actionType,
             type: type,
-            transactions: updatedData.transactions,
-            lentTransactions: updatedData.lentTransactions,
-            borrowedTransactions: updatedData.borrowedTransactions,
-            pendingTransactions: updatedData.pendingTransactions,
-            completedTransactions: updatedData.completedTransactions,
-            processingTransactionIds: Set.from(_processingTransactionIds),
           )),
         );
       }
     } catch (error) {
-      // Remove from processing set on error
       _processingTransactionIds.remove(transactionId);
       
       if (!isClosed) {
-        final updatedData = _getCurrentTransactionData();
-        
         emit(TransactionActionError(
           message: _getErrorMessage(error),
           transactionId: transactionId,
           actionType: actionType,
           type: FailureType.unknown,
-          transactions: updatedData.transactions,
-          lentTransactions: updatedData.lentTransactions,
-          borrowedTransactions: updatedData.borrowedTransactions,
-          pendingTransactions: updatedData.pendingTransactions,
-          completedTransactions: updatedData.completedTransactions,
-          processingTransactionIds: Set.from(_processingTransactionIds),
         ));
       }
     }

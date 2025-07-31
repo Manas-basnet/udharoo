@@ -871,10 +871,10 @@ class TransactionDetailScreen extends StatelessWidget {
     return transaction.isVerified && transaction.isLent;
   }
 
-  void _showRejectDialog(BuildContext context, TransactionCubit cubit) {
+  Future<void> _showRejectDialog(BuildContext context, TransactionCubit cubit) async {
     final theme = Theme.of(context);
     
-    showDialog(
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: theme.colorScheme.surface,
@@ -889,7 +889,7 @@ class TransactionDetailScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: Text(
               'Cancel',
               style: TextStyle(
@@ -898,11 +898,7 @@ class TransactionDetailScreen extends StatelessWidget {
             ),
           ),
           FilledButton(
-            onPressed: () {
-              cubit.rejectTransaction(transaction.transactionId);
-              Navigator.of(dialogContext).pop();
-              CustomToast.show(context, message: 'Transaction rejected', isSuccess: true);
-            },
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             style: FilledButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
@@ -912,5 +908,9 @@ class TransactionDetailScreen extends StatelessWidget {
         ],
       ),
     );
+
+    if (confirmed == true) {
+      cubit.rejectTransaction(transaction.transactionId);
+    }
   }
 }

@@ -46,7 +46,6 @@ final class TransactionLoading extends TransactionState {
   const TransactionLoading();
 }
 
-// States with loaded data
 final class TransactionLoaded extends TransactionBaseState {
   const TransactionLoaded({
     required super.transactions,
@@ -91,26 +90,20 @@ final class TransactionCreated extends TransactionBaseState {
   });
 }
 
-final class TransactionActionSuccess extends TransactionBaseState {
+final class TransactionActionSuccess extends TransactionState {
   final String message;
   final String actionType;
 
   const TransactionActionSuccess({
     required this.message,
     required this.actionType,
-    required super.transactions,
-    required super.lentTransactions,
-    required super.borrowedTransactions,
-    required super.pendingTransactions,
-    required super.completedTransactions,
-    super.processingTransactionIds,
   });
 
   @override
-  List<Object?> get props => [message, actionType, ...super.props];
+  List<Object?> get props => [message, actionType];
 }
 
-final class TransactionActionError extends TransactionBaseState {
+final class TransactionActionError extends TransactionState {
   final String message;
   final String transactionId;
   final String actionType;
@@ -121,16 +114,10 @@ final class TransactionActionError extends TransactionBaseState {
     required this.transactionId,
     required this.actionType,
     required this.type,
-    required super.transactions,
-    required super.lentTransactions,
-    required super.borrowedTransactions,
-    required super.pendingTransactions,
-    required super.completedTransactions,
-    super.processingTransactionIds,
   });
 
   @override
-  List<Object?> get props => [message, transactionId, actionType, type, ...super.props];
+  List<Object?> get props => [message, transactionId, actionType, type];
 }
 
 final class TransactionError extends TransactionBaseState {

@@ -91,11 +91,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
           message: state.message,
           isSuccess: true,
         );
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            context.read<TransactionCubit>().clearActionMessages();
-          }
-        });
         break;
       case TransactionActionError():
         CustomToast.show(
@@ -103,11 +98,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
           message: state.message,
           isSuccess: false,
         );
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            context.read<TransactionCubit>().clearActionMessages();
-          }
-        });
         break;
       case TransactionError():
         CustomToast.show(

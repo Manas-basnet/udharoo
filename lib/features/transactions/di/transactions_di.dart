@@ -33,6 +33,7 @@ Future<void> initTransactions(GetIt sl) async {
     () => TransactionRemoteDatasourceImpl(
       firestore: sl(),
       firebaseAuth: sl(),
+      networkInfo: sl(),
     ),
   );
 
