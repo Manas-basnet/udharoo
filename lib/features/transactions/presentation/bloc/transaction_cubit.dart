@@ -19,7 +19,6 @@ class TransactionCubit extends Cubit<TransactionState> {
   final RejectTransactionUseCase _rejectTransactionUseCase;
 
   StreamSubscription<List<Transaction>>? _transactionsSubscription;
-  final Set<String> _processingTransactionIds = <String>{};
 
   TransactionCubit({
     required CreateTransactionUseCase createTransactionUseCase,
@@ -32,81 +31,63 @@ class TransactionCubit extends Cubit<TransactionState> {
         _verifyTransactionUseCase = verifyTransactionUseCase,
         _completeTransactionUseCase = completeTransactionUseCase,
         _rejectTransactionUseCase = rejectTransactionUseCase,
-        super(const TransactionInitial());
-
-  ({
-    List<Transaction> transactions,
-    List<Transaction> lentTransactions,
-    List<Transaction> borrowedTransactions,
-    List<Transaction> pendingTransactions,
-    List<Transaction> completedTransactions,
-  }) _getCurrentTransactionData() {
-    if (state is TransactionBaseState) {
-      final baseState = state as TransactionBaseState;
-      return (
-        transactions: baseState.transactions,
-        lentTransactions: baseState.lentTransactions,
-        borrowedTransactions: baseState.borrowedTransactions,
-        pendingTransactions: baseState.pendingTransactions,
-        completedTransactions: baseState.completedTransactions,
-      );
-    }
-    return (
-      transactions: <Transaction>[],
-      lentTransactions: <Transaction>[],
-      borrowedTransactions: <Transaction>[],
-      pendingTransactions: <Transaction>[],
-      completedTransactions: <Transaction>[],
-    );
-  }
+        super(TransactionState.initial());
 
   void loadTransactions() {
-    if (!isClosed) {
-      emit(const TransactionLoading());
+    if (!isClosed && !state.isInitialized) {
+      emit(state.copyWith(isInitialLoading: true));
     }
 
     _transactionsSubscription?.cancel();
     _transactionsSubscription = _getTransactionsUseCase().listen(
-      (transactions) {
-        if (!isClosed) {
-          final lentTransactions = transactions.where((t) => t.isLent && (t.isVerified || t.isCompleted)).toList();
-          final borrowedTransactions = transactions.where((t) => t.isBorrowed && (t.isVerified || t.isCompleted)).toList();
-          final pendingTransactions = transactions.where((t) => t.isPending).toList();
-          final completedTransactions = transactions.where((t) => t.isCompleted).toList();
+      _handleTransactionUpdate,
+      onError: _handleStreamError,
+    );
+  }
 
-          emit(TransactionLoaded(
-            transactions: transactions,
-            lentTransactions: lentTransactions,
-            borrowedTransactions: borrowedTransactions,
-            pendingTransactions: pendingTransactions,
-            completedTransactions: completedTransactions,
-            processingTransactionIds: Set.from(_processingTransactionIds),
-          ));
-        }
-      },
-      onError: (error) {
-        if (!isClosed) {
-          final currentData = _getCurrentTransactionData();
-          
-          if (currentData.transactions.isNotEmpty) {
-            emit(TransactionError(
-              message: _getErrorMessage(error),
-              type: FailureType.unknown,
-              transactions: currentData.transactions,
-              lentTransactions: currentData.lentTransactions,
-              borrowedTransactions: currentData.borrowedTransactions,
-              pendingTransactions: currentData.pendingTransactions,
-              completedTransactions: currentData.completedTransactions,
-              processingTransactionIds: Set.from(_processingTransactionIds),
-            ));
-          } else {
-            emit(TransactionInitialError(
-              _getErrorMessage(error),
-              FailureType.unknown,
-            ));
-          }
-        }
-      },
+  void _handleTransactionUpdate(List<Transaction> transactions) {
+    if (isClosed) return;
+
+    final categorizedTransactions = _categorizeTransactions(transactions);
+
+    emit(state.copyWith(
+      transactions: transactions,
+      lentTransactions: categorizedTransactions.lent,
+      borrowedTransactions: categorizedTransactions.borrowed,
+      pendingTransactions: categorizedTransactions.pending,
+      completedTransactions: categorizedTransactions.completed,
+      isInitialLoading: false,
+      isInitialized: true,
+    ).clearError());
+  }
+
+  void _handleStreamError(dynamic error) {
+    if (isClosed) return;
+
+    final errorMessage = _getErrorMessage(error);
+    
+    emit(state.copyWith(
+      isInitialLoading: false,
+      errorMessage: errorMessage,
+    ));
+  }
+
+  ({
+    List<Transaction> lent,
+    List<Transaction> borrowed,
+    List<Transaction> pending,
+    List<Transaction> completed,
+  }) _categorizeTransactions(List<Transaction> transactions) {
+    final lent = transactions.where((t) => t.isLent && (t.isVerified || t.isCompleted)).toList();
+    final borrowed = transactions.where((t) => t.isBorrowed && (t.isVerified || t.isCompleted)).toList();
+    final pending = transactions.where((t) => t.isPending).toList();
+    final completed = transactions.where((t) => t.isCompleted).toList();
+
+    return (
+      lent: lent,
+      borrowed: borrowed,
+      pending: pending,
+      completed: completed,
     );
   }
 
@@ -118,59 +99,42 @@ class TransactionCubit extends Cubit<TransactionState> {
     required String description,
     required TransactionType type,
   }) async {
-    final currentData = _getCurrentTransactionData();
-    
-    if (!isClosed) {
-      emit(TransactionCreating(
-        transactions: currentData.transactions,
-        lentTransactions: currentData.lentTransactions,
-        borrowedTransactions: currentData.borrowedTransactions,
-        pendingTransactions: currentData.pendingTransactions,
-        completedTransactions: currentData.completedTransactions,
-        processingTransactionIds: Set.from(_processingTransactionIds),
-      ));
-    }
+    if (isClosed) return;
 
-    final result = await _createTransactionUseCase(
-      amount: amount,
-      otherPartyUid: otherPartyUid,
-      otherPartyName: otherPartyName,
-      otherPartyPhone: otherPartyPhone,
-      description: description,
-      type: type,
-    );
+    emit(state.copyWith(isCreatingTransaction: true).clearMessages());
 
-    if (!isClosed) {
-      final updatedData = _getCurrentTransactionData();
-      
-      result.fold(
-        onSuccess: (_) => emit(TransactionCreated(
-          transactions: updatedData.transactions,
-          lentTransactions: updatedData.lentTransactions,
-          borrowedTransactions: updatedData.borrowedTransactions,
-          pendingTransactions: updatedData.pendingTransactions,
-          completedTransactions: updatedData.completedTransactions,
-          processingTransactionIds: Set.from(_processingTransactionIds),
-        )),
-        onFailure: (message, type) => emit(TransactionError(
-          message: message,
-          type: type,
-          transactions: updatedData.transactions,
-          lentTransactions: updatedData.lentTransactions,
-          borrowedTransactions: updatedData.borrowedTransactions,
-          pendingTransactions: updatedData.pendingTransactions,
-          completedTransactions: updatedData.completedTransactions,
-          processingTransactionIds: Set.from(_processingTransactionIds),
-        )),
+    try {
+      final result = await _createTransactionUseCase(
+        amount: amount,
+        otherPartyUid: otherPartyUid,
+        otherPartyName: otherPartyName,
+        otherPartyPhone: otherPartyPhone,
+        description: description,
+        type: type,
       );
+
+      if (isClosed) return;
+
+      emit(state.copyWith(isCreatingTransaction: false));
+
+      result.fold(
+        onSuccess: (_) => emit(state.copyWith(successMessage: 'Transaction created successfully')),
+        onFailure: (message, _) => emit(state.copyWith(errorMessage: message)),
+      );
+    } catch (error) {
+      if (isClosed) return;
+      
+      emit(state.copyWith(
+        isCreatingTransaction: false,
+        errorMessage: _getErrorMessage(error),
+      ));
     }
   }
 
   Future<void> verifyTransaction(String transactionId) async {
     await _performTransactionAction(
       transactionId: transactionId,
-      actionType: 'verify',
-      actionFunction: () => _verifyTransactionUseCase(transactionId),
+      action: () => _verifyTransactionUseCase(transactionId),
       successMessage: 'Transaction verified successfully',
     );
   }
@@ -178,8 +142,7 @@ class TransactionCubit extends Cubit<TransactionState> {
   Future<void> completeTransaction(String transactionId) async {
     await _performTransactionAction(
       transactionId: transactionId,
-      actionType: 'complete',
-      actionFunction: () => _completeTransactionUseCase(transactionId),
+      action: () => _completeTransactionUseCase(transactionId),
       successMessage: 'Transaction completed successfully',
     );
   }
@@ -187,90 +150,71 @@ class TransactionCubit extends Cubit<TransactionState> {
   Future<void> rejectTransaction(String transactionId) async {
     await _performTransactionAction(
       transactionId: transactionId,
-      actionType: 'reject',
-      actionFunction: () => _rejectTransactionUseCase(transactionId),
+      action: () => _rejectTransactionUseCase(transactionId),
       successMessage: 'Transaction rejected',
     );
   }
 
   Future<void> _performTransactionAction({
     required String transactionId,
-    required String actionType,
-    required Future<ApiResult<void>> Function() actionFunction,
+    required Future<ApiResult<void>> Function() action,
     required String successMessage,
   }) async {
-    _processingTransactionIds.add(transactionId);
-    
-    if (!isClosed && state is TransactionLoaded) {
-      emit((state as TransactionLoaded).copyWithProcessingIds(Set.from(_processingTransactionIds)));
-    }
+    if (isClosed) return;
+
+    final updatedProcessingIds = Set<String>.from(state.processingTransactionIds)
+      ..add(transactionId);
+
+    emit(state.copyWith(processingTransactionIds: updatedProcessingIds).clearMessages());
 
     try {
-      final result = await actionFunction();
+      final result = await action();
 
-      _processingTransactionIds.remove(transactionId);
+      if (isClosed) return;
 
-      if (!isClosed) {
-        result.fold(
-          onSuccess: (_) => emit(TransactionActionSuccess(
-            message: successMessage,
-            actionType: actionType,
-          )),
-          onFailure: (message, type) => emit(TransactionActionError(
-            message: message,
-            transactionId: transactionId,
-            actionType: actionType,
-            type: type,
-          )),
-        );
-      }
+      final finalProcessingIds = Set<String>.from(state.processingTransactionIds)
+        ..remove(transactionId);
+
+      emit(state.copyWith(processingTransactionIds: finalProcessingIds));
+
+      result.fold(
+        onSuccess: (_) => emit(state.copyWith(successMessage: successMessage)),
+        onFailure: (message, _) => emit(state.copyWith(errorMessage: message)),
+      );
     } catch (error) {
-      _processingTransactionIds.remove(transactionId);
-      
-      if (!isClosed) {
-        emit(TransactionActionError(
-          message: _getErrorMessage(error),
-          transactionId: transactionId,
-          actionType: actionType,
-          type: FailureType.unknown,
-        ));
-      }
+      if (isClosed) return;
+
+      final finalProcessingIds = Set<String>.from(state.processingTransactionIds)
+        ..remove(transactionId);
+
+      emit(state.copyWith(
+        processingTransactionIds: finalProcessingIds,
+        errorMessage: _getErrorMessage(error),
+      ));
     }
+  }
+
+  void clearMessages() {
+    if (isClosed) return;
+    emit(state.clearMessages());
+  }
+
+  void clearError() {
+    if (isClosed) return;
+    emit(state.clearError());
+  }
+
+  void clearSuccess() {
+    if (isClosed) return;
+    emit(state.clearSuccess());
   }
 
   void resetActionState() {
-    if (!isClosed && state is! TransactionLoaded) {
-      final currentData = _getCurrentTransactionData();
-      
-      if (currentData.transactions.isNotEmpty) {
-        emit(TransactionLoaded(
-          transactions: currentData.transactions,
-          lentTransactions: currentData.lentTransactions,
-          borrowedTransactions: currentData.borrowedTransactions,
-          pendingTransactions: currentData.pendingTransactions,
-          completedTransactions: currentData.completedTransactions,
-          processingTransactionIds: Set.from(_processingTransactionIds),
-        ));
-      } else {
-        loadTransactions();
-      }
-    }
+    clearMessages();
   }
 
   void clearActionMessages() {
-    if (!isClosed && 
-        (state is TransactionActionSuccess || state is TransactionActionError)) {
-      final currentData = _getCurrentTransactionData();
-      
-      emit(TransactionLoaded(
-        transactions: currentData.transactions,
-        lentTransactions: currentData.lentTransactions,
-        borrowedTransactions: currentData.borrowedTransactions,
-        pendingTransactions: currentData.pendingTransactions,
-        completedTransactions: currentData.completedTransactions,
-        processingTransactionIds: Set.from(_processingTransactionIds),
-      ));
-    }
+    clearMessages();
   }
 
   String _getErrorMessage(dynamic error) {
@@ -281,7 +225,6 @@ class TransactionCubit extends Cubit<TransactionState> {
   @override
   Future<void> close() {
     _transactionsSubscription?.cancel();
-    _processingTransactionIds.clear();
     return super.close();
   }
 }

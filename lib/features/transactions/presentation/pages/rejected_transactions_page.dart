@@ -6,6 +6,7 @@ import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_list_item.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_search_delegate.dart';
+import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 enum TransactionFilter { 
   all, 
@@ -44,7 +45,26 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: BlocBuilder<TransactionCubit, TransactionState>(
+      body: BlocConsumer<TransactionCubit, TransactionState>(
+        listener: (context, state) {
+          if (state.hasSuccess) {
+            CustomToast.show(
+              context,
+              message: state.successMessage!,
+              isSuccess: true,
+            );
+            context.read<TransactionCubit>().clearSuccess();
+          }
+          
+          if (state.hasError) {
+            CustomToast.show(
+              context,
+              message: state.errorMessage!,
+              isSuccess: false,
+            );
+            context.read<TransactionCubit>().clearError();
+          }
+        },
         builder: (context, state) {
           return RefreshIndicator(
             onRefresh: () async {
@@ -100,27 +120,23 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
         ),
       ),
       actions: [
-        BlocBuilder<TransactionCubit, TransactionState>(
-          builder: (context, state) {
-            return IconButton(
-              onPressed: () {
-                if (state is TransactionLoaded) {
-                  final rejectedTransactions = state.transactions
-                      .where((t) => t.isRejected)
-                      .toList();
-                  showSearch(
-                    context: context,
-                    delegate: TransactionSearchDelegate(
-                      transactions: rejectedTransactions,
-                      searchType: 'rejected',
-                    ),
-                  );
-                }
-              },
-              icon: const Icon(Icons.search_rounded, size: 22),
-              tooltip: 'Search',
-            );
+        IconButton(
+          onPressed: () {
+            if (state.hasTransactions) {
+              final rejectedTransactions = state.transactions
+                  .where((t) => t.isRejected)
+                  .toList();
+              showSearch(
+                context: context,
+                delegate: TransactionSearchDelegate(
+                  transactions: rejectedTransactions,
+                  searchType: 'rejected',
+                ),
+              );
+            }
           },
+          icon: const Icon(Icons.search_rounded, size: 22),
+          tooltip: 'Search',
         ),
         SizedBox(width: MediaQuery.of(context).size.width * 0.02),
       ],
@@ -140,7 +156,6 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Status indicator row
                         Row(
                           children: [
                             Container(
@@ -175,7 +190,6 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
                         
                         SizedBox(height: verticalSpacing * 2),
                         
-                        // Summary section
                         Flexible(
                           child: _buildResponsiveSummary(theme, state),
                         ),
@@ -192,10 +206,6 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
   }
 
   Widget _buildResponsiveSummary(ThemeData theme, TransactionState state) {
-    if (state is! TransactionLoaded) {
-      return const SizedBox.shrink();
-    }
-
     final rejectedTransactions = state.transactions
         .where((t) => t.isRejected)
         .toList();
@@ -336,50 +346,44 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
   }
 
   Widget _buildTransactionsSliver(TransactionState state, ThemeData theme) {
-    switch (state) {
-      case TransactionLoading():
-        return const SliverFillRemaining(
-          child: Center(child: CircularProgressIndicator()),
-        );
-
-      case TransactionLoaded():
-        final filteredTransactions = _getFilteredTransactions(state);
-
-        if (filteredTransactions.isEmpty) {
-          return SliverFillRemaining(
-            child: _buildEmptyState(theme),
-          );
-        }
-
-        return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final transaction = filteredTransactions[index];
-              return GestureDetector(
-                onTap: () => context.push(
-                  Routes.transactionDetail,
-                  extra: transaction,
-                ),
-                child: TransactionListItem(transaction: transaction),
-              );
-            },
-            childCount: filteredTransactions.length,
-          ),
-        );
-
-      case TransactionError():
-        return SliverFillRemaining(
-          child: _buildErrorState(state.message, theme),
-        );
-
-      default:
-        return SliverFillRemaining(
-          child: _buildEmptyState(theme),
-        );
+    if (state.isLoading) {
+      return const SliverFillRemaining(
+        child: Center(child: CircularProgressIndicator()),
+      );
     }
+
+    if (state.hasError && !state.hasTransactions) {
+      return SliverFillRemaining(
+        child: _buildErrorState(state.errorMessage!, theme),
+      );
+    }
+
+    final filteredTransactions = _getFilteredTransactions(state);
+
+    if (filteredTransactions.isEmpty) {
+      return SliverFillRemaining(
+        child: _buildEmptyState(theme),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final transaction = filteredTransactions[index];
+          return GestureDetector(
+            onTap: () => context.push(
+              Routes.transactionDetail,
+              extra: transaction,
+            ),
+            child: TransactionListItem(transaction: transaction),
+          );
+        },
+        childCount: filteredTransactions.length,
+      ),
+    );
   }
 
-  List<Transaction> _getFilteredTransactions(TransactionLoaded state) {
+  List<Transaction> _getFilteredTransactions(TransactionState state) {
     final rejectedTransactions = state.transactions
         .where((t) => t.isRejected)
         .toList();
@@ -526,7 +530,6 @@ class _ResponsiveSummaryItem extends StatelessWidget {
     final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
     
-    // Responsive font sizes
     final titleFontSize = (constraints.maxWidth * 0.08).clamp(12.0, 16.0);
     final amountFontSize = (constraints.maxWidth * 0.12).clamp(14.0, 20.0);
     final countFontSize = (constraints.maxWidth * 0.06).clamp(10.0, 12.0);

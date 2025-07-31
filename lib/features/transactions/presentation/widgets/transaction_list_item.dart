@@ -29,8 +29,7 @@ class TransactionListItem extends StatelessWidget {
       ),
       child: BlocBuilder<TransactionCubit, TransactionState>(
         builder: (context, state) {
-          final isProcessing = state is TransactionBaseState && 
-                              state.isTransactionProcessing(transaction.transactionId);
+          final isProcessing = state.isTransactionProcessing(transaction.transactionId);
           
           return Padding(
             padding: const EdgeInsets.all(20), 
@@ -49,12 +48,10 @@ class TransactionListItem extends StatelessWidget {
                     
                     const SizedBox(width: 20), 
                     
-                    // Main content
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Name and amount row
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -79,7 +76,6 @@ class TransactionListItem extends StatelessWidget {
                           
                           const SizedBox(height: 6), 
                           
-                          // Phone and description row
                           Row(
                             children: [
                               Text(
@@ -111,7 +107,6 @@ class TransactionListItem extends StatelessWidget {
                           
                           const SizedBox(height: 12),
                           
-                          // Bottom row with date, status, and actions
                           Row(
                             children: [
                               Text(
@@ -146,7 +141,6 @@ class TransactionListItem extends StatelessWidget {
                               
                               const Spacer(),
                               
-                              // Processing indicator
                               if (isProcessing)
                                 _buildProcessingIndicator(theme),
                             ],
@@ -157,7 +151,6 @@ class TransactionListItem extends StatelessWidget {
                   ],
                 ),
                 
-                // Expanded action buttons for better UX (only when actions are available)
                 if (_shouldShowActionButtons() && !isProcessing) ...[
                   const SizedBox(height: 16), 
                   _buildExpandedActionButtons(context, theme),

@@ -48,7 +48,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
     final screenWidth = mediaQuery.size.width;
     final topPadding = mediaQuery.padding.top;
 
-    // Responsive calculations
     final horizontalPadding = _getResponsiveHorizontalPadding(screenWidth);
     final expandedHeight = _calculateExpandedHeight(screenHeight, topPadding);
 
@@ -67,13 +66,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                _buildDynamicSliverAppBar(
+                _buildSliverAppBar(
                   theme, 
                   state, 
                   expandedHeight, 
                   horizontalPadding,
                 ),
-                _buildImprovedFilterSliver(theme, horizontalPadding, state),
+                _buildFilterSliver(theme, horizontalPadding, state),
                 _buildTransactionsSliver(state, theme),
               ],
             ),
@@ -84,37 +83,22 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   void _handleStateChanges(BuildContext context, TransactionState state) {
-    switch (state) {
-      case TransactionActionSuccess():
-        CustomToast.show(
-          context,
-          message: state.message,
-          isSuccess: true,
-        );
-        break;
-      case TransactionActionError():
-        CustomToast.show(
-          context,
-          message: state.message,
-          isSuccess: false,
-        );
-        break;
-      case TransactionError():
-        CustomToast.show(
-          context,
-          message: state.message,
-          isSuccess: false,
-        );
-        break;
-      case TransactionInitialError():
-        CustomToast.show(
-          context,
-          message: state.message,
-          isSuccess: false,
-        );
-        break;
-      default:
-        break;
+    if (state.hasSuccess) {
+      CustomToast.show(
+        context,
+        message: state.successMessage!,
+        isSuccess: true,
+      );
+      context.read<TransactionCubit>().clearSuccess();
+    }
+    
+    if (state.hasError) {
+      CustomToast.show(
+        context,
+        message: state.errorMessage!,
+        isSuccess: false,
+      );
+      context.read<TransactionCubit>().clearError();
     }
   }
 
@@ -131,7 +115,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     return baseHeight + additionalHeight;
   }
 
-  Widget _buildDynamicSliverAppBar(
+  Widget _buildSliverAppBar(
     ThemeData theme, 
     TransactionState state, 
     double expandedHeight,
@@ -146,7 +130,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
       pinned: false,
       expandedHeight: expandedHeight,
       automaticallyImplyLeading: false,
-      centerTitle: true,
+      centerTitle: false,
+      titleSpacing: horizontalPadding,
       title: Text(
         'Transactions',
         style: theme.textTheme.headlineMedium?.copyWith(
@@ -155,9 +140,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
         ),
       ),
       actions: [
-        IconButton(
+        _buildCircularActionButton(
+          icon: Icons.search_rounded,
+          tooltip: 'Search',
+          theme: theme,
           onPressed: () {
-            if (state is TransactionBaseState) {
+            if (state.hasTransactions) {
               showSearch(
                 context: context,
                 delegate: TransactionSearchDelegate(
@@ -167,19 +155,22 @@ class _TransactionsPageState extends State<TransactionsPage> {
               );
             }
           },
-          icon: const Icon(Icons.search_rounded, size: 22),
-          tooltip: 'Search',
         ),
-        IconButton(
-          onPressed: () => context.push(Routes.completedTransactions),
-          icon: const Icon(Icons.done_all_rounded, size: 22),
+        const SizedBox(width: 8),
+        _buildCircularActionButton(
+          icon: Icons.done_all_rounded,
           tooltip: 'Completed',
+          theme: theme,
+          onPressed: () => context.push(Routes.completedTransactions),
         ),
-        IconButton(
-          onPressed: () => context.push(Routes.rejectedTransactions),
-          icon: const Icon(Icons.cancel_rounded, size: 22),
+        const SizedBox(width: 8),
+        _buildCircularActionButton(
+          icon: Icons.cancel_rounded,
           tooltip: 'Rejected',
+          theme: theme,
+          onPressed: () => context.push(Routes.rejectedTransactions),
         ),
+        SizedBox(width: horizontalPadding),
       ],
       flexibleSpace: FlexibleSpaceBar(
         background: SafeArea(
@@ -187,7 +178,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
             color: theme.colorScheme.surface,
             child: LayoutBuilder(
               builder: (context, constraints) {
-                
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -221,15 +211,59 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
+  Widget _buildCircularActionButton({
+    required IconData icon,
+    required String tooltip,
+    required ThemeData theme,
+    required VoidCallback onPressed,
+  }) {
+    Color backgroundColor;
+    Color iconColor = Colors.white;
+    
+    switch (tooltip) {
+      case 'Search':
+        backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.9);
+        break;
+      case 'Completed':
+        backgroundColor = Colors.green.withValues(alpha: 0.9);
+        break;
+      case 'Rejected':
+        backgroundColor = Colors.red.withValues(alpha: 0.9);
+        break;
+      default:
+        backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.9);
+    }
+    
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              icon,
+              size: 18,
+              color: iconColor,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildDynamicSummary(
     ThemeData theme, 
     TransactionState state, 
     BoxConstraints constraints,
   ) {
-    if (state is! TransactionBaseState) {
-      return const SizedBox.shrink();
-    }
-
     double totalLent = 0;
     double totalBorrowed = 0;
     
@@ -256,7 +290,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
           ),
           Container(
             width: 1,
-            height: constraints.maxHeight * 0.8,
+            height: constraints.maxHeight,
             color: theme.colorScheme.outline.withValues(alpha: 0.2),
           ),
           Expanded(
@@ -272,7 +306,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
-  Widget _buildImprovedFilterSliver(ThemeData theme, double horizontalPadding, TransactionState state) {
+  Widget _buildFilterSliver(ThemeData theme, double horizontalPadding, TransactionState state) {
     return SliverPersistentHeader(
       pinned: true,
       delegate: _ImprovedFilterSliverDelegate(
@@ -281,7 +315,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: horizontalPadding, 
-            vertical: 12,
           ),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
@@ -294,6 +327,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
           ),
           child: SafeArea(
             top: false,
+            bottom: false,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -318,7 +352,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     final isSelected = _selectedFilter == filter;
     int? badgeCount;
     
-    if (filter == TransactionFilter.pending && state is TransactionBaseState) {
+    if (filter == TransactionFilter.pending) {
       badgeCount = state.pendingTransactions.length;
     }
     
@@ -383,50 +417,44 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   Widget _buildTransactionsSliver(TransactionState state, ThemeData theme) {
-    switch (state) {
-      case TransactionLoading():
-        return const SliverFillRemaining(
-          child: Center(child: CircularProgressIndicator()),
-        );
-
-      case TransactionInitialError():
-        return SliverFillRemaining(
-          child: _buildErrorState(state.message, theme),
-        );
-
-      case TransactionBaseState():
-        final filteredTransactions = _getFilteredTransactions(state);
-
-        if (filteredTransactions.isEmpty) {
-          return SliverFillRemaining(
-            child: _buildEmptyState(theme),
-          );
-        }
-
-        return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final transaction = filteredTransactions[index];
-              return GestureDetector(
-                onTap: () => context.push(
-                  Routes.transactionDetail,
-                  extra: transaction,
-                ),
-                child: TransactionListItem(transaction: transaction),
-              );
-            },
-            childCount: filteredTransactions.length,
-          ),
-        );
-
-      default:
-        return SliverFillRemaining(
-          child: _buildEmptyState(theme),
-        );
+    if (state.isLoading) {
+      return const SliverFillRemaining(
+        child: Center(child: CircularProgressIndicator()),
+      );
     }
+
+    if (state.hasError && !state.hasTransactions) {
+      return SliverFillRemaining(
+        child: _buildErrorState(state.errorMessage!, theme),
+      );
+    }
+
+    final filteredTransactions = _getFilteredTransactions(state);
+
+    if (filteredTransactions.isEmpty) {
+      return SliverFillRemaining(
+        child: _buildEmptyState(theme),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final transaction = filteredTransactions[index];
+          return GestureDetector(
+            onTap: () => context.push(
+              Routes.transactionDetail,
+              extra: transaction,
+            ),
+            child: TransactionListItem(transaction: transaction),
+          );
+        },
+        childCount: filteredTransactions.length,
+      ),
+    );
   }
 
-  List<Transaction> _getFilteredTransactions(TransactionBaseState state) {
+  List<Transaction> _getFilteredTransactions(TransactionState state) {
     List<Transaction> transactions;
 
     switch (_selectedFilter) {
@@ -572,11 +600,9 @@ class _DynamicSummaryItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    // Dynamic font sizing based on available space
     final maxHeight = constraints.maxHeight;
     final maxWidth = constraints.maxWidth;
     
-    // Scale font sizes based on available space
     final titleFontSize = (maxHeight * 0.12).clamp(12.0, 16.0);
     final amountFontSize = (maxHeight * 0.25).clamp(18.0, 28.0);
     
@@ -635,10 +661,10 @@ class _ImprovedFilterSliverDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  double get minExtent => 60.0;
+  double get minExtent => 64.0;
 
   @override
-  double get maxExtent => 60.0;
+  double get maxExtent => 64.0;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {

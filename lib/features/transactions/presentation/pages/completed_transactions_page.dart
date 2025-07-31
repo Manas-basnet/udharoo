@@ -6,6 +6,7 @@ import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_list_item.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_search_delegate.dart';
+import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 enum TransactionFilter { 
   all, 
@@ -38,14 +39,32 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
     final screenWidth = mediaQuery.size.width;
     final topPadding = mediaQuery.padding.top;
 
-    // Calculate responsive dimensions
     final expandedHeight = _calculateExpandedHeight(screenHeight, topPadding);
     final horizontalPadding = screenWidth * 0.04;
     final verticalSpacing = screenHeight * 0.01;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: BlocBuilder<TransactionCubit, TransactionState>(
+      body: BlocConsumer<TransactionCubit, TransactionState>(
+        listener: (context, state) {
+          if (state.hasSuccess) {
+            CustomToast.show(
+              context,
+              message: state.successMessage!,
+              isSuccess: true,
+            );
+            context.read<TransactionCubit>().clearSuccess();
+          }
+          
+          if (state.hasError) {
+            CustomToast.show(
+              context,
+              message: state.errorMessage!,
+              isSuccess: false,
+            );
+            context.read<TransactionCubit>().clearError();
+          }
+        },
         builder: (context, state) {
           return RefreshIndicator(
             onRefresh: () async {
@@ -101,27 +120,20 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
         ),
       ),
       actions: [
-        BlocBuilder<TransactionCubit, TransactionState>(
-          builder: (context, state) {
-            return IconButton(
-              onPressed: () {
-                if (state is TransactionLoaded) {
-                  final completedTransactions = state.transactions
-                      .where((t) => t.isCompleted)
-                      .toList();
-                  showSearch(
-                    context: context,
-                    delegate: TransactionSearchDelegate(
-                      transactions: completedTransactions,
-                      searchType: 'completed',
-                    ),
-                  );
-                }
-              },
-              icon: const Icon(Icons.search_rounded, size: 22),
-              tooltip: 'Search',
-            );
+        IconButton(
+          onPressed: () {
+            if (state.hasTransactions) {
+              showSearch(
+                context: context,
+                delegate: TransactionSearchDelegate(
+                  transactions: state.completedTransactions,
+                  searchType: 'completed',
+                ),
+              );
+            }
           },
+          icon: const Icon(Icons.search_rounded, size: 22),
+          tooltip: 'Search',
         ),
         SizedBox(width: MediaQuery.of(context).size.width * 0.02),
       ],
@@ -141,7 +153,6 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Status indicator row
                         Row(
                           children: [
                             Container(
@@ -176,7 +187,6 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
                         
                         SizedBox(height: verticalSpacing * 2),
                         
-                        // Summary section
                         Flexible(
                           child: _buildResponsiveSummary(theme, state),
                         ),
@@ -193,13 +203,7 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
   }
 
   Widget _buildResponsiveSummary(ThemeData theme, TransactionState state) {
-    if (state is! TransactionLoaded) {
-      return const SizedBox.shrink();
-    }
-
-    final completedTransactions = state.transactions
-        .where((t) => t.isCompleted)
-        .toList();
+    final completedTransactions = state.completedTransactions;
 
     if (completedTransactions.isEmpty) {
       return const SizedBox.shrink();
@@ -222,7 +226,7 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        return Container(
+        return SizedBox(
           width: double.infinity,
           child: IntrinsicHeight(
             child: Row(
@@ -337,53 +341,45 @@ class _CompletedTransactionsPageState extends State<CompletedTransactionsPage> {
   }
 
   Widget _buildTransactionsSliver(TransactionState state, ThemeData theme) {
-    switch (state) {
-      case TransactionLoading():
-        return const SliverFillRemaining(
-          child: Center(child: CircularProgressIndicator()),
-        );
-
-      case TransactionLoaded():
-        final filteredTransactions = _getFilteredTransactions(state);
-
-        if (filteredTransactions.isEmpty) {
-          return SliverFillRemaining(
-            child: _buildEmptyState(theme),
-          );
-        }
-
-        return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final transaction = filteredTransactions[index];
-              return GestureDetector(
-                onTap: () => context.push(
-                  Routes.transactionDetail,
-                  extra: transaction,
-                ),
-                child: TransactionListItem(transaction: transaction),
-              );
-            },
-            childCount: filteredTransactions.length,
-          ),
-        );
-
-      case TransactionError():
-        return SliverFillRemaining(
-          child: _buildErrorState(state.message, theme),
-        );
-
-      default:
-        return SliverFillRemaining(
-          child: _buildEmptyState(theme),
-        );
+    if (state.isLoading) {
+      return const SliverFillRemaining(
+        child: Center(child: CircularProgressIndicator()),
+      );
     }
+
+    if (state.hasError && !state.hasTransactions) {
+      return SliverFillRemaining(
+        child: _buildErrorState(state.errorMessage!, theme),
+      );
+    }
+
+    final filteredTransactions = _getFilteredTransactions(state);
+
+    if (filteredTransactions.isEmpty) {
+      return SliverFillRemaining(
+        child: _buildEmptyState(theme),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final transaction = filteredTransactions[index];
+          return GestureDetector(
+            onTap: () => context.push(
+              Routes.transactionDetail,
+              extra: transaction,
+            ),
+            child: TransactionListItem(transaction: transaction),
+          );
+        },
+        childCount: filteredTransactions.length,
+      ),
+    );
   }
 
-  List<Transaction> _getFilteredTransactions(TransactionLoaded state) {
-    final completedTransactions = state.transactions
-        .where((t) => t.isCompleted)
-        .toList();
+  List<Transaction> _getFilteredTransactions(TransactionState state) {
+    final completedTransactions = state.completedTransactions;
 
     List<Transaction> filteredTransactions;
 
@@ -532,7 +528,6 @@ class _ResponsiveSummaryItem extends StatelessWidget {
     final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
     
-    // Responsive font sizes
     final titleFontSize = (constraints.maxWidth * 0.08).clamp(12.0, 16.0);
     final amountFontSize = (constraints.maxWidth * 0.12).clamp(14.0, 20.0);
     final countFontSize = (constraints.maxWidth * 0.06).clamp(10.0, 12.0);

@@ -1,31 +1,121 @@
 part of 'transaction_cubit.dart';
 
-sealed class TransactionState extends Equatable {
-  const TransactionState();
-  @override
-  List<Object?> get props => [];
-}
-
-abstract class TransactionBaseState extends TransactionState {
+class TransactionState extends Equatable {
   final List<Transaction> transactions;
   final List<Transaction> lentTransactions;
   final List<Transaction> borrowedTransactions;
   final List<Transaction> pendingTransactions;
   final List<Transaction> completedTransactions;
+  
+  final bool isInitialLoading;
+  final bool isCreatingTransaction;
   final Set<String> processingTransactionIds;
+  
+  final String? errorMessage;
+  final String? successMessage;
+  final bool isInitialized;
 
-  const TransactionBaseState({
-    required this.transactions,
-    required this.lentTransactions,
-    required this.borrowedTransactions,
-    required this.pendingTransactions,
-    required this.completedTransactions,
+  const TransactionState({
+    this.transactions = const [],
+    this.lentTransactions = const [],
+    this.borrowedTransactions = const [],
+    this.pendingTransactions = const [],
+    this.completedTransactions = const [],
+    this.isInitialLoading = false,
+    this.isCreatingTransaction = false,
     this.processingTransactionIds = const {},
+    this.errorMessage,
+    this.successMessage,
+    this.isInitialized = false,
   });
+
+  factory TransactionState.initial() => const TransactionState();
+
+  TransactionState copyWith({
+    List<Transaction>? transactions,
+    List<Transaction>? lentTransactions,
+    List<Transaction>? borrowedTransactions,
+    List<Transaction>? pendingTransactions,
+    List<Transaction>? completedTransactions,
+    bool? isInitialLoading,
+    bool? isCreatingTransaction,
+    Set<String>? processingTransactionIds,
+    String? errorMessage,
+    String? successMessage,
+    bool? isInitialized,
+  }) {
+    return TransactionState(
+      transactions: transactions ?? this.transactions,
+      lentTransactions: lentTransactions ?? this.lentTransactions,
+      borrowedTransactions: borrowedTransactions ?? this.borrowedTransactions,
+      pendingTransactions: pendingTransactions ?? this.pendingTransactions,
+      completedTransactions: completedTransactions ?? this.completedTransactions,
+      isInitialLoading: isInitialLoading ?? this.isInitialLoading,
+      isCreatingTransaction: isCreatingTransaction ?? this.isCreatingTransaction,
+      processingTransactionIds: processingTransactionIds ?? this.processingTransactionIds,
+      errorMessage: errorMessage,
+      successMessage: successMessage,
+      isInitialized: isInitialized ?? this.isInitialized,
+    );
+  }
+
+  TransactionState clearMessages() {
+    return TransactionState(
+      transactions: transactions,
+      lentTransactions: lentTransactions,
+      borrowedTransactions: borrowedTransactions,
+      pendingTransactions: pendingTransactions,
+      completedTransactions: completedTransactions,
+      isInitialLoading: isInitialLoading,
+      isCreatingTransaction: isCreatingTransaction,
+      processingTransactionIds: processingTransactionIds,
+      errorMessage: null,
+      successMessage: null,
+      isInitialized: isInitialized,
+    );
+  }
+
+  TransactionState clearError() {
+    return TransactionState(
+      transactions: transactions,
+      lentTransactions: lentTransactions,
+      borrowedTransactions: borrowedTransactions,
+      pendingTransactions: pendingTransactions,
+      completedTransactions: completedTransactions,
+      isInitialLoading: isInitialLoading,
+      isCreatingTransaction: isCreatingTransaction,
+      processingTransactionIds: processingTransactionIds,
+      errorMessage: null,
+      successMessage: successMessage,
+      isInitialized: isInitialized,
+    );
+  }
+
+  TransactionState clearSuccess() {
+    return TransactionState(
+      transactions: transactions,
+      lentTransactions: lentTransactions,
+      borrowedTransactions: borrowedTransactions,
+      pendingTransactions: pendingTransactions,
+      completedTransactions: completedTransactions,
+      isInitialLoading: isInitialLoading,
+      isCreatingTransaction: isCreatingTransaction,
+      processingTransactionIds: processingTransactionIds,
+      errorMessage: errorMessage,
+      successMessage: null,
+      isInitialized: isInitialized,
+    );
+  }
 
   bool isTransactionProcessing(String transactionId) {
     return processingTransactionIds.contains(transactionId);
   }
+
+  bool get hasError => errorMessage != null;
+  bool get hasSuccess => successMessage != null;
+  bool get hasTransactions => transactions.isNotEmpty;
+  bool get isLoading => isInitialLoading && !isInitialized;
+  bool get isEmpty => transactions.isEmpty && isInitialized;
 
   @override
   List<Object?> get props => [
@@ -34,117 +124,11 @@ abstract class TransactionBaseState extends TransactionState {
         borrowedTransactions,
         pendingTransactions,
         completedTransactions,
+        isInitialLoading,
+        isCreatingTransaction,
         processingTransactionIds,
+        errorMessage,
+        successMessage,
+        isInitialized,
       ];
-}
-
-final class TransactionInitial extends TransactionState {
-  const TransactionInitial();
-}
-
-final class TransactionLoading extends TransactionState {
-  const TransactionLoading();
-}
-
-final class TransactionLoaded extends TransactionBaseState {
-  const TransactionLoaded({
-    required super.transactions,
-    required super.lentTransactions,
-    required super.borrowedTransactions,
-    required super.pendingTransactions,
-    required super.completedTransactions,
-    super.processingTransactionIds,
-  });
-
-  TransactionLoaded copyWithProcessingIds(Set<String> processingIds) {
-    return TransactionLoaded(
-      transactions: transactions,
-      lentTransactions: lentTransactions,
-      borrowedTransactions: borrowedTransactions,
-      pendingTransactions: pendingTransactions,
-      completedTransactions: completedTransactions,
-      processingTransactionIds: processingIds,
-    );
-  }
-}
-
-final class TransactionCreating extends TransactionBaseState {
-  const TransactionCreating({
-    required super.transactions,
-    required super.lentTransactions,
-    required super.borrowedTransactions,
-    required super.pendingTransactions,
-    required super.completedTransactions,
-    super.processingTransactionIds,
-  });
-}
-
-final class TransactionCreated extends TransactionBaseState {
-  const TransactionCreated({
-    required super.transactions,
-    required super.lentTransactions,
-    required super.borrowedTransactions,
-    required super.pendingTransactions,
-    required super.completedTransactions,
-    super.processingTransactionIds,
-  });
-}
-
-final class TransactionActionSuccess extends TransactionState {
-  final String message;
-  final String actionType;
-
-  const TransactionActionSuccess({
-    required this.message,
-    required this.actionType,
-  });
-
-  @override
-  List<Object?> get props => [message, actionType];
-}
-
-final class TransactionActionError extends TransactionState {
-  final String message;
-  final String transactionId;
-  final String actionType;
-  final FailureType type;
-
-  const TransactionActionError({
-    required this.message,
-    required this.transactionId,
-    required this.actionType,
-    required this.type,
-  });
-
-  @override
-  List<Object?> get props => [message, transactionId, actionType, type];
-}
-
-final class TransactionError extends TransactionBaseState {
-  final String message;
-  final FailureType type;
-
-  const TransactionError({
-    required this.message,
-    required this.type,
-    required super.transactions,
-    required super.lentTransactions,
-    required super.borrowedTransactions,
-    required super.pendingTransactions,
-    required super.completedTransactions,
-    super.processingTransactionIds,
-  });
-
-  @override
-  List<Object?> get props => [message, type, ...super.props];
-}
-
-final class TransactionInitialError extends TransactionState {
-  final String message;
-  final FailureType type;
-
-  const TransactionInitialError(this.message, this.type);
-
-  @override
-  List<Object?> get props => [message, type];
 }
