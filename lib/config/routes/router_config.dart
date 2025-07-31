@@ -20,7 +20,6 @@ import 'package:udharoo/features/transactions/presentation/bloc/qr_generator/qr_
 import 'package:udharoo/features/transactions/presentation/bloc/qr_scanner/qr_scanner_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
-import 'package:udharoo/features/transactions/presentation/pages/pending_transactions_page.dart';
 import 'package:udharoo/features/transactions/presentation/pages/qr/qr_generartor_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/qr/qr_scanner_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
@@ -103,12 +102,6 @@ class AppRouter {
                         name: 'completedTransactions',
                         builder: (context, state) =>
                             const CompletedTransactionsPage(),
-                      ),
-                      GoRoute(
-                        path: '/pending-transactions',
-                        name: 'pendingTransactions',
-                        builder: (context, state) =>
-                            const PendingTransactionsPage(),
                       ),
                       GoRoute(
                         path: '/rejected-transactions',

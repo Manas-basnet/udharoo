@@ -163,13 +163,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
           theme: theme,
           onPressed: () => context.push(Routes.completedTransactions),
         ),
-        const SizedBox(width: 8),
-        _buildCircularActionButton(
-          icon: Icons.cancel_rounded,
-          tooltip: 'Rejected',
-          theme: theme,
-          onPressed: () => context.push(Routes.rejectedTransactions),
-        ),
         SizedBox(width: horizontalPadding),
       ],
       flexibleSpace: FlexibleSpaceBar(
