@@ -56,25 +56,28 @@ class _TransactionsPageState extends State<TransactionsPage> {
         _handleStateChanges(context, state);
       },
       builder: (context, state) {
-        return Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          body: RefreshIndicator(
-            onRefresh: () async {
-              context.read<TransactionCubit>().loadTransactions();
-            },
-            child: CustomScrollView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                _buildSliverAppBar(
-                  theme, 
-                  state, 
-                  expandedHeight, 
-                  horizontalPadding,
-                ),
-                _buildFilterSliver(theme, horizontalPadding, state),
-                _buildTransactionsSliver(state, theme),
-              ],
+        return SafeArea(
+          child: Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            body: RefreshIndicator(
+              onRefresh: () async {
+                context.read<TransactionCubit>().loadTransactions();
+              },
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  _buildSliverAppBar(
+                    theme, 
+                    state, 
+                    expandedHeight, 
+                    horizontalPadding,
+                  ),
+                  _buildAnalysisSection(theme, horizontalPadding),
+                  _buildFilterSection(theme, horizontalPadding, state),
+                  _buildTransactionsSliver(state, theme),
+                ],
+              ),
             ),
           ),
         );
@@ -111,7 +114,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
   double _calculateExpandedHeight(double screenHeight, double topPadding) {
     final baseHeight = kToolbarHeight + topPadding;
-    final additionalHeight = (screenHeight * 0.16).clamp(80.0, 130.0);
+    final additionalHeight = (screenHeight * 0.12).clamp(70.0, 100.0);
     return baseHeight + additionalHeight;
   }
 
@@ -137,10 +140,11 @@ class _TransactionsPageState extends State<TransactionsPage> {
         style: theme.textTheme.headlineMedium?.copyWith(
           fontWeight: FontWeight.w700,
           color: theme.colorScheme.onSurface,
+          fontSize: 24,
         ),
       ),
       actions: [
-        _buildCircularActionButton(
+        _buildActionButton(
           icon: Icons.search_rounded,
           tooltip: 'Search',
           theme: theme,
@@ -157,7 +161,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
           },
         ),
         const SizedBox(width: 8),
-        _buildCircularActionButton(
+        _buildActionButton(
           icon: Icons.done_all_rounded,
           tooltip: 'Completed',
           theme: theme,
@@ -166,45 +170,43 @@ class _TransactionsPageState extends State<TransactionsPage> {
         SizedBox(width: horizontalPadding),
       ],
       flexibleSpace: FlexibleSpaceBar(
-        background: SafeArea(
-          child: Container(
-            color: theme.colorScheme.surface,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: kToolbarHeight),
-                    
-                    Expanded(
-                      child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: horizontalPadding,
-                          vertical: 12,
-                        ),
-                        child: LayoutBuilder(
-                          builder: (context, summaryConstraints) {
-                            return _buildDynamicSummary(
-                              theme, 
-                              state, 
-                              summaryConstraints,
-                            );
-                          },
-                        ),
+        background: Container(
+          color: theme.colorScheme.surface,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: kToolbarHeight),
+                  
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding,
+                        vertical: 6,
+                      ),
+                      child: LayoutBuilder(
+                        builder: (context, summaryConstraints) {
+                          return _buildSummaryCards(
+                            theme, 
+                            state, 
+                            summaryConstraints,
+                          );
+                        },
                       ),
                     ),
-                  ],
-                );
-              },
-            ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildCircularActionButton({
+  Widget _buildActionButton({
     required IconData icon,
     required String tooltip,
     required ThemeData theme,
@@ -233,17 +235,17 @@ class _TransactionsPageState extends State<TransactionsPage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           child: Container(
-            width: 40,
-            height: 40,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: backgroundColor,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
             ),
             child: Icon(
               icon,
-              size: 18,
+              size: 16,
               color: iconColor,
             ),
           ),
@@ -252,7 +254,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
-  Widget _buildDynamicSummary(
+  Widget _buildSummaryCards(
     ThemeData theme, 
     TransactionState state, 
     BoxConstraints constraints,
@@ -268,46 +270,160 @@ class _TransactionsPageState extends State<TransactionsPage> {
       totalBorrowed += transaction.amount;
     }
 
-    return SizedBox(
-      width: double.infinity,
+    final netAmount = totalLent - totalBorrowed;
+
+    return Container(
       height: constraints.maxHeight,
-      child: Row(
-        children: [
-          Expanded(
-            child: _DynamicSummaryItem(
-              title: 'Lent',
-              amount: totalLent,
-              color: Colors.green,
-              constraints: constraints,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.colorScheme.primary.withValues(alpha: 0.05),
+            theme.colorScheme.primary.withValues(alpha: 0.02),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Expanded(
+              child: _SummaryCard(
+                title: 'Total Lent',
+                amount: totalLent,
+                color: Colors.green,
+                icon: Icons.trending_up_rounded,
+                constraints: BoxConstraints(
+                  maxHeight: constraints.maxHeight - 24,
+                  maxWidth: double.infinity,
+                ),
+              ),
             ),
-          ),
-          Container(
-            width: 1,
-            height: constraints.maxHeight,
-            color: theme.colorScheme.outline.withValues(alpha: 0.2),
-          ),
-          Expanded(
-            child: _DynamicSummaryItem(
-              title: 'Borrowed',
-              amount: totalBorrowed,
-              color: Colors.red,
-              constraints: constraints,
+            Container(
+              width: 1,
+              height: (constraints.maxHeight - 24) * 0.6,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    theme.colorScheme.outline.withValues(alpha: 0.2),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
             ),
-          ),
-        ],
+            Expanded(
+              child: _SummaryCard(
+                title: 'Total Borrowed',
+                amount: totalBorrowed,
+                color: Colors.red,
+                icon: Icons.trending_down_rounded,
+                constraints: BoxConstraints(
+                  maxHeight: constraints.maxHeight - 24,
+                  maxWidth: double.infinity,
+                ),
+              ),
+            ),
+            Container(
+              width: 1,
+              height: (constraints.maxHeight - 24) * 0.6,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    theme.colorScheme.outline.withValues(alpha: 0.2),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: _SummaryCard(
+                title: 'Net Balance',
+                amount: netAmount.abs(),
+                color: netAmount >= 0 ? Colors.green : Colors.red,
+                icon: netAmount >= 0 ? Icons.add_circle_outline : Icons.remove_circle_outline,
+                constraints: BoxConstraints(
+                  maxHeight: constraints.maxHeight - 24,
+                  maxWidth: double.infinity,
+                ),
+                isNet: true,
+                netPrefix: netAmount >= 0 ? '+' : '-',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildFilterSliver(ThemeData theme, double horizontalPadding, TransactionState state) {
+  Widget _buildAnalysisSection(ThemeData theme, double horizontalPadding) {
+    return SliverToBoxAdapter(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _AnalysisButton(
+                icon: Icons.date_range_rounded,
+                label: 'Date Range',
+                onTap: () {
+                  // TODO: Implement date range picker
+                },
+                theme: theme,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _AnalysisButton(
+                icon: Icons.analytics_outlined,
+                label: 'Analytics',
+                onTap: () {
+                  // TODO: Implement analytics view
+                },
+                theme: theme,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _AnalysisButton(
+                icon: Icons.filter_list_rounded,
+                label: 'Filters',
+                onTap: () {
+                  // TODO: Implement advanced filters
+                },
+                theme: theme,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterSection(ThemeData theme, double horizontalPadding, TransactionState state) {
     return SliverPersistentHeader(
       pinned: true,
-      delegate: _ImprovedFilterSliverDelegate(
+      delegate: _FilterSliverDelegate(
         theme: theme,
         horizontalPadding: horizontalPadding,
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: horizontalPadding, 
+            vertical: 8,
           ),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
@@ -318,22 +434,18 @@ class _TransactionsPageState extends State<TransactionsPage> {
               ),
             ),
           ),
-          child: SafeArea(
-            top: false,
-            bottom: false,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildImprovedFilterChip('All', TransactionFilter.all, theme, state),
-                  const SizedBox(width: 12),
-                  _buildImprovedFilterChip('Pending', TransactionFilter.pending, theme, state),
-                  const SizedBox(width: 12),
-                  _buildImprovedFilterChip('Lent', TransactionFilter.lent, theme, state),
-                  const SizedBox(width: 12),
-                  _buildImprovedFilterChip('Borrowed', TransactionFilter.borrowed, theme, state),
-                ],
-              ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFilterChip('All', TransactionFilter.all, theme, state),
+                const SizedBox(width: 8),
+                _buildFilterChip('Pending', TransactionFilter.pending, theme, state),
+                const SizedBox(width: 8),
+                _buildFilterChip('Lent', TransactionFilter.lent, theme, state),
+                const SizedBox(width: 8),
+                _buildFilterChip('Borrowed', TransactionFilter.borrowed, theme, state),
+              ],
             ),
           ),
         ),
@@ -341,7 +453,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
-  Widget _buildImprovedFilterChip(String label, TransactionFilter filter, ThemeData theme, TransactionState state) {
+  Widget _buildFilterChip(String label, TransactionFilter filter, ThemeData theme, TransactionState state) {
     final isSelected = _selectedFilter == filter;
     int? badgeCount;
     
@@ -355,18 +467,25 @@ class _TransactionsPageState extends State<TransactionsPage> {
           _selectedFilter = filter;
         });
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? theme.colorScheme.primary
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(18),
+          gradient: isSelected ? LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              theme.colorScheme.primary,
+              theme.colorScheme.primary.withValues(alpha: 0.8),
+            ],
+          ) : null,
+          color: isSelected ? null : theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isSelected 
                 ? theme.colorScheme.primary
-                : theme.colorScheme.outline.withValues(alpha: 0.3),
-            width: 1,
+                : theme.colorScheme.outline.withValues(alpha: 0.2),
+            width: isSelected ? 0 : 1,
           ),
         ),
         child: Row(
@@ -377,7 +496,11 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 width: 18,
                 height: 18,
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white : Colors.orange,
+                  gradient: isSelected ? const LinearGradient(
+                    colors: [Colors.white, Colors.white],
+                  ) : const LinearGradient(
+                    colors: [Colors.orange, Colors.deepOrange],
+                  ),
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: Center(
@@ -386,12 +509,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     style: TextStyle(
                       color: isSelected ? theme.colorScheme.primary : Colors.white,
                       fontSize: 10,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
             ],
             Text(
               label,
@@ -576,17 +699,23 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 }
 
-class _DynamicSummaryItem extends StatelessWidget {
+class _SummaryCard extends StatelessWidget {
   final String title;
   final double amount;
   final Color color;
+  final IconData icon;
   final BoxConstraints constraints;
+  final bool isNet;
+  final String? netPrefix;
 
-  const _DynamicSummaryItem({
+  const _SummaryCard({
     required this.title,
     required this.amount,
     required this.color,
+    required this.icon,
     required this.constraints,
+    this.isNet = false,
+    this.netPrefix,
   });
 
   @override
@@ -594,37 +723,68 @@ class _DynamicSummaryItem extends StatelessWidget {
     final theme = Theme.of(context);
     
     final maxHeight = constraints.maxHeight;
-    final maxWidth = constraints.maxWidth;
+    final titleFontSize = (maxHeight * 0.14).clamp(10.0, 12.0);
+    final amountFontSize = (maxHeight * 0.28).clamp(14.0, 18.0);
     
-    final titleFontSize = (maxHeight * 0.12).clamp(12.0, 16.0);
-    final amountFontSize = (maxHeight * 0.25).clamp(18.0, 28.0);
-    
-    return SizedBox(
-      width: maxWidth,
+    return Container(
       height: maxHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            title,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              fontWeight: FontWeight.w600,
-              fontSize: titleFontSize,
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: color.withValues(alpha: 0.2),
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 16,
             ),
           ),
           SizedBox(height: maxHeight * 0.08),
+          Text(
+            title,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              fontWeight: FontWeight.w500,
+              fontSize: titleFontSize,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(height: maxHeight * 0.04),
           Flexible(
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              child: Text(
-                'Rs. ${_formatAmount(amount)}',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: color,
-                  fontSize: amountFontSize,
-                ),
+              child: RichText(
                 textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                    fontSize: amountFontSize,
+                  ),
+                  children: [
+                    if (isNet && netPrefix != null)
+                      TextSpan(
+                        text: netPrefix,
+                        style: TextStyle(
+                          fontSize: amountFontSize * 0.8,
+                        ),
+                      ),
+                    const TextSpan(text: 'Rs. '),
+                    TextSpan(text: _formatAmount(amount)),
+                  ],
+                ),
               ),
             ),
           ),
@@ -642,22 +802,79 @@ class _DynamicSummaryItem extends StatelessWidget {
   }
 }
 
-class _ImprovedFilterSliverDelegate extends SliverPersistentHeaderDelegate {
+class _AnalysisButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final ThemeData theme;
+
+  const _AnalysisButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: theme.colorScheme.outline.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                    fontSize: 11,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterSliverDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
   final ThemeData theme;
   final double horizontalPadding;
 
-  _ImprovedFilterSliverDelegate({
+  _FilterSliverDelegate({
     required this.child, 
     required this.theme,
     required this.horizontalPadding,
   });
 
   @override
-  double get minExtent => 64.0;
+  double get minExtent => 56.0;
 
   @override
-  double get maxExtent => 64.0;
+  double get maxExtent => 56.0;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {

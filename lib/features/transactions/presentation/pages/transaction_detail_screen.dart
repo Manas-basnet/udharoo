@@ -20,20 +20,20 @@ class TransactionDetailScreen extends StatelessWidget {
     final screenHeight = mediaQuery.size.height;
     
     final horizontalPadding = screenWidth * 0.04;
-    final verticalSpacing = screenHeight * 0.015;
-    final cardSpacing = screenHeight * 0.02;
+    final verticalSpacing = screenHeight * 0.012;
+    final cardSpacing = screenHeight * 0.016;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
-          _buildResponsiveAppBar(theme, horizontalPadding),
+          _buildAppBar(theme, horizontalPadding),
           
           SliverPadding(
             padding: EdgeInsets.all(horizontalPadding),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                _buildMainTransactionCard(theme, screenWidth, verticalSpacing),
+                _buildTransactionSummary(theme, screenWidth, verticalSpacing),
                 
                 SizedBox(height: cardSpacing),
                 
@@ -41,16 +41,16 @@ class TransactionDetailScreen extends StatelessWidget {
                 
                 SizedBox(height: cardSpacing),
                 
-                _buildTransactionDetailsCard(theme, screenWidth, verticalSpacing),
+                _buildTransactionDetails(theme, screenWidth, verticalSpacing),
                 
                 if (_hasTimeline()) ...[
                   SizedBox(height: cardSpacing),
-                  _buildTimelineCard(theme, screenWidth, verticalSpacing),
+                  _buildActivityTimeline(theme, screenWidth, verticalSpacing),
                 ],
                 
                 if (_hasDeviceInfo()) ...[
                   SizedBox(height: cardSpacing),
-                  _buildDeviceInfoCard(theme, screenWidth, verticalSpacing),
+                  _buildDeviceInfo(theme, screenWidth, verticalSpacing),
                 ],
                 
                 SizedBox(height: cardSpacing * 2),
@@ -61,18 +61,18 @@ class TransactionDetailScreen extends StatelessWidget {
       ),
       
       bottomNavigationBar: _shouldShowActions() 
-          ? _buildBottomActionBar(context, theme, horizontalPadding)
+          ? _buildActionBar(context, theme, horizontalPadding)
           : null,
     );
   }
 
-  Widget _buildResponsiveAppBar(ThemeData theme, double horizontalPadding) {
+  Widget _buildAppBar(ThemeData theme, double horizontalPadding) {
     return SliverAppBar(
       backgroundColor: theme.colorScheme.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       pinned: true,
-      expandedHeight: 120,
+      expandedHeight: 110,
       title: Text(
         'Transaction Details',
         style: theme.textTheme.headlineSmall?.copyWith(
@@ -86,9 +86,9 @@ class TransactionDetailScreen extends StatelessWidget {
             color: theme.colorScheme.surface,
             padding: EdgeInsets.fromLTRB(
               horizontalPadding, 
-              kToolbarHeight + 16, 
+              kToolbarHeight + 12, 
               horizontalPadding, 
-              16,
+              12,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -97,11 +97,11 @@ class TransactionDetailScreen extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      width: 24,
-                      height: 24,
+                      width: 20,
+                      height: 20,
                       decoration: BoxDecoration(
                         color: _getTransactionColor(theme).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: _getTransactionColor(theme).withValues(alpha: 0.3),
                           width: 1,
@@ -110,11 +110,11 @@ class TransactionDetailScreen extends StatelessWidget {
                       child: Icon(
                         transaction.isLent ? Icons.trending_up : Icons.trending_down,
                         color: _getTransactionColor(theme),
-                        size: 14,
+                        size: 12,
                       ),
                     ),
                     
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     
                     Expanded(
                       child: Text(
@@ -122,6 +122,7 @@ class TransactionDetailScreen extends StatelessWidget {
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                           fontWeight: FontWeight.w500,
+                          fontSize: 13,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -153,20 +154,20 @@ class TransactionDetailScreen extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 6,
-            height: 6,
+            width: 5,
+            height: 5,
             decoration: BoxDecoration(
               color: _getStatusColor(theme),
-              borderRadius: BorderRadius.circular(3),
+              borderRadius: BorderRadius.circular(2.5),
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 5),
           Text(
             _getStatusText(),
             style: theme.textTheme.bodySmall?.copyWith(
               color: _getStatusColor(theme),
               fontWeight: FontWeight.w600,
-              fontSize: 11,
+              fontSize: 10,
             ),
           ),
         ],
@@ -174,32 +175,32 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMainTransactionCard(ThemeData theme, double screenWidth, double verticalSpacing) {
+  Widget _buildTransactionSummary(ThemeData theme, double screenWidth, double verticalSpacing) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(screenWidth * 0.06),
+      padding: EdgeInsets.all(screenWidth * 0.05),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            _getTransactionColor(theme).withValues(alpha: 0.05),
+            _getTransactionColor(theme).withValues(alpha: 0.02),
+          ],
+        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+          color: _getTransactionColor(theme).withValues(alpha: 0.1),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 64,
+            height: 64,
             decoration: BoxDecoration(
               color: _getTransactionColor(theme).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(40),
+              borderRadius: BorderRadius.circular(32),
               border: Border.all(
                 color: _getTransactionColor(theme).withValues(alpha: 0.2),
                 width: 2,
@@ -208,32 +209,31 @@ class TransactionDetailScreen extends StatelessWidget {
             child: Icon(
               transaction.isLent ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
               color: _getTransactionColor(theme),
-              size: 36,
+              size: 28,
             ),
           ),
           
           SizedBox(height: verticalSpacing),
           
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              'Rs. ${_formatAmount(transaction.amount)}',
-              style: theme.textTheme.headlineLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: _getTransactionColor(theme),
-                fontSize: (screenWidth * 0.08).clamp(24.0, 36.0),
-              ),
+          Text(
+            'Rs. ${_formatAmount(transaction.amount)}',
+            style: theme.textTheme.headlineLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: _getTransactionColor(theme),
+              fontSize: 32,
             ),
           ),
           
-          SizedBox(height: verticalSpacing * 0.5),
-          
-          if (transaction.description.isNotEmpty)
+          if (transaction.description.isNotEmpty) ...[
+            SizedBox(height: verticalSpacing * 0.8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                ),
               ),
               child: Text(
                 transaction.description,
@@ -246,6 +246,7 @@ class TransactionDetailScreen extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+          ],
         ],
       ),
     );
@@ -277,19 +278,25 @@ class TransactionDetailScreen extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(22),
                   border: Border.all(
                     color: theme.colorScheme.primary.withValues(alpha: 0.2),
                   ),
                 ),
-                child: Icon(
-                  Icons.person_rounded,
-                  color: theme.colorScheme.primary,
-                  size: 24,
+                child: Center(
+                  child: Text(
+                    transaction.otherParty.name.isNotEmpty 
+                        ? transaction.otherParty.name[0].toUpperCase()
+                        : '?',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
               
@@ -307,16 +314,16 @@ class TransactionDetailScreen extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     
-                    SizedBox(height: verticalSpacing * 0.25),
+                    SizedBox(height: verticalSpacing * 0.3),
                     
                     Row(
                       children: [
                         Icon(
                           Icons.phone_rounded,
-                          size: 16,
+                          size: 14,
                           color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 5),
                         Expanded(
                           child: Text(
                             transaction.otherParty.phoneNumber,
@@ -334,10 +341,10 @@ class TransactionDetailScreen extends StatelessWidget {
               ),
               
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: _getTransactionColor(theme).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: _getTransactionColor(theme).withValues(alpha: 0.3),
                   ),
@@ -357,7 +364,7 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTransactionDetailsCard(ThemeData theme, double screenWidth, double verticalSpacing) {
+  Widget _buildTransactionDetails(ThemeData theme, double screenWidth, double verticalSpacing) {
     return Container(
       padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
@@ -388,7 +395,7 @@ class TransactionDetailScreen extends StatelessWidget {
             verticalSpacing,
           ),
           
-          SizedBox(height: verticalSpacing * 0.75),
+          SizedBox(height: verticalSpacing * 0.8),
           
           _buildDetailRow(
             Icons.schedule_rounded,
@@ -399,7 +406,7 @@ class TransactionDetailScreen extends StatelessWidget {
           ),
           
           if (transaction.verifiedAt != null) ...[
-            SizedBox(height: verticalSpacing * 0.75),
+            SizedBox(height: verticalSpacing * 0.8),
             _buildDetailRow(
               Icons.verified_rounded,
               'Verified',
@@ -410,7 +417,7 @@ class TransactionDetailScreen extends StatelessWidget {
           ],
           
           if (transaction.completedAt != null) ...[
-            SizedBox(height: verticalSpacing * 0.75),
+            SizedBox(height: verticalSpacing * 0.8),
             _buildDetailRow(
               Icons.check_circle_rounded,
               'Completed',
@@ -429,15 +436,18 @@ class TransactionDetailScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 32,
-          height: 32,
+          width: 28,
+          height: 28,
           decoration: BoxDecoration(
             color: theme.colorScheme.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: theme.colorScheme.primary.withValues(alpha: 0.2),
+            ),
           ),
           child: Icon(
             icon,
-            size: 16,
+            size: 14,
             color: theme.colorScheme.primary,
           ),
         ),
@@ -455,7 +465,7 @@ class TransactionDetailScreen extends StatelessWidget {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 3),
               Text(
                 value,
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -470,7 +480,7 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTimelineCard(ThemeData theme, double screenWidth, double verticalSpacing) {
+  Widget _buildActivityTimeline(ThemeData theme, double screenWidth, double verticalSpacing) {
     final events = <Map<String, dynamic>>[];
     
     events.add({
@@ -553,23 +563,23 @@ class TransactionDetailScreen extends StatelessWidget {
         Column(
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: color.withValues(alpha: 0.3),
                   width: 2,
                 ),
               ),
-              child: Icon(icon, color: color, size: 18),
+              child: Icon(icon, color: color, size: 16),
             ),
             if (!isLast)
               Container(
                 width: 2,
-                height: 32,
-                margin: const EdgeInsets.symmetric(vertical: 8),
+                height: 28,
+                margin: const EdgeInsets.symmetric(vertical: 6),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.outline.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(1),
@@ -578,11 +588,11 @@ class TransactionDetailScreen extends StatelessWidget {
           ],
         ),
         
-        const SizedBox(width: 16),
+        const SizedBox(width: 14),
         
         Expanded(
           child: Padding(
-            padding: EdgeInsets.only(top: 6, bottom: isLast ? 0 : 16),
+            padding: EdgeInsets.only(top: 4, bottom: isLast ? 0 : 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -592,7 +602,7 @@ class TransactionDetailScreen extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   time,
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -607,7 +617,7 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDeviceInfoCard(ThemeData theme, double screenWidth, double verticalSpacing) {
+  Widget _buildDeviceInfo(ThemeData theme, double screenWidth, double verticalSpacing) {
     final deviceInfos = <Map<String, String>>[];
     
     if (transaction.createdFromDevice != null) {
@@ -649,7 +659,7 @@ class TransactionDetailScreen extends StatelessWidget {
             children: [
               Icon(
                 Icons.smartphone_rounded,
-                size: 20,
+                size: 18,
                 color: theme.colorScheme.primary,
               ),
               const SizedBox(width: 8),
@@ -666,18 +676,18 @@ class TransactionDetailScreen extends StatelessWidget {
           SizedBox(height: verticalSpacing),
           
           ...deviceInfos.map((info) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: 10),
             child: Row(
               children: [
                 Container(
-                  width: 6,
-                  height: 6,
+                  width: 5,
+                  height: 5,
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary,
-                    borderRadius: BorderRadius.circular(3),
+                    borderRadius: BorderRadius.circular(2.5),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: RichText(
                     text: TextSpan(
@@ -702,7 +712,7 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomActionBar(BuildContext context, ThemeData theme, double horizontalPadding) {
+  Widget _buildActionBar(BuildContext context, ThemeData theme, double horizontalPadding) {
     final cubit = context.read<TransactionCubit>();
 
     Widget? actionContent;
@@ -711,17 +721,17 @@ class TransactionDetailScreen extends StatelessWidget {
       actionContent = Row(
         children: [
           Expanded(
-            child: FilledButton.icon(
+            child: ElevatedButton.icon(
               onPressed: () {
                 cubit.verifyTransaction(transaction.transactionId);
                 CustomToast.show(context, message: 'Transaction verified', isSuccess: true);
               },
               icon: const Icon(Icons.check_rounded, size: 18),
               label: const Text('Verify'),
-              style: FilledButton.styleFrom(
+              style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -737,7 +747,7 @@ class TransactionDetailScreen extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red,
                 side: const BorderSide(color: Colors.red),
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -749,17 +759,17 @@ class TransactionDetailScreen extends StatelessWidget {
     } else if (transaction.isVerified && _canCompleteTransaction()) {
       actionContent = SizedBox(
         width: double.infinity,
-        child: FilledButton.icon(
+        child: ElevatedButton.icon(
           onPressed: () {
             cubit.completeTransaction(transaction.transactionId);
             CustomToast.show(context, message: 'Transaction completed', isSuccess: true);
           },
           icon: const Icon(Icons.check_circle_rounded, size: 18),
           label: const Text('Mark as Completed'),
-          style: FilledButton.styleFrom(
+          style: ElevatedButton.styleFrom(
             backgroundColor: theme.colorScheme.primary,
             foregroundColor: theme.colorScheme.onPrimary,
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -817,13 +827,13 @@ class TransactionDetailScreen extends StatelessWidget {
   String _getStatusText() {
     switch (transaction.status) {
       case TransactionStatus.pendingVerification:
-        return 'Pending';
+        return 'PENDING';
       case TransactionStatus.verified:
-        return 'Verified';
+        return 'VERIFIED';
       case TransactionStatus.completed:
-        return 'Completed';
+        return 'COMPLETED';
       case TransactionStatus.rejected:
-        return 'Rejected';
+        return 'REJECTED';
     }
   }
 
@@ -897,9 +907,9 @@ class TransactionDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          FilledButton(
+          ElevatedButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: FilledButton.styleFrom(
+            style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),

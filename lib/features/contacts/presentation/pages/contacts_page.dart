@@ -37,7 +37,11 @@ class _ContactsPageState extends State<ContactsPage> {
     final theme = Theme.of(context);
     final mediaQuery = MediaQuery.of(context);
     final screenWidth = mediaQuery.size.width;
+    final screenHeight = mediaQuery.size.height;
+    final topPadding = mediaQuery.padding.top;
+
     final horizontalPadding = _getResponsiveHorizontalPadding(screenWidth);
+    final expandedHeight = _calculateExpandedHeight(screenHeight, topPadding);
 
     return BlocConsumer<ContactCubit, ContactState>(
       listener: (context, state) {
@@ -67,8 +71,9 @@ class _ContactsPageState extends State<ContactsPage> {
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                _buildSliverAppBar(theme, horizontalPadding),
-                _buildSearchSliver(theme, horizontalPadding),
+                _buildSliverAppBar(theme, horizontalPadding, expandedHeight, state),
+                _buildQuickActions(theme, horizontalPadding),
+                _buildSearchSection(theme, horizontalPadding),
                 _buildContactsSliver(state, theme, horizontalPadding),
               ],
             ),
@@ -85,7 +90,14 @@ class _ContactsPageState extends State<ContactsPage> {
     return 32.0;
   }
 
-  Widget _buildSliverAppBar(ThemeData theme, double horizontalPadding) {
+  double _calculateExpandedHeight(double screenHeight, double topPadding) {
+    final additionalHeight = (screenHeight * 0.16);
+    return additionalHeight;
+  }
+
+  Widget _buildSliverAppBar(ThemeData theme, double horizontalPadding, double expandedHeight, ContactState state) {
+    final contacts = _getContactsFromState(state);
+    
     return SliverAppBar(
       backgroundColor: theme.colorScheme.surface,
       surfaceTintColor: Colors.transparent,
@@ -93,7 +105,7 @@ class _ContactsPageState extends State<ContactsPage> {
       floating: true,
       snap: true,
       pinned: false,
-      expandedHeight: 120,
+      expandedHeight: expandedHeight,
       automaticallyImplyLeading: false,
       centerTitle: false,
       titleSpacing: horizontalPadding,
@@ -102,13 +114,24 @@ class _ContactsPageState extends State<ContactsPage> {
         style: theme.textTheme.headlineMedium?.copyWith(
           fontWeight: FontWeight.w700,
           color: theme.colorScheme.onSurface,
+          fontSize: 24,
         ),
       ),
       actions: [
-        IconButton(
-          onPressed: () => _showAddContactDialog(context),
-          icon: const Icon(Icons.person_add_rounded, size: 24),
+        _buildActionButton(
+          icon: Icons.person_add_rounded,
           tooltip: 'Add Contact',
+          theme: theme,
+          onPressed: () => _showAddContactDialog(context),
+        ),
+        const SizedBox(width: 8),
+        _buildActionButton(
+          icon: Icons.qr_code_scanner_rounded,
+          tooltip: 'Scan QR',
+          theme: theme,
+          onPressed: () {
+            // TODO: Implement QR scanner for adding contacts
+          },
         ),
         SizedBox(width: horizontalPadding),
       ],
@@ -118,19 +141,62 @@ class _ContactsPageState extends State<ContactsPage> {
             color: theme.colorScheme.surface,
             padding: EdgeInsets.fromLTRB(
               horizontalPadding,
-              kToolbarHeight + 16,
+              kToolbarHeight + 12,
               horizontalPadding,
-              16,
+              12,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text(
-                  'Manage your transaction contacts',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.people_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 10,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Manage your transaction contacts',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Text(
+                        '${contacts.length} contacts',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 9,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -140,7 +206,130 @@ class _ContactsPageState extends State<ContactsPage> {
     );
   }
 
-  Widget _buildSearchSliver(ThemeData theme, double horizontalPadding) {
+  Widget _buildActionButton({
+    required IconData icon,
+    required String tooltip,
+    required ThemeData theme,
+    required VoidCallback onPressed,
+  }) {
+    Color backgroundColor;
+    
+    switch (tooltip) {
+      case 'Add Contact':
+        backgroundColor = theme.colorScheme.primary;
+        break;
+      case 'Scan QR':
+        backgroundColor = Colors.green;
+        break;
+      default:
+        backgroundColor = theme.colorScheme.primary;
+    }
+    
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Icon(
+              icon,
+              size: 16,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActions(ThemeData theme, double horizontalPadding) {
+    return SliverToBoxAdapter(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.colorScheme.primary.withValues(alpha: 0.06),
+              theme.colorScheme.primary.withValues(alpha: 0.02),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.flash_on_rounded,
+                  size: 16,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Quick Actions',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _QuickActionButton(
+                    icon: Icons.person_add_rounded,
+                    label: 'Add Contact',
+                    onTap: () => _showAddContactDialog(context),
+                    theme: theme,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _QuickActionButton(
+                    icon: Icons.qr_code_scanner_rounded,
+                    label: 'Scan QR',
+                    onTap: () {
+                      // TODO: Implement QR scanner
+                    },
+                    theme: theme,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _QuickActionButton(
+                    icon: Icons.import_contacts_rounded,
+                    label: 'Import',
+                    onTap: () {
+                      // TODO: Implement contact import
+                    },
+                    theme: theme,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchSection(ThemeData theme, double horizontalPadding) {
     return SliverPersistentHeader(
       pinned: true,
       delegate: _SearchSliverDelegate(
@@ -149,7 +338,7 @@ class _ContactsPageState extends State<ContactsPage> {
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: horizontalPadding,
-            vertical: 12,
+            vertical: 10,
           ),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
@@ -170,23 +359,24 @@ class _ContactsPageState extends State<ContactsPage> {
                 prefixIcon: const Icon(Icons.search, size: 20),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, size: 20),
+                        icon: const Icon(Icons.clear, size: 18),
                         onPressed: () {
                           _searchController.clear();
                           context.read<ContactCubit>().clearSearch();
+                          setState(() {});
                         },
                       )
                     : null,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -235,17 +425,12 @@ class _ContactsPageState extends State<ContactsPage> {
       );
     }
 
-    final contacts = switch (state) {
-      ContactLoaded(:final contacts) => contacts,
-      ContactSearchResults(:final contacts) => contacts,
-      ContactTransactionCountUpdated(:final contacts) => contacts,
-      ContactSearchTransactionCountUpdated(:final contacts) => contacts,
-      _ => <Contact>[],
-    };
+    final contacts = _getContactsFromState(state);
+    final isSearchResult = state is ContactSearchResults || state is ContactSearchTransactionCountUpdated;
 
     if (contacts.isEmpty) {
       return SliverFillRemaining(
-        child: _buildEmptyState(theme, state is ContactSearchResults || state is ContactSearchTransactionCountUpdated),
+        child: _buildEmptyState(theme, isSearchResult),
       );
     }
 
@@ -256,7 +441,7 @@ class _ContactsPageState extends State<ContactsPage> {
           (context, index) {
             final contact = contacts[index];
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 10),
               child: ContactListItem(
                 contact: contact,
                 onTap: () => _navigateToContactTransactions(contact),
@@ -269,6 +454,16 @@ class _ContactsPageState extends State<ContactsPage> {
     );
   }
 
+  List<Contact> _getContactsFromState(ContactState state) {
+    return switch (state) {
+      ContactLoaded(:final contacts) => contacts,
+      ContactSearchResults(:final contacts) => contacts,
+      ContactTransactionCountUpdated(:final contacts) => contacts,
+      ContactSearchTransactionCountUpdated(:final contacts) => contacts,
+      _ => <Contact>[],
+    };
+  }
+
   Widget _buildEmptyState(ThemeData theme, bool isSearchResult) {
     return Center(
       child: Padding(
@@ -278,7 +473,7 @@ class _ContactsPageState extends State<ContactsPage> {
           children: [
             Icon(
               isSearchResult ? Icons.search_off : Icons.person_add_outlined,
-              size: 64,
+              size: 56,
               color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
@@ -301,11 +496,11 @@ class _ContactsPageState extends State<ContactsPage> {
             ),
             if (!isSearchResult) ...[
               const SizedBox(height: 24),
-              FilledButton.icon(
+              ElevatedButton.icon(
                 onPressed: () => _showAddContactDialog(context),
                 icon: const Icon(Icons.person_add_rounded),
                 label: const Text('Add Contact'),
-                style: FilledButton.styleFrom(
+                style: ElevatedButton.styleFrom(
                   backgroundColor: theme.colorScheme.primary,
                   foregroundColor: theme.colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -327,7 +522,7 @@ class _ContactsPageState extends State<ContactsPage> {
           children: [
             Icon(
               Icons.error_outline,
-              size: 64,
+              size: 56,
               color: theme.colorScheme.error,
             ),
             const SizedBox(height: 16),
@@ -376,6 +571,60 @@ class _ContactsPageState extends State<ContactsPage> {
   }
 }
 
+class _QuickActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final ThemeData theme;
+
+  const _QuickActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: theme.colorScheme.outline.withValues(alpha: 0.1),
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                  fontSize: 11,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SearchSliverDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
   final ThemeData theme;
@@ -388,10 +637,10 @@ class _SearchSliverDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  double get minExtent => 80.0;
+  double get minExtent => 72.0;
 
   @override
-  double get maxExtent => 80.0;
+  double get maxExtent => 72.0;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
