@@ -85,8 +85,7 @@ class _ContactsPageState extends State<ContactsPage> {
   double _getResponsiveHorizontalPadding(double screenWidth) {
     if (screenWidth < 360) return 12.0;
     if (screenWidth < 600) return 16.0;
-    if (screenWidth < 840) return 24.0;
-    return 32.0;
+    return 20.0;
   }
 
   double _calculateExpandedHeight(double screenHeight, double topPadding) {
@@ -111,9 +110,7 @@ class _ContactsPageState extends State<ContactsPage> {
       title: Text(
         'Contacts',
         style: theme.textTheme.headlineMedium?.copyWith(
-          fontWeight: FontWeight.w700,
-          color: theme.colorScheme.onSurface,
-          fontSize: 24,
+          fontWeight: FontWeight.w600,
         ),
       ),
       actions: [
@@ -151,11 +148,11 @@ class _ContactsPageState extends State<ContactsPage> {
                 Row(
                   children: [
                     Container(
-                      width: 18,
-                      height: 18,
+                      width: 20,
+                      height: 20,
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(9),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: theme.colorScheme.primary.withValues(alpha: 0.3),
                           width: 1,
@@ -164,7 +161,7 @@ class _ContactsPageState extends State<ContactsPage> {
                       child: Icon(
                         Icons.people_rounded,
                         color: theme.colorScheme.primary,
-                        size: 10,
+                        size: 12,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -172,16 +169,15 @@ class _ContactsPageState extends State<ContactsPage> {
                       child: Text(
                         'Manage your transaction contacts',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                          fontSize: 11,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: theme.colorScheme.primary.withValues(alpha: 0.3),
                         ),
@@ -191,7 +187,6 @@ class _ContactsPageState extends State<ContactsPage> {
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.w600,
-                          fontSize: 9,
                         ),
                       ),
                     ),
@@ -258,13 +253,9 @@ class _ContactsPageState extends State<ContactsPage> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              theme.colorScheme.primary.withValues(alpha: 0.06),
+              theme.colorScheme.primary.withValues(alpha: 0.05),
               theme.colorScheme.primary.withValues(alpha: 0.02),
             ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: theme.colorScheme.primary.withValues(alpha: 0.1),
           ),
         ),
         child: Column(
@@ -280,7 +271,7 @@ class _ContactsPageState extends State<ContactsPage> {
                 const SizedBox(width: 8),
                 Text(
                   'Quick Actions',
-                  style: theme.textTheme.titleSmall?.copyWith(
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: theme.colorScheme.primary,
                   ),
@@ -298,7 +289,7 @@ class _ContactsPageState extends State<ContactsPage> {
                     theme: theme,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _QuickActionButton(
                     icon: Icons.qr_code_scanner_rounded,
@@ -309,7 +300,7 @@ class _ContactsPageState extends State<ContactsPage> {
                     theme: theme,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _QuickActionButton(
                     icon: Icons.import_contacts_rounded,
@@ -337,7 +328,7 @@ class _ContactsPageState extends State<ContactsPage> {
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: horizontalPadding,
-            vertical: 10,
+            vertical: 8,
           ),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
@@ -438,7 +429,7 @@ class _ContactsPageState extends State<ContactsPage> {
           (context, index) {
             final contact = contacts[index];
             return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(bottom: 12),
               child: ContactListItem(
                 contact: contact,
                 onTap: () => _navigateToContactTransactions(contact),
@@ -468,7 +459,7 @@ class _ContactsPageState extends State<ContactsPage> {
           children: [
             Icon(
               isSearchResult ? Icons.search_off : Icons.person_add_outlined,
-              size: 56,
+              size: 48,
               color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
@@ -517,7 +508,7 @@ class _ContactsPageState extends State<ContactsPage> {
           children: [
             Icon(
               Icons.error_outline,
-              size: 56,
+              size: 48,
               color: theme.colorScheme.error,
             ),
             const SizedBox(height: 16),
@@ -585,12 +576,12 @@ class _QuickActionButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: theme.colorScheme.outline.withValues(alpha: 0.1),
             ),
@@ -602,13 +593,12 @@ class _QuickActionButton extends StatelessWidget {
                 size: 20,
                 color: theme.colorScheme.primary,
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(
                 label,
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                  fontSize: 11,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -632,10 +622,10 @@ class _SearchSliverDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  double get minExtent => 72.0;
+  double get minExtent => 64.0;
 
   @override
-  double get maxExtent => 72.0;
+  double get maxExtent => 64.0;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {

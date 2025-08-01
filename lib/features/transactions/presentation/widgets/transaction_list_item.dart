@@ -15,6 +15,10 @@ class TransactionListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final mediaQuery = MediaQuery.of(context);
+    final screenWidth = mediaQuery.size.width;
+    
+    final dynamicPadding = screenWidth < 360 ? 12.0 : 16.0;
     
     return Container(
       decoration: BoxDecoration(
@@ -38,14 +42,14 @@ class TransactionListItem extends StatelessWidget {
           final isProcessing = state.isTransactionProcessing(transaction.transactionId);
           
           return Padding(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(dynamicPadding),
             child: Column(
               children: [
                 Row(
                   children: [
                     _buildTransactionIndicator(theme),
                     
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
                     
                     Expanded(
                       child: Column(
@@ -62,9 +66,8 @@ class TransactionListItem extends StatelessWidget {
                                   children: [
                                     Text(
                                       transaction.otherParty.name,
-                                      style: theme.textTheme.titleSmall?.copyWith(
+                                      style: theme.textTheme.bodyMedium?.copyWith(
                                         fontWeight: FontWeight.w600,
-                                        fontSize: 15,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 1,
@@ -75,7 +78,7 @@ class TransactionListItem extends StatelessWidget {
                                         Icon(
                                           Icons.phone_rounded,
                                           size: 12,
-                                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                         ),
                                         const SizedBox(width: 4),
                                         Flexible(
@@ -83,7 +86,6 @@ class TransactionListItem extends StatelessWidget {
                                             transaction.otherParty.phoneNumber,
                                             style: theme.textTheme.bodySmall?.copyWith(
                                               color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                              fontSize: 12,
                                             ),
                                             overflow: TextOverflow.ellipsis,
                                           ),
@@ -103,10 +105,9 @@ class TransactionListItem extends StatelessWidget {
                                   children: [
                                     Text(
                                       'Rs. ${_formatAmount(transaction.amount)}',
-                                      style: theme.textTheme.titleSmall?.copyWith(
+                                      style: theme.textTheme.bodyMedium?.copyWith(
                                         color: _getTransactionColor(theme),
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                       textAlign: TextAlign.end,
                                     ),
@@ -119,18 +120,17 @@ class TransactionListItem extends StatelessWidget {
                           ),
                           
                           if (transaction.description.isNotEmpty) ...[
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: theme.colorScheme.primary.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 transaction.description,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.primary,
-                                  fontSize: 11,
                                   fontWeight: FontWeight.w500,
                                 ),
                                 maxLines: 1,
@@ -149,14 +149,13 @@ class TransactionListItem extends StatelessWidget {
                                   Icon(
                                     Icons.schedule_rounded,
                                     size: 12,
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     _getFormattedDate(),
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                                      fontSize: 11,
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                     ),
                                   ),
                                 ],
@@ -206,7 +205,7 @@ class TransactionListItem extends StatelessWidget {
 
   Widget _buildStatusChip(ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: _getStatusColor(theme).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
@@ -242,10 +241,10 @@ class TransactionListItem extends StatelessWidget {
 
   Widget _buildTransactionTypeIcon(ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: _getTransactionColor(theme).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: _getTransactionColor(theme).withValues(alpha: 0.2),
           width: 0.5,
@@ -254,7 +253,7 @@ class TransactionListItem extends StatelessWidget {
       child: Icon(
         transaction.isLent ? Icons.trending_up_rounded : Icons.trending_down_rounded,
         color: _getTransactionColor(theme),
-        size: 12,
+        size: 16,
       ),
     );
   }
@@ -284,7 +283,7 @@ class TransactionListItem extends StatelessWidget {
             onPressed: () => _handleVerifyTransaction(context, cubit),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         Expanded(
           child: _CompactActionButton(
             label: 'Reject',
@@ -310,7 +309,7 @@ class TransactionListItem extends StatelessWidget {
     if (buttons.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.colorScheme.primary.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(8),

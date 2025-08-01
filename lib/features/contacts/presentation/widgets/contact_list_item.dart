@@ -17,6 +17,10 @@ class ContactListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final mediaQuery = MediaQuery.of(context);
+    final screenWidth = mediaQuery.size.width;
+    
+    final dynamicPadding = screenWidth < 360 ? 12.0 : 16.0;
 
     return Dismissible(
       key: Key(contact.id),
@@ -49,7 +53,7 @@ class ContactListItem extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(dynamicPadding),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
@@ -67,7 +71,7 @@ class ContactListItem extends StatelessWidget {
                     children: [
                       Text(
                         contact.displayName,
-                        style: theme.textTheme.titleMedium?.copyWith(
+                        style: theme.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -75,7 +79,7 @@ class ContactListItem extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         contact.phoneNumber,
-                        style: theme.textTheme.bodyMedium?.copyWith(
+                        style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -84,7 +88,7 @@ class ContactListItem extends StatelessWidget {
                       Text(
                         'Last interaction: ${contact.formattedLastInteraction}',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -114,7 +118,7 @@ class ContactListItem extends StatelessWidget {
           contact.displayName.isNotEmpty 
               ? contact.displayName[0].toUpperCase()
               : '?',
-          style: theme.textTheme.titleLarge?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             color: theme.colorScheme.primary,
             fontWeight: FontWeight.w600,
           ),

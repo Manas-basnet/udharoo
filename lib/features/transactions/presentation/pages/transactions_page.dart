@@ -44,8 +44,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final mediaQuery = MediaQuery.of(context);
-    final screenHeight = mediaQuery.size.height;
     final screenWidth = mediaQuery.size.width;
+    final screenHeight = mediaQuery.size.height;
     final topPadding = mediaQuery.padding.top;
 
     final horizontalPadding = _getResponsiveHorizontalPadding(screenWidth);
@@ -73,6 +73,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     expandedHeight, 
                     horizontalPadding,
                   ),
+                  _buildSummaryCards(theme, state),
                   _buildAnalysisSection(theme, horizontalPadding),
                   _buildFilterSection(theme, horizontalPadding, state),
                   _buildTransactionsSliver(state, theme),
@@ -108,14 +109,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
   double _getResponsiveHorizontalPadding(double screenWidth) {
     if (screenWidth < 360) return 12.0;
     if (screenWidth < 600) return 16.0;
-    if (screenWidth < 840) return 24.0;
-    return 32.0;
+    return 20.0;
   }
 
   double _calculateExpandedHeight(double screenHeight, double topPadding) {
-    final baseHeight = kToolbarHeight + topPadding;
-    final additionalHeight = (screenHeight * 0.12).clamp(70.0, 100.0);
-    return baseHeight + additionalHeight;
+    final baseHeight = kToolbarHeight;
+    return baseHeight;
   }
 
   Widget _buildSliverAppBar(
@@ -138,9 +137,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
       title: Text(
         'Transactions',
         style: theme.textTheme.headlineMedium?.copyWith(
-          fontWeight: FontWeight.w700,
-          color: theme.colorScheme.onSurface,
-          fontSize: 24,
+          fontWeight: FontWeight.w600,
         ),
       ),
       actions: [
@@ -169,40 +166,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
         ),
         SizedBox(width: horizontalPadding),
       ],
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          color: theme.colorScheme.surface,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: kToolbarHeight),
-                  
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: horizontalPadding,
-                        vertical: 6,
-                      ),
-                      child: LayoutBuilder(
-                        builder: (context, summaryConstraints) {
-                          return _buildSummaryCards(
-                            theme, 
-                            state, 
-                            summaryConstraints,
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
     );
   }
 
@@ -213,7 +176,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
     required VoidCallback onPressed,
   }) {
     Color backgroundColor;
-    Color iconColor = Colors.white;
     
     switch (tooltip) {
       case 'Search':
@@ -221,9 +183,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
         break;
       case 'Completed':
         backgroundColor = Colors.green.withValues(alpha: 0.9);
-        break;
-      case 'Rejected':
-        backgroundColor = Colors.red.withValues(alpha: 0.9);
         break;
       default:
         backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.9);
@@ -246,7 +205,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
             child: Icon(
               icon,
               size: 16,
-              color: iconColor,
+              color: Colors.white,
             ),
           ),
         ),
@@ -254,11 +213,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
-  Widget _buildSummaryCards(
-    ThemeData theme, 
-    TransactionState state, 
-    BoxConstraints constraints,
-  ) {
+  Widget _buildSummaryCards(ThemeData theme, TransactionState state) {
     double totalLent = 0;
     double totalBorrowed = 0;
     
@@ -272,25 +227,19 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
     final netAmount = totalLent - totalBorrowed;
 
-    return Container(
-      height: constraints.maxHeight,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.primary.withValues(alpha: 0.05),
-            theme.colorScheme.primary.withValues(alpha: 0.02),
-          ],
+    return SliverToBoxAdapter(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.colorScheme.primary.withValues(alpha: 0.05),
+              theme.colorScheme.primary.withValues(alpha: 0.02),
+            ],
+          ),
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.1),
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
         child: Row(
           children: [
             Expanded(
@@ -299,26 +248,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 amount: totalLent,
                 color: Colors.green,
                 icon: Icons.trending_up_rounded,
-                constraints: BoxConstraints(
-                  maxHeight: constraints.maxHeight - 24,
-                  maxWidth: double.infinity,
-                ),
               ),
             ),
             Container(
               width: 1,
-              height: (constraints.maxHeight - 24) * 0.6,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    theme.colorScheme.outline.withValues(alpha: 0.2),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
+              height: 40,
+              color: theme.colorScheme.outline.withValues(alpha: 0.2),
             ),
             Expanded(
               child: _SummaryCard(
@@ -326,26 +261,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 amount: totalBorrowed,
                 color: Colors.red,
                 icon: Icons.trending_down_rounded,
-                constraints: BoxConstraints(
-                  maxHeight: constraints.maxHeight - 24,
-                  maxWidth: double.infinity,
-                ),
               ),
             ),
             Container(
               width: 1,
-              height: (constraints.maxHeight - 24) * 0.6,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    theme.colorScheme.outline.withValues(alpha: 0.2),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
+              height: 40,
+              color: theme.colorScheme.outline.withValues(alpha: 0.2),
             ),
             Expanded(
               child: _SummaryCard(
@@ -353,10 +274,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 amount: netAmount.abs(),
                 color: netAmount >= 0 ? Colors.green : Colors.red,
                 icon: netAmount >= 0 ? Icons.add_circle_outline : Icons.remove_circle_outline,
-                constraints: BoxConstraints(
-                  maxHeight: constraints.maxHeight - 24,
-                  maxWidth: double.infinity,
-                ),
                 isNet: true,
                 netPrefix: netAmount >= 0 ? '+' : '-',
               ),
@@ -370,7 +287,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
   Widget _buildAnalysisSection(ThemeData theme, double horizontalPadding) {
     return SliverToBoxAdapter(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
         ),
@@ -386,7 +303,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 theme: theme,
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: _AnalysisButton(
                 icon: Icons.analytics_outlined,
@@ -397,7 +314,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 theme: theme,
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: _AnalysisButton(
                 icon: Icons.filter_list_rounded,
@@ -480,7 +397,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
             ],
           ) : null,
           color: isSelected ? null : theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected 
                 ? theme.colorScheme.primary
@@ -523,7 +440,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     ? Colors.white
                     : theme.colorScheme.onSurface.withValues(alpha: 0.8),
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                fontSize: 14,
               ),
             ),
           ],
@@ -637,7 +553,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
             const SizedBox(height: 16),
             Text(
               message,
-              style: theme.textTheme.titleMedium?.copyWith(
+              style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: theme.colorScheme.onSurface,
               ),
@@ -672,8 +588,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
             const SizedBox(height: 16),
             Text(
               'Something went wrong',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w500,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
                 color: theme.colorScheme.error,
               ),
             ),
@@ -704,7 +620,6 @@ class _SummaryCard extends StatelessWidget {
   final double amount;
   final Color color;
   final IconData icon;
-  final BoxConstraints constraints;
   final bool isNet;
   final String? netPrefix;
 
@@ -713,7 +628,6 @@ class _SummaryCard extends StatelessWidget {
     required this.amount,
     required this.color,
     required this.icon,
-    required this.constraints,
     this.isNet = false,
     this.netPrefix,
   });
@@ -722,19 +636,14 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    final maxHeight = constraints.maxHeight;
-    final titleFontSize = (maxHeight * 0.14).clamp(10.0, 12.0);
-    final amountFontSize = (maxHeight * 0.28).clamp(14.0, 18.0);
-    
-    return Container(
-      height: maxHeight,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
@@ -746,45 +655,42 @@ class _SummaryCard extends StatelessWidget {
             child: Icon(
               icon,
               color: color,
-              size: 16,
+              size: 20,
             ),
           ),
-          SizedBox(height: maxHeight * 0.08),
+          const SizedBox(height: 8),
           Text(
             title,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               fontWeight: FontWeight.w500,
-              fontSize: titleFontSize,
             ),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(height: maxHeight * 0.04),
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: RichText(
-                textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: color,
-                    fontSize: amountFontSize,
-                  ),
-                  children: [
-                    if (isNet && netPrefix != null)
-                      TextSpan(
-                        text: netPrefix,
-                        style: TextStyle(
-                          fontSize: amountFontSize * 0.8,
-                        ),
-                      ),
-                    const TextSpan(text: 'Rs. '),
-                    TextSpan(text: _formatAmount(amount)),
-                  ],
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: color,
                 ),
+                children: [
+                  if (isNet && netPrefix != null)
+                    TextSpan(
+                      text: netPrefix,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
+                    ),
+                  const TextSpan(text: 'Rs. '),
+                  TextSpan(text: _formatAmount(amount)),
+                ],
               ),
             ),
           ),
@@ -823,7 +729,7 @@ class _AnalysisButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
@@ -836,8 +742,8 @@ class _AnalysisButton extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                size: 14,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                size: 16,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               const SizedBox(width: 4),
               Flexible(
@@ -845,8 +751,7 @@ class _AnalysisButton extends StatelessWidget {
                   label,
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w500,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                    fontSize: 11,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

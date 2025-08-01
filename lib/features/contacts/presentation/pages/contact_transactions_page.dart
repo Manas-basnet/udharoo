@@ -57,8 +57,11 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
     final theme = Theme.of(context);
     final mediaQuery = MediaQuery.of(context);
     final screenWidth = mediaQuery.size.width;
+    final screenHeight = mediaQuery.size.height;
+    final topPadding = mediaQuery.padding.top;
 
     final horizontalPadding = _getResponsiveHorizontalPadding(screenWidth);
+    final expandedHeight = _calculateExpandedHeight(screenHeight, topPadding);
 
     return SafeArea(
       child: Scaffold(
@@ -85,8 +88,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
-                  _buildSliverAppBar(theme, horizontalPadding, transactionState),
-                  _buildContactProfile(theme, horizontalPadding),
+                  _buildSliverAppBar(theme, horizontalPadding, expandedHeight, transactionState),
                   if (transactionState is ContactTransactionsLoaded && transactionState.transactions.isNotEmpty)
                     _buildQuickStats(theme, horizontalPadding, transactionState.transactions),
                   _buildFilterSection(theme, horizontalPadding, transactionState),
@@ -103,11 +105,15 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
   double _getResponsiveHorizontalPadding(double screenWidth) {
     if (screenWidth < 360) return 12.0;
     if (screenWidth < 600) return 16.0;
-    if (screenWidth < 840) return 24.0;
-    return 32.0;
+    return 20.0;
   }
 
-  Widget _buildSliverAppBar(ThemeData theme, double horizontalPadding, ContactTransactionsState state) {
+  double _calculateExpandedHeight(double screenHeight, double topPadding) {
+    final additionalHeight = (screenHeight * 0.16);
+    return additionalHeight;
+  }
+
+  Widget _buildSliverAppBar(ThemeData theme, double horizontalPadding, double expandedHeight, ContactTransactionsState state) {
     return SliverAppBar(
       backgroundColor: theme.colorScheme.surface,
       surfaceTintColor: Colors.transparent,
@@ -115,6 +121,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
       floating: true,
       snap: true,
       pinned: false,
+      expandedHeight: expandedHeight,
       centerTitle: false,
       titleSpacing: 0,
       leading: IconButton(
@@ -128,7 +135,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
           theme: theme,
           onPressed: () => _createNewTransaction(context),
         ),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
         _buildActionButton(
           icon: Icons.analytics_outlined,
           tooltip: 'Analytics',
@@ -139,6 +146,77 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
         ),
         SizedBox(width: horizontalPadding),
       ],
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          color: theme.colorScheme.surface,
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                        width: 2,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        _contact!.displayName.isNotEmpty 
+                            ? _contact!.displayName[0].toUpperCase()
+                            : '?',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _contact!.displayName,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.phone_rounded,
+                              size: 14,
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _contact!.phoneNumber,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12,)
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -186,95 +264,6 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
     );
   }
 
-  Widget _buildContactProfile(ThemeData theme, double horizontalPadding) {
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        color: theme.colorScheme.surface,
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(26),
-                border: Border.all(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                  width: 2,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  _contact!.displayName.isNotEmpty 
-                      ? _contact!.displayName[0].toUpperCase()
-                      : '?',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _contact!.displayName,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.phone_rounded,
-                        size: 14,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _contact!.phoneNumber,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (_contact!.email != null) ...[
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.email_rounded,
-                          size: 14,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            _contact!.email!,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildQuickStats(ThemeData theme, double horizontalPadding, List<Transaction> transactions) {
     final totalLent = _calculateTotalLent(transactions);
     final totalBorrowed = _calculateTotalBorrowed(transactions);
@@ -282,9 +271,16 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
 
     return SliverToBoxAdapter(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16,vertical: 8),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.colorScheme.primary.withValues(alpha: 0.05),
+              theme.colorScheme.primary.withValues(alpha: 0.02),
+            ],
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,7 +295,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
                 const SizedBox(width: 8),
                 Text(
                   'Quick Overview',
-                  style: theme.textTheme.titleSmall?.copyWith(
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: theme.colorScheme.primary,
                   ),
@@ -317,7 +313,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
                     icon: Icons.trending_up_rounded,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _StatCard(
                     title: 'Borrowed',
@@ -326,7 +322,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
                     icon: Icons.trending_down_rounded,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _StatCard(
                     title: 'Net',
@@ -395,7 +391,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           gradient: isSelected ? LinearGradient(
             begin: Alignment.topCenter,
@@ -421,7 +417,6 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
                 ? Colors.white
                 : theme.colorScheme.onSurface.withValues(alpha: 0.8),
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            fontSize: 13,
           ),
         ),
       ),
@@ -662,10 +657,10 @@ class _StatCard extends StatelessWidget {
     final theme = Theme.of(context);
     
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: color.withValues(alpha: 0.2),
         ),
@@ -683,7 +678,6 @@ class _StatCard extends StatelessWidget {
             style: theme.textTheme.bodySmall?.copyWith(
               color: color,
               fontWeight: FontWeight.w500,
-              fontSize: 10,
             ),
           ),
           const SizedBox(height: 2),
@@ -691,8 +685,7 @@ class _StatCard extends StatelessWidget {
             value,
             style: theme.textTheme.bodySmall?.copyWith(
               color: color,
-              fontWeight: FontWeight.w700,
-              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
             maxLines: 1,
@@ -716,10 +709,10 @@ class _FilterSliverDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  double get minExtent => 52.0;
+  double get minExtent => 56.0;
 
   @override
-  double get maxExtent => 52.0;
+  double get maxExtent => 56.0;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
