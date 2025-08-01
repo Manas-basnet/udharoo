@@ -10,9 +10,6 @@ class Contact extends Equatable {
   final String? photoUrl;
   final DateTime addedAt;
   final DateTime lastInteractionAt;
-  final int totalTransactions;
-  final double totalLent;
-  final double totalBorrowed;
 
   const Contact({
     required this.id,
@@ -24,9 +21,6 @@ class Contact extends Equatable {
     this.photoUrl,
     required this.addedAt,
     required this.lastInteractionAt,
-    this.totalTransactions = 0,
-    this.totalLent = 0.0,
-    this.totalBorrowed = 0.0,
   });
 
   Contact copyWith({
@@ -39,9 +33,6 @@ class Contact extends Equatable {
     String? photoUrl,
     DateTime? addedAt,
     DateTime? lastInteractionAt,
-    int? totalTransactions,
-    double? totalLent,
-    double? totalBorrowed,
   }) {
     return Contact(
       id: id ?? this.id,
@@ -53,15 +44,8 @@ class Contact extends Equatable {
       photoUrl: photoUrl ?? this.photoUrl,
       addedAt: addedAt ?? this.addedAt,
       lastInteractionAt: lastInteractionAt ?? this.lastInteractionAt,
-      totalTransactions: totalTransactions ?? this.totalTransactions,
-      totalLent: totalLent ?? this.totalLent,
-      totalBorrowed: totalBorrowed ?? this.totalBorrowed,
     );
   }
-
-  double get netAmount => totalLent - totalBorrowed;
-  bool get isOwedMoney => netAmount > 0;
-  bool get owesYouMoney => netAmount > 0;
 
   String get displayName => name.trim().isEmpty ? phoneNumber : name;
 
@@ -94,8 +78,5 @@ class Contact extends Equatable {
         photoUrl,
         addedAt,
         lastInteractionAt,
-        totalTransactions,
-        totalLent,
-        totalBorrowed,
       ];
 }

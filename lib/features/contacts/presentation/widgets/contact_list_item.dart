@@ -77,39 +77,54 @@ class ContactListItem extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (contact.netAmount != 0)
-                            _buildAmountChip(theme),
+                          BlocBuilder<ContactCubit, ContactState>(
+                            builder: (context, state) {
+                              final cubit = context.read<ContactCubit>();
+                              final transactionCount = cubit.getTransactionCount(contact.contactUserId);
+                              
+                              if (transactionCount > 0) {
+                                return _buildTransactionCountChip(theme, transactionCount);
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              contact.phoneNumber,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Text(
-                            '${contact.totalTransactions} transactions',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (contact.totalTransactions > 0) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          'Last interaction: ${contact.formattedLastInteraction}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                          ),
+                      Text(
+                        contact.phoneNumber,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
-                      ],
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+                      BlocBuilder<ContactCubit, ContactState>(
+                        builder: (context, state) {
+                          final cubit = context.read<ContactCubit>();
+                          final transactionCount = cubit.getTransactionCount(contact.contactUserId);
+                          
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Last interaction: ${contact.formattedLastInteraction}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                ),
+                              ),
+                              if (transactionCount > 0)
+                                Text(
+                                  '$transactionCount transaction${transactionCount > 1 ? 's' : ''}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -146,23 +161,20 @@ class ContactListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildAmountChip(ThemeData theme) {
-    final isPositive = contact.netAmount > 0;
-    final color = isPositive ? Colors.green : Colors.red;
-    
+  Widget _buildTransactionCountChip(ThemeData theme, int count) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: theme.colorScheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: color.withValues(alpha: 0.3),
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
         ),
       ),
       child: Text(
-        'Rs. ${contact.netAmount.abs().toStringAsFixed(0)}',
+        '$count',
         style: theme.textTheme.bodySmall?.copyWith(
-          color: color,
+          color: theme.colorScheme.primary,
           fontWeight: FontWeight.w600,
         ),
       ),

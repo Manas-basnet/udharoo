@@ -153,4 +153,12 @@ class ContactRepositoryImpl extends BaseRepository implements ContactRepository 
       return ApiResult.success(<Transaction>[]);
     });
   }
+
+  @override
+  Future<ApiResult<int>> getContactTransactionCount(String contactUserId) async {
+    return ExceptionHandler.handleExceptions(() async {
+      final count = await _localDatasource.getContactTransactionCount(contactUserId, _currentUserId);
+      return ApiResult.success(count);
+    });
+  }
 }

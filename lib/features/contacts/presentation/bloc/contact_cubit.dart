@@ -8,6 +8,7 @@ import 'package:udharoo/features/contacts/domain/entities/contact.dart';
 import 'package:udharoo/features/contacts/domain/usecases/add_contact_usecase.dart';
 import 'package:udharoo/features/contacts/domain/usecases/delete_contact_usecase.dart';
 import 'package:udharoo/features/contacts/domain/usecases/get_contact_by_user_id_usecase.dart';
+import 'package:udharoo/features/contacts/domain/usecases/get_contact_transaction_count_usecase.dart';
 import 'package:udharoo/features/contacts/domain/usecases/get_contacts_usecase.dart';
 import 'package:udharoo/features/contacts/domain/usecases/search_contacts_usecase.dart';
 
@@ -19,8 +20,11 @@ class ContactCubit extends Cubit<ContactState> {
   final AddContactUseCase _addContactUseCase;
   final DeleteContactUseCase _deleteContactUseCase;
   final GetContactByUserIdUseCase _getContactByUserIdUseCase;
+  final GetContactTransactionCountUseCase _getContactTransactionCountUseCase;
   final GetUserByPhoneUseCase _getUserByPhoneUseCase;
   final FirebaseAuth _firebaseAuth;
+
+  final Map<String, int> _transactionCounts = {};
 
   ContactCubit({
     required GetContactsUseCase getContactsUseCase,
@@ -28,6 +32,7 @@ class ContactCubit extends Cubit<ContactState> {
     required AddContactUseCase addContactUseCase,
     required DeleteContactUseCase deleteContactUseCase,
     required GetContactByUserIdUseCase getContactByUserIdUseCase,
+    required GetContactTransactionCountUseCase getContactTransactionCountUseCase,
     required GetUserByPhoneUseCase getUserByPhoneUseCase,
     required FirebaseAuth firebaseAuth,
   })  : _getContactsUseCase = getContactsUseCase,
@@ -35,12 +40,16 @@ class ContactCubit extends Cubit<ContactState> {
         _addContactUseCase = addContactUseCase,
         _deleteContactUseCase = deleteContactUseCase,
         _getContactByUserIdUseCase = getContactByUserIdUseCase,
+        _getContactTransactionCountUseCase = getContactTransactionCountUseCase,
         _getUserByPhoneUseCase = getUserByPhoneUseCase,
         _firebaseAuth = firebaseAuth,
         super(const ContactInitial());
 
-
   String? get _currentUserPhone => _firebaseAuth.currentUser?.phoneNumber;
+
+  int getTransactionCount(String contactUserId) {
+    return _transactionCounts[contactUserId] ?? 0;
+  }
 
   Future<void> loadContacts() async {
     if (!isClosed) {
@@ -156,6 +165,58 @@ class ContactCubit extends Cubit<ContactState> {
       onSuccess: (contact) => contact,
       onFailure: (_, __) => null,
     );
+  }
+
+  Future<void> updateContactTransactionCount(String contactUserId) async {
+    final result = await _getContactTransactionCountUseCase(contactUserId);
+    
+    result.fold(
+      onSuccess: (count) {
+        _transactionCounts[contactUserId] = count;
+        if (!isClosed) {
+          final currentState = state;
+          if (currentState is ContactLoaded) {
+            emit(ContactTransactionCountUpdated(currentState.contacts, Map.from(_transactionCounts)));
+          } else if (currentState is ContactSearchResults) {
+            emit(ContactSearchTransactionCountUpdated(currentState.contacts, currentState.query, Map.from(_transactionCounts)));
+          }
+        }
+      },
+      onFailure: (_, __) {
+      },
+    );
+  }
+
+  Future<void> refreshContactTransactionCounts() async {
+    final currentState = state;
+    List<Contact> contacts = [];
+    
+    if (currentState is ContactLoaded) {
+      contacts = currentState.contacts;
+    } else if (currentState is ContactSearchResults) {
+      contacts = currentState.contacts;
+    } else {
+      return;
+    }
+
+    for (final contact in contacts) {
+      final result = await _getContactTransactionCountUseCase(contact.contactUserId);
+      result.fold(
+        onSuccess: (count) {
+          _transactionCounts[contact.contactUserId] = count;
+        },
+        onFailure: (_, __) {
+        },
+      );
+    }
+
+    if (!isClosed) {
+      if (currentState is ContactLoaded) {
+        emit(ContactTransactionCountUpdated(contacts, Map.from(_transactionCounts)));
+      } else if (currentState is ContactSearchResults) {
+        emit(ContactSearchTransactionCountUpdated(contacts, currentState.query, Map.from(_transactionCounts)));
+      }
+    }
   }
 
   void clearSearch() {

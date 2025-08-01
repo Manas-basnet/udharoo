@@ -58,6 +58,8 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
               slivers: [
                 _buildSliverAppBar(theme, horizontalPadding),
                 _buildContactInfoSliver(theme, horizontalPadding),
+                if (state is ContactTransactionsLoaded && state.transactions.isNotEmpty)
+                  _buildTransactionSummarySliver(theme, horizontalPadding, state.transactions),
                 _buildTransactionsSliver(state, theme, horizontalPadding),
               ],
             ),
@@ -198,30 +200,103 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
                 ],
               ),
             ),
-            if (widget.contact.netAmount != 0)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: widget.contact.netAmount > 0 
-                      ? Colors.green.withValues(alpha: 0.1)
-                      : Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: widget.contact.netAmount > 0 
-                        ? Colors.green.withValues(alpha: 0.3)
-                        : Colors.red.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Text(
-                  'Rs. ${widget.contact.netAmount.abs().toStringAsFixed(0)}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: widget.contact.netAmount > 0 ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTransactionSummarySliver(ThemeData theme, double horizontalPadding, List<Transaction> transactions) {
+    final totalTransactions = transactions.length;
+    final totalLent = _calculateTotalLent(transactions);
+    final totalBorrowed = _calculateTotalBorrowed(transactions);
+
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Transaction Summary',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSummaryCard(
+                    theme,
+                    'Total Transactions',
+                    totalTransactions.toString(),
+                    theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildSummaryCard(
+                    theme,
+                    'Total Lent',
+                    'Rs. ${_formatAmount(totalLent)}',
+                    Colors.green,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildSummaryCard(
+                    theme,
+                    'Total Borrowed',
+                    'Rs. ${_formatAmount(totalBorrowed)}',
+                    Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(ThemeData theme, String title, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -350,6 +425,26 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
           ],
         ),
       ),
+    );
+  }
+
+  double _calculateTotalLent(List<Transaction> transactions) {
+    return transactions
+        .where((t) => t.isLent)
+        .fold(0.0, (sum, t) => sum + t.amount);
+  }
+
+  double _calculateTotalBorrowed(List<Transaction> transactions) {
+    return transactions
+        .where((t) => t.isBorrowed)
+        .fold(0.0, (sum, t) => sum + t.amount);
+  }
+
+  String _formatAmount(double amount) {
+    String amountStr = amount.toStringAsFixed(0);
+    return amountStr.replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
     );
   }
 

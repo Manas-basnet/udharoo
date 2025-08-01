@@ -496,13 +496,6 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (contact.totalTransactions > 0)
-                          Text(
-                            ' • ${contact.totalTransactions} transactions',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                            ),
-                          ),
                       ],
                     ),
                   ],

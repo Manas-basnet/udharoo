@@ -11,9 +11,6 @@ class ContactModel extends Contact {
     super.photoUrl,
     required super.addedAt,
     required super.lastInteractionAt,
-    super.totalTransactions = 0,
-    super.totalLent = 0.0,
-    super.totalBorrowed = 0.0,
   });
 
   factory ContactModel.fromJson(Map<String, dynamic> json) {
@@ -27,9 +24,6 @@ class ContactModel extends Contact {
       photoUrl: json['photoUrl'] as String?,
       addedAt: DateTime.parse(json['addedAt'] as String),
       lastInteractionAt: DateTime.parse(json['lastInteractionAt'] as String),
-      totalTransactions: json['totalTransactions'] as int? ?? 0,
-      totalLent: (json['totalLent'] as num?)?.toDouble() ?? 0.0,
-      totalBorrowed: (json['totalBorrowed'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -44,9 +38,6 @@ class ContactModel extends Contact {
       'photoUrl': photoUrl,
       'addedAt': addedAt.toIso8601String(),
       'lastInteractionAt': lastInteractionAt.toIso8601String(),
-      'totalTransactions': totalTransactions,
-      'totalLent': totalLent,
-      'totalBorrowed': totalBorrowed,
     };
   }
 
@@ -61,9 +52,6 @@ class ContactModel extends Contact {
       photoUrl: entity.photoUrl,
       addedAt: entity.addedAt,
       lastInteractionAt: entity.lastInteractionAt,
-      totalTransactions: entity.totalTransactions,
-      totalLent: entity.totalLent,
-      totalBorrowed: entity.totalBorrowed,
     );
   }
 
@@ -78,9 +66,6 @@ class ContactModel extends Contact {
     String? photoUrl,
     DateTime? addedAt,
     DateTime? lastInteractionAt,
-    int? totalTransactions,
-    double? totalLent,
-    double? totalBorrowed,
   }) {
     return ContactModel(
       id: id ?? this.id,
@@ -92,9 +77,6 @@ class ContactModel extends Contact {
       photoUrl: photoUrl ?? this.photoUrl,
       addedAt: addedAt ?? this.addedAt,
       lastInteractionAt: lastInteractionAt ?? this.lastInteractionAt,
-      totalTransactions: totalTransactions ?? this.totalTransactions,
-      totalLent: totalLent ?? this.totalLent,
-      totalBorrowed: totalBorrowed ?? this.totalBorrowed,
     );
   }
 }
