@@ -61,7 +61,7 @@ class AppRouter {
             child: MultiBlocProvider(
               providers: [
                 BlocProvider(create: (_) => di.sl<ContactCubit>()),
-                BlocProvider(create: (_) => di.sl<TransactionCubit>()),
+                BlocProvider(create: (_) => di.sl<TransactionCubit>()..loadTransactions()),
               ],
               child: ScaffoldWithBottomNavBar(navigationShell: navigationShell),
             ),
@@ -107,17 +107,17 @@ class AppRouter {
                         name: 'transactionForm',
                         builder: (context, state) {
                           QRTransactionData? qrData;
-                          String? source;
                           Contact? prefilledContact;
+                          TransactionType? initialTransactionType;
 
                           final extra = state.extra;
                           if (extra is Map<String, dynamic>) {
                             qrData = extra['qrData'] as QRTransactionData?;
-                            source = extra['source'] as String?;
                             prefilledContact = extra['prefilledContact'] as Contact?;
+                            initialTransactionType = extra['initialTransactionType'] as TransactionType?;
                           } else if (extra is TransactionFormExtra) {
                             qrData = extra.qrData;
-                            source = extra.source;
+                            initialTransactionType = extra.initialTransactionType;
                           }
 
                           return MultiBlocProvider(
@@ -126,8 +126,8 @@ class AppRouter {
                             ],
                             child: TransactionFormScreen(
                               qrData: qrData, 
-                              source: source,
                               prefilledContact: prefilledContact,
+                              initialTransactionType: initialTransactionType,
                             ),
                           );
                         },
@@ -215,7 +215,6 @@ class AppRouter {
                           return MultiBlocProvider(
                             providers: [
                               BlocProvider(create: (_) => di.sl<ContactTransactionsCubit>()),
-                              BlocProvider(create: (_) => di.sl<ContactCubit>()),
                             ],
                             child: ContactTransactionsPage(contactUserId: contactUserId),
                           );

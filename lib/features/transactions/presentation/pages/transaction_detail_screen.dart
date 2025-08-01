@@ -25,46 +25,48 @@ class TransactionDetailScreen extends StatelessWidget {
     final verticalSpacing = screenHeight * 0.012;
     final cardSpacing = screenHeight * 0.016;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: CustomScrollView(
-        slivers: [
-          _buildAppBar(theme, horizontalPadding),
-          
-          SliverPadding(
-            padding: EdgeInsets.all(horizontalPadding),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                _buildTransactionSummary(theme, screenWidth, verticalSpacing),
-                
-                SizedBox(height: cardSpacing),
-                
-                _buildContactCard(context,theme, screenWidth, verticalSpacing),
-                
-                SizedBox(height: cardSpacing),
-                
-                _buildTransactionDetails(theme, screenWidth, verticalSpacing),
-                
-                if (_hasTimeline()) ...[
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: CustomScrollView(
+          slivers: [
+            _buildAppBar(theme, horizontalPadding),
+            
+            SliverPadding(
+              padding: EdgeInsets.all(horizontalPadding),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _buildTransactionSummary(theme, screenWidth, verticalSpacing),
+                  
                   SizedBox(height: cardSpacing),
-                  _buildActivityTimeline(theme, screenWidth, verticalSpacing),
-                ],
-                
-                if (_hasDeviceInfo()) ...[
+                  
+                  _buildContactCard(context,theme, screenWidth, verticalSpacing),
+                  
                   SizedBox(height: cardSpacing),
-                  _buildDeviceInfo(theme, screenWidth, verticalSpacing),
-                ],
-                
-                SizedBox(height: cardSpacing * 2),
-              ]),
+                  
+                  _buildTransactionDetails(theme, screenWidth, verticalSpacing),
+                  
+                  if (_hasTimeline()) ...[
+                    SizedBox(height: cardSpacing),
+                    _buildActivityTimeline(theme, screenWidth, verticalSpacing),
+                  ],
+                  
+                  if (_hasDeviceInfo()) ...[
+                    SizedBox(height: cardSpacing),
+                    _buildDeviceInfo(theme, screenWidth, verticalSpacing),
+                  ],
+                  
+                  SizedBox(height: cardSpacing * 2),
+                ]),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
+        
+        bottomNavigationBar: _shouldShowActions() 
+            ? _buildActionBar(context, theme, horizontalPadding)
+            : null,
       ),
-      
-      bottomNavigationBar: _shouldShowActions() 
-          ? _buildActionBar(context, theme, horizontalPadding)
-          : null,
     );
   }
 
@@ -83,58 +85,56 @@ class TransactionDetailScreen extends StatelessWidget {
         ),
       ),
       flexibleSpace: FlexibleSpaceBar(
-        background: SafeArea(
-          child: Container(
-            color: theme.colorScheme.surface,
-            padding: EdgeInsets.fromLTRB(
-              horizontalPadding, 
-              kToolbarHeight + 12, 
-              horizontalPadding, 
-              12,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: _getTransactionColor(theme).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: _getTransactionColor(theme).withValues(alpha: 0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Icon(
-                        transaction.isLent ? Icons.trending_up : Icons.trending_down,
-                        color: _getTransactionColor(theme),
-                        size: 12,
+        background: Container(
+          color: theme.colorScheme.surface,
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding, 
+            kToolbarHeight + 12, 
+            horizontalPadding, 
+            12,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: _getTransactionColor(theme).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _getTransactionColor(theme).withValues(alpha: 0.3),
+                        width: 1,
                       ),
                     ),
-                    
-                    const SizedBox(width: 10),
-                    
-                    Expanded(
-                      child: Text(
-                        '${transaction.isLent ? 'Lent to' : 'Borrowed from'} ${transaction.otherParty.name}',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                          fontWeight: FontWeight.w500,
-                          fontSize: 13,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    child: Icon(
+                      transaction.isLent ? Icons.trending_up : Icons.trending_down,
+                      color: _getTransactionColor(theme),
+                      size: 12,
                     ),
-                    
-                    _buildStatusBadge(theme),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                  
+                  const SizedBox(width: 10),
+                  
+                  Expanded(
+                    child: Text(
+                      '${transaction.isLent ? 'Lent to' : 'Borrowed from'} ${transaction.otherParty.name}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  
+                  _buildStatusBadge(theme),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -795,9 +795,7 @@ class TransactionDetailScreen extends StatelessWidget {
           ),
         ),
       ),
-      child: SafeArea(
-        child: actionContent ?? const SizedBox.shrink(),
-      ),
+      child: actionContent ?? const SizedBox.shrink(),
     );
   }
 

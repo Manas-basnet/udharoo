@@ -61,20 +61,22 @@ class _ContactsPageState extends State<ContactsPage> {
         }
       },
       builder: (context, state) {
-        return Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          body: RefreshIndicator(
-            onRefresh: () async {
-              await context.read<ContactCubit>().loadContacts();
-            },
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                _buildSliverAppBar(theme, horizontalPadding, expandedHeight, state),
-                _buildQuickActions(theme, horizontalPadding),
-                _buildSearchSection(theme, horizontalPadding),
-                _buildContactsSliver(state, theme, horizontalPadding),
-              ],
+        return SafeArea(
+          child: Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            body: RefreshIndicator(
+              onRefresh: () async {
+                await context.read<ContactCubit>().loadContacts();
+              },
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  _buildSliverAppBar(theme, horizontalPadding, expandedHeight, state),
+                  _buildQuickActions(theme, horizontalPadding),
+                  _buildSearchSection(theme, horizontalPadding),
+                  _buildContactsSliver(state, theme, horizontalPadding),
+                ],
+              ),
             ),
           ),
         );
@@ -132,68 +134,66 @@ class _ContactsPageState extends State<ContactsPage> {
         SizedBox(width: horizontalPadding),
       ],
       flexibleSpace: FlexibleSpaceBar(
-        background: SafeArea(
-          child: Container(
-            color: theme.colorScheme.surface,
-            padding: EdgeInsets.fromLTRB(
-              horizontalPadding,
-              kToolbarHeight + 12,
-              horizontalPadding,
-              12,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                          width: 1,
-                        ),
+        background: Container(
+          color: theme.colorScheme.surface,
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            kToolbarHeight + 12,
+            horizontalPadding,
+            12,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                        width: 1,
                       ),
-                      child: Icon(
-                        Icons.people_rounded,
+                    ),
+                    child: Icon(
+                      Icons.people_rounded,
+                      color: theme.colorScheme.primary,
+                      size: 12,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Manage your transaction contacts',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Text(
+                      '${contacts.length} contacts',
+                      style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.primary,
-                        size: 12,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Manage your transaction contacts',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Text(
-                        '${contacts.length} contacts',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -339,59 +339,55 @@ class _ContactsPageState extends State<ContactsPage> {
               ),
             ),
           ),
-          child: SafeArea(
-            top: false,
-            bottom: false,
-            child: TextFormField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search contacts...',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          context.read<ContactCubit>().clearSearch();
-                          setState(() {});
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: theme.colorScheme.primary,
-                    width: 2,
-                  ),
-                ),
-                filled: true,
-                fillColor: theme.scaffoldBackgroundColor,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+          child: TextFormField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search contacts...',
+              prefixIcon: const Icon(Icons.search, size: 20),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () {
+                        _searchController.clear();
+                        context.read<ContactCubit>().clearSearch();
+                        setState(() {});
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
-              onChanged: (query) {
-                setState(() {});
-                if (query.trim().isEmpty) {
-                  context.read<ContactCubit>().clearSearch();
-                } else {
-                  context.read<ContactCubit>().searchContacts(query);
-                }
-              },
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: theme.colorScheme.primary,
+                  width: 2,
+                ),
+              ),
+              filled: true,
+              fillColor: theme.scaffoldBackgroundColor,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
             ),
+            onChanged: (query) {
+              setState(() {});
+              if (query.trim().isEmpty) {
+                context.read<ContactCubit>().clearSearch();
+              } else {
+                context.read<ContactCubit>().searchContacts(query);
+              }
+            },
           ),
         ),
       ),

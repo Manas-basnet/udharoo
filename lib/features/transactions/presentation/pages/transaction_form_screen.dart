@@ -13,24 +13,24 @@ import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class TransactionFormExtra {
   final QRTransactionData? qrData;
-  final String? source;
+  final TransactionType? initialTransactionType;
 
   TransactionFormExtra({
     this.qrData,
-    this.source,
+    this.initialTransactionType,
   });
 }
 
 class TransactionFormScreen extends StatefulWidget {
   final QRTransactionData? qrData;
-  final String? source;
   final Contact? prefilledContact;
+  final TransactionType? initialTransactionType;
 
   const TransactionFormScreen({
     super.key,
     this.qrData,
-    this.source,
     this.prefilledContact,
+    this.initialTransactionType,
   });
 
   @override
@@ -63,6 +63,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       _initializeFromQRData(widget.qrData!);
     } else if (widget.prefilledContact != null) {
       _initializeFromContact(widget.prefilledContact!);
+    } else if (widget.initialTransactionType != null) {
+      _selectedType = widget.initialTransactionType;
     }
   }
 
