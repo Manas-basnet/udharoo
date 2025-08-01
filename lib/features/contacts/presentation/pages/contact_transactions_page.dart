@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/contacts/domain/entities/contact.dart';
+import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_list_item.dart';
@@ -17,11 +18,11 @@ enum ContactTransactionFilter {
 }
 
 class ContactTransactionsPage extends StatefulWidget {
-  final Contact contact;
+  final String contactUserId;
 
   const ContactTransactionsPage({
     super.key,
-    required this.contact,
+    required this.contactUserId,
   });
 
   @override
@@ -30,12 +31,24 @@ class ContactTransactionsPage extends StatefulWidget {
 
 class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
   ContactTransactionFilter _selectedFilter = ContactTransactionFilter.all;
+  Contact? _contact;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ContactTransactionsCubit>().loadContactTransactions(widget.contact.contactUserId);
+      _loadContactAndTransactions();
+    });
+  }
+
+  void _loadContactAndTransactions() {
+    context.read<ContactCubit>().getContactByUserId(widget.contactUserId).then((contact) {
+      if (mounted) {
+        setState(() {
+          _contact = contact;
+        });
+        context.read<ContactTransactionsCubit>().loadContactTransactions(widget.contactUserId);
+      }
     });
   }
 
@@ -60,20 +73,24 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
               );
             }
           },
-          builder: (context, state) {
+          builder: (context, transactionState) {
+            if (_contact == null) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
             return RefreshIndicator(
               onRefresh: () async {
-                context.read<ContactTransactionsCubit>().refreshTransactions(widget.contact.contactUserId);
+                context.read<ContactTransactionsCubit>().refreshTransactions(widget.contactUserId);
               },
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
-                  _buildSliverAppBar(theme, horizontalPadding, state),
+                  _buildSliverAppBar(theme, horizontalPadding, transactionState),
                   _buildContactProfile(theme, horizontalPadding),
-                  if (state is ContactTransactionsLoaded && state.transactions.isNotEmpty)
-                    _buildQuickStats(theme, horizontalPadding, state.transactions),
-                  _buildFilterSection(theme, horizontalPadding, state),
-                  _buildTransactionsSliver(state, theme, horizontalPadding),
+                  if (transactionState is ContactTransactionsLoaded && transactionState.transactions.isNotEmpty)
+                    _buildQuickStats(theme, horizontalPadding, transactionState.transactions),
+                  _buildFilterSection(theme, horizontalPadding, transactionState),
+                  _buildTransactionsSliver(transactionState, theme, horizontalPadding),
                 ],
               ),
             );
@@ -189,8 +206,8 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
               ),
               child: Center(
                 child: Text(
-                  widget.contact.displayName.isNotEmpty 
-                      ? widget.contact.displayName[0].toUpperCase()
+                  _contact!.displayName.isNotEmpty 
+                      ? _contact!.displayName[0].toUpperCase()
                       : '?',
                   style: theme.textTheme.headlineSmall?.copyWith(
                     color: theme.colorScheme.primary,
@@ -205,7 +222,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.contact.displayName,
+                    _contact!.displayName,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -220,14 +237,14 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        widget.contact.phoneNumber,
+                        _contact!.phoneNumber,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
                   ),
-                  if (widget.contact.email != null) ...[
+                  if (_contact!.email != null) ...[
                     const SizedBox(height: 2),
                     Row(
                       children: [
@@ -239,7 +256,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            widget.contact.email!,
+                            _contact!.email!,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
@@ -479,27 +496,27 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
     switch (_selectedFilter) {
       case ContactTransactionFilter.all:
         message = 'No Transactions Yet';
-        subtitle = 'Start your first transaction with ${widget.contact.displayName}';
+        subtitle = 'Start your first transaction with ${_contact!.displayName}';
         icon = Icons.receipt_long_outlined;
         break;
       case ContactTransactionFilter.lent:
         message = 'No Lending Records';
-        subtitle = 'Money you lend to ${widget.contact.displayName} will appear here';
+        subtitle = 'Money you lend to ${_contact!.displayName} will appear here';
         icon = Icons.trending_up;
         break;
       case ContactTransactionFilter.borrowed:
         message = 'No Borrowing Records';
-        subtitle = 'Money you borrow from ${widget.contact.displayName} will appear here';
+        subtitle = 'Money you borrow from ${_contact!.displayName} will appear here';
         icon = Icons.trending_down;
         break;
       case ContactTransactionFilter.pending:
         message = 'No Pending Transactions';
-        subtitle = 'All transactions with ${widget.contact.displayName} are up to date';
+        subtitle = 'All transactions with ${_contact!.displayName} are up to date';
         icon = Icons.check_circle_outline;
         break;
       case ContactTransactionFilter.completed:
         message = 'No Completed Transactions';
-        subtitle = 'Completed transactions with ${widget.contact.displayName} will appear here';
+        subtitle = 'Completed transactions with ${_contact!.displayName} will appear here';
         icon = Icons.done_all_rounded;
         break;
     }
@@ -580,7 +597,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
             const SizedBox(height: 24),
             OutlinedButton(
               onPressed: () {
-                context.read<ContactTransactionsCubit>().refreshTransactions(widget.contact.contactUserId);
+                context.read<ContactTransactionsCubit>().refreshTransactions(widget.contactUserId);
               },
               child: const Text('Try Again'),
             ),
@@ -614,7 +631,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
     context.go(
       Routes.transactionForm,
       extra: {
-        'prefilledContact': widget.contact,
+        'prefilledContact': _contact,
       },
     );
   }

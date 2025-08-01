@@ -178,10 +178,46 @@ class AppRouter {
                         path: '/contact-transactions',
                         name: 'contactTransactions',
                         builder: (context, state) {
-                          final contact = state.extra as Contact;
-                          return BlocProvider(
-                            create: (_) => di.sl<ContactTransactionsCubit>(),
-                            child: ContactTransactionsPage(contact: contact),
+                          final contactUserId = state.uri.queryParameters['contactUserId'];
+                          
+                          if (contactUserId == null || contactUserId.isEmpty) {
+                            return Scaffold(
+                              body: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline,
+                                      size: 64,
+                                      color: Theme.of(context).colorScheme.error,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Invalid Contact',
+                                      style: Theme.of(context).textTheme.titleLarge,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Contact ID is required',
+                                      style: Theme.of(context).textTheme.bodyMedium,
+                                    ),
+                                    const SizedBox(height: 24),
+                                    ElevatedButton(
+                                      onPressed: () => context.go(Routes.contacts),
+                                      child: const Text('Go Back'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          return MultiBlocProvider(
+                            providers: [
+                              BlocProvider(create: (_) => di.sl<ContactTransactionsCubit>()),
+                              BlocProvider(create: (_) => di.sl<ContactCubit>()),
+                            ],
+                            child: ContactTransactionsPage(contactUserId: contactUserId),
                           );
                         },
                       ),

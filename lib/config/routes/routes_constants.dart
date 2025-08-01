@@ -9,8 +9,8 @@ class Routes {
   static const String pendingTransactions = '/transactions/pending-transactions';
   static const String completedTransactions = '/transactions/completed-transactions';
   static const String rejectedTransactions = '/transactions/rejected-transactions';
-  static const String contacts = '/contacts';
   static const String contactTransactions = '$contacts/contact-transactions';
+  static const String contacts = '/contacts';
   static const String profile = '/profile';
   static const String editProfile = '/edit-profile';
   static const String profileCompletion = '/profile-completion';
@@ -20,6 +20,8 @@ class Routes {
   static const String changePhoneVerification = '/change-phone-verification';
   static const String qrScanner = '/qr-scanner';
   static const String qrGenerator = '/qr-generator';
+
+  static String contactTransactionsF(String contactUserId) => '${Routes.contactTransactions}?contactUserId=$contactUserId';
  
   Routes._();
 }

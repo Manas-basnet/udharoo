@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
@@ -37,7 +39,7 @@ class TransactionDetailScreen extends StatelessWidget {
                 
                 SizedBox(height: cardSpacing),
                 
-                _buildContactCard(theme, screenWidth, verticalSpacing),
+                _buildContactCard(context,theme, screenWidth, verticalSpacing),
                 
                 SizedBox(height: cardSpacing),
                 
@@ -252,114 +254,119 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContactCard(ThemeData theme, double screenWidth, double verticalSpacing) {
-    return Container(
-      padding: EdgeInsets.all(screenWidth * 0.04),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Contact Information',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface,
-            ),
+  Widget _buildContactCard(BuildContext context,ThemeData theme, double screenWidth, double verticalSpacing) {
+    return GestureDetector(
+      onTap: () {
+        context.go(Routes.contactTransactionsF(transaction.otherParty.uid));
+      },
+      child: Container(
+        padding: EdgeInsets.all(screenWidth * 0.04),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
           ),
-          
-          SizedBox(height: verticalSpacing),
-          
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.2),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Contact Information',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            
+            SizedBox(height: verticalSpacing),
+            
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      transaction.otherParty.name.isNotEmpty 
+                          ? transaction.otherParty.name[0].toUpperCase()
+                          : '?',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
-                child: Center(
+                
+                SizedBox(width: screenWidth * 0.04),
+                
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        transaction.otherParty.name,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      
+                      SizedBox(height: verticalSpacing * 0.3),
+                      
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.phone_rounded,
+                            size: 14,
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              transaction.otherParty.phoneNumber,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: _getTransactionColor(theme).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: _getTransactionColor(theme).withValues(alpha: 0.3),
+                    ),
+                  ),
                   child: Text(
-                    transaction.otherParty.name.isNotEmpty 
-                        ? transaction.otherParty.name[0].toUpperCase()
-                        : '?',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: theme.colorScheme.primary,
+                    transaction.isLent ? 'Lent' : 'Borrowed',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: _getTransactionColor(theme),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-              ),
-              
-              SizedBox(width: screenWidth * 0.04),
-              
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      transaction.otherParty.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    
-                    SizedBox(height: verticalSpacing * 0.3),
-                    
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.phone_rounded,
-                          size: 14,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                        const SizedBox(width: 5),
-                        Expanded(
-                          child: Text(
-                            transaction.otherParty.phoneNumber,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                              fontWeight: FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: _getTransactionColor(theme).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: _getTransactionColor(theme).withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Text(
-                  transaction.isLent ? 'Lent' : 'Borrowed',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: _getTransactionColor(theme),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

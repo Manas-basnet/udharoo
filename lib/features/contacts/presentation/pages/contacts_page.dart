@@ -562,7 +562,7 @@ class _ContactsPageState extends State<ContactsPage> {
   }
 
   void _navigateToContactTransactions(Contact contact) {
-    context.push(Routes.contactTransactions, extra: contact);
+    context.push(Routes.contactTransactionsF(contact.contactUserId));
   }
 }
 
