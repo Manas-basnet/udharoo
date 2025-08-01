@@ -63,7 +63,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
           builder: (context, state) {
             return RefreshIndicator(
               onRefresh: () async {
-                context.read<ContactTransactionsCubit>().loadContactTransactions(widget.contact.contactUserId);
+                context.read<ContactTransactionsCubit>().refreshTransactions(widget.contact.contactUserId);
               },
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -580,7 +580,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
             const SizedBox(height: 24),
             OutlinedButton(
               onPressed: () {
-                context.read<ContactTransactionsCubit>().loadContactTransactions(widget.contact.contactUserId);
+                context.read<ContactTransactionsCubit>().refreshTransactions(widget.contact.contactUserId);
               },
               child: const Text('Try Again'),
             ),

@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:udharoo/features/contacts/data/models/contact_model.dart';
-import 'package:udharoo/features/transactions/data/models/transaction_model.dart';
 
 abstract class ContactRemoteDatasource {
   Future<void> saveContact(ContactModel contact);
@@ -9,7 +8,6 @@ abstract class ContactRemoteDatasource {
   Future<ContactModel?> getContactById(String contactId, String userId);
   Future<ContactModel?> getContactByUserId(String contactUserId, String userId);
   Future<void> deleteContact(String contactId, String userId);
-  Future<List<TransactionModel>> getContactTransactions(String contactUserId, String userId);
 }
 
 class ContactRemoteDatasourceImpl implements ContactRemoteDatasource {
@@ -70,20 +68,5 @@ class ContactRemoteDatasourceImpl implements ContactRemoteDatasource {
   @override
   Future<void> deleteContact(String contactId, String userId) async {
     await _getUserContactsCollection(userId).doc(contactId).delete();
-  }
-
-  @override
-  Future<List<TransactionModel>> getContactTransactions(String contactUserId, String userId) async {
-    final snapshot = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .where('otherParty.uid', isEqualTo: contactUserId)
-        .orderBy('createdAt', descending: true)
-        .get();
-
-    return snapshot.docs.map((doc) {
-      return TransactionModel.fromJson(doc.data());
-    }).toList();
   }
 }

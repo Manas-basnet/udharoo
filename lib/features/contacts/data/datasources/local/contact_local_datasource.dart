@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:udharoo/features/contacts/data/models/contact_model.dart';
-import 'package:udharoo/features/transactions/data/models/transaction_model.dart';
 
 abstract class ContactLocalDatasource {
   Future<void> saveContact(ContactModel contact);
@@ -12,13 +11,11 @@ abstract class ContactLocalDatasource {
   Future<void> clearContacts(String userId);
   Future<List<ContactModel>> searchContacts(String query, String userId);
   Future<void> saveContacts(List<ContactModel> contacts, String userId);
-  Future<int> getContactTransactionCount(String contactUserId, String userId);
 }
 
 class ContactLocalDatasourceImpl implements ContactLocalDatasource {
   static const String _contactsKey = 'contacts_';
   static const String _lastSyncKey = 'contacts_last_sync_';
-  static const String _transactionsKey = 'transactions_';
 
   @override
   Future<void> saveContact(ContactModel contact) async {
@@ -97,34 +94,6 @@ class ContactLocalDatasourceImpl implements ContactLocalDatasource {
     await _updateLastSync(userId);
   }
 
-  @override
-  Future<int> getContactTransactionCount(String contactUserId, String userId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final transactionsJson = prefs.getStringList(_getTransactionsKey(userId)) ?? [];
-      
-      if (transactionsJson.isEmpty) return 0;
-      
-      int count = 0;
-      for (final transactionJson in transactionsJson) {
-        try {
-          final Map<String, dynamic> json = jsonDecode(transactionJson);
-          final transaction = TransactionModel.fromJson(json);
-          
-          if (transaction.otherParty.uid == contactUserId) {
-            count++;
-          }
-        } catch (e) {
-          continue;
-        }
-      }
-      
-      return count;
-    } catch (e) {
-      return 0;
-    }
-  }
-
   Future<void> _saveContactsList(List<ContactModel> contacts, String userId) async {
     final prefs = await SharedPreferences.getInstance();
     final contactsJson = contacts.map((contact) => jsonEncode(contact.toJson())).toList();
@@ -138,5 +107,4 @@ class ContactLocalDatasourceImpl implements ContactLocalDatasource {
 
   String _getContactsKey(String userId) => '$_contactsKey$userId';
   String _getLastSyncKey(String userId) => '$_lastSyncKey$userId';
-  String _getTransactionsKey(String userId) => '$_transactionsKey$userId';
 }

@@ -6,8 +6,6 @@ import 'package:udharoo/features/contacts/domain/repositories/contact_repository
 import 'package:udharoo/features/contacts/domain/usecases/add_contact_usecase.dart';
 import 'package:udharoo/features/contacts/domain/usecases/delete_contact_usecase.dart';
 import 'package:udharoo/features/contacts/domain/usecases/get_contact_by_user_id_usecase.dart';
-import 'package:udharoo/features/contacts/domain/usecases/get_contact_transaction_count_usecase.dart';
-import 'package:udharoo/features/contacts/domain/usecases/get_contact_transactions_usecase.dart';
 import 'package:udharoo/features/contacts/domain/usecases/get_contacts_usecase.dart';
 import 'package:udharoo/features/contacts/domain/usecases/search_contacts_usecase.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
@@ -19,8 +17,6 @@ Future<void> initContacts(GetIt sl) async {
   sl.registerLazySingleton(() => AddContactUseCase(sl()));
   sl.registerLazySingleton(() => DeleteContactUseCase(sl()));
   sl.registerLazySingleton(() => GetContactByUserIdUseCase(sl()));
-  sl.registerLazySingleton(() => GetContactTransactionsUseCase(sl()));
-  sl.registerLazySingleton(() => GetContactTransactionCountUseCase(sl()));
 
   sl.registerLazySingleton<ContactRepository>(
     () => ContactRepositoryImpl(
@@ -50,13 +46,12 @@ Future<void> initContacts(GetIt sl) async {
       deleteContactUseCase: sl(),
       getContactByUserIdUseCase: sl(),
       getUserByPhoneUseCase: sl(),
-      getContactTransactionCountUseCase: sl()
     ),
   );
 
   sl.registerFactory(
     () => ContactTransactionsCubit(
-      getContactTransactionsUseCase: sl(),
+      getTransactionsUseCase: sl(),
     ),
   );
 }

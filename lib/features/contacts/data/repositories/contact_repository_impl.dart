@@ -7,7 +7,6 @@ import 'package:udharoo/features/contacts/data/datasources/remote/contact_remote
 import 'package:udharoo/features/contacts/data/models/contact_model.dart';
 import 'package:udharoo/features/contacts/domain/entities/contact.dart';
 import 'package:udharoo/features/contacts/domain/repositories/contact_repository.dart';
-import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 
 class ContactRepositoryImpl extends BaseRepository implements ContactRepository {
   final ContactLocalDatasource _localDatasource;
@@ -139,26 +138,6 @@ class ContactRepositoryImpl extends BaseRepository implements ContactRepository 
       }
 
       return ApiResult.success(null);
-    });
-  }
-
-  @override
-  Future<ApiResult<List<Transaction>>> getContactTransactions(String contactUserId) async {
-    return ExceptionHandler.handleExceptions(() async {
-      if (await networkInfo.isConnected) {
-        final transactions = await _remoteDatasource.getContactTransactions(contactUserId, _currentUserId);
-        return ApiResult.success(transactions.cast<Transaction>());
-      }
-
-      return ApiResult.success(<Transaction>[]);
-    });
-  }
-
-  @override
-  Future<ApiResult<int>> getContactTransactionCount(String contactUserId) async {
-    return ExceptionHandler.handleExceptions(() async {
-      final count = await _localDatasource.getContactTransactionCount(contactUserId, _currentUserId);
-      return ApiResult.success(count);
     });
   }
 }

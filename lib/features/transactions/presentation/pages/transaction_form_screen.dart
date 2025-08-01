@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/features/auth/domain/entities/auth_user.dart';
 import 'package:udharoo/features/contacts/domain/entities/contact.dart';
-import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/qr_transaction_data.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
@@ -216,40 +215,29 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return MultiBlocListener(
-      listeners: [
-        BlocListener<TransactionFormCubit, TransactionFormState>(
-          listener: (context, state) {
-            switch (state) {
-              case TransactionFormSuccess():
-                CustomToast.show(context, message: 'Transaction created successfully', isSuccess: true);
-                if (_selectedUser != null) {
-                  try {
-                    context.read<ContactCubit>().updateContactTransactionCount(_selectedUser!.uid);
-                  } catch (e) {
-                    //TODO
-                  }
-                }
-                context.pop();
-                break;
-              case TransactionFormError():
-                CustomToast.show(context, message: state.message, isSuccess: false);
-                break;
-              case TransactionFormUserNotFound():
-                if (!_isContactPrefilled) {
-                  setState(() {
-                    _selectedUser = null;
-                    _selectedPhoneNumber = null;
-                  });
-                  _updateSubmitButtonState();
-                }
-                break;
-              default:
-                break;
+    return BlocListener<TransactionFormCubit, TransactionFormState>(
+      listener: (context, state) {
+        switch (state) {
+          case TransactionFormSuccess():
+            CustomToast.show(context, message: 'Transaction created successfully', isSuccess: true);
+            context.pop();
+            break;
+          case TransactionFormError():
+            CustomToast.show(context, message: state.message, isSuccess: false);
+            break;
+          case TransactionFormUserNotFound():
+            if (!_isContactPrefilled) {
+              setState(() {
+                _selectedUser = null;
+                _selectedPhoneNumber = null;
+              });
+              _updateSubmitButtonState();
             }
-          },
-        ),
-      ],
+            break;
+          default:
+            break;
+        }
+      },
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(

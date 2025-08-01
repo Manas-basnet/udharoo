@@ -32,16 +32,6 @@ final class ContactLoaded extends ContactState {
   List<Object?> get props => [contacts];
 }
 
-final class ContactTransactionCountUpdated extends ContactState {
-  final List<Contact> contacts;
-  final Map<String, int> transactionCounts;
-
-  const ContactTransactionCountUpdated(this.contacts, this.transactionCounts);
-
-  @override
-  List<Object?> get props => [contacts, transactionCounts];
-}
-
 final class ContactSearchResults extends ContactState {
   final List<Contact> contacts;
   final String query;
@@ -50,17 +40,6 @@ final class ContactSearchResults extends ContactState {
 
   @override
   List<Object?> get props => [contacts, query];
-}
-
-final class ContactSearchTransactionCountUpdated extends ContactState {
-  final List<Contact> contacts;
-  final String query;
-  final Map<String, int> transactionCounts;
-
-  const ContactSearchTransactionCountUpdated(this.contacts, this.query, this.transactionCounts);
-
-  @override
-  List<Object?> get props => [contacts, query, transactionCounts];
 }
 
 final class ContactAddSuccess extends ContactState {

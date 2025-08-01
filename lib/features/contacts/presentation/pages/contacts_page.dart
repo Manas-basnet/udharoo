@@ -66,7 +66,6 @@ class _ContactsPageState extends State<ContactsPage> {
           body: RefreshIndicator(
             onRefresh: () async {
               await context.read<ContactCubit>().loadContacts();
-              await context.read<ContactCubit>().refreshContactTransactionCounts();
             },
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -417,16 +416,14 @@ class _ContactsPageState extends State<ContactsPage> {
 
     if (state is ContactError && 
         state is! ContactSearchResults && 
-        state is! ContactLoaded &&
-        state is! ContactTransactionCountUpdated &&
-        state is! ContactSearchTransactionCountUpdated) {
+        state is! ContactLoaded) {
       return SliverFillRemaining(
         child: _buildErrorState(state.message, theme),
       );
     }
 
     final contacts = _getContactsFromState(state);
-    final isSearchResult = state is ContactSearchResults || state is ContactSearchTransactionCountUpdated;
+    final isSearchResult = state is ContactSearchResults;
 
     if (contacts.isEmpty) {
       return SliverFillRemaining(
@@ -458,8 +455,6 @@ class _ContactsPageState extends State<ContactsPage> {
     return switch (state) {
       ContactLoaded(:final contacts) => contacts,
       ContactSearchResults(:final contacts) => contacts,
-      ContactTransactionCountUpdated(:final contacts) => contacts,
-      ContactSearchTransactionCountUpdated(:final contacts) => contacts,
       _ => <Contact>[],
     };
   }

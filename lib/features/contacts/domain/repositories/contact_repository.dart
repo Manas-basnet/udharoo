@@ -1,6 +1,5 @@
 import 'package:udharoo/core/network/api_result.dart';
 import 'package:udharoo/features/contacts/domain/entities/contact.dart';
-import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 
 abstract class ContactRepository {
   Future<ApiResult<void>> addContact({
@@ -20,8 +19,4 @@ abstract class ContactRepository {
   Future<ApiResult<Contact?>> getContactByUserId(String contactUserId);
 
   Future<ApiResult<void>> deleteContact(String contactId);
-
-  Future<ApiResult<List<Transaction>>> getContactTransactions(String contactUserId);
-
-  Future<ApiResult<int>> getContactTransactionCount(String contactUserId);
 }

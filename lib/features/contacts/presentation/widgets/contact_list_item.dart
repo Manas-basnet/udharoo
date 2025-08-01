@@ -65,30 +65,12 @@ class ContactListItem extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              contact.displayName,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          BlocBuilder<ContactCubit, ContactState>(
-                            builder: (context, state) {
-                              final cubit = context.read<ContactCubit>();
-                              final transactionCount = cubit.getTransactionCount(contact.contactUserId);
-                              
-                              if (transactionCount > 0) {
-                                return _buildTransactionCountChip(theme, transactionCount);
-                              }
-                              return const SizedBox.shrink();
-                            },
-                          ),
-                        ],
+                      Text(
+                        contact.displayName,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -99,31 +81,11 @@ class ContactListItem extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 8),
-                      BlocBuilder<ContactCubit, ContactState>(
-                        builder: (context, state) {
-                          final cubit = context.read<ContactCubit>();
-                          final transactionCount = cubit.getTransactionCount(contact.contactUserId);
-                          
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Last interaction: ${contact.formattedLastInteraction}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                                ),
-                              ),
-                              if (transactionCount > 0)
-                                Text(
-                                  '$transactionCount transaction${transactionCount > 1 ? 's' : ''}',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                            ],
-                          );
-                        },
+                      Text(
+                        'Last interaction: ${contact.formattedLastInteraction}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        ),
                       ),
                     ],
                   ),
@@ -156,26 +118,6 @@ class ContactListItem extends StatelessWidget {
             color: theme.colorScheme.primary,
             fontWeight: FontWeight.w600,
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTransactionCountChip(ThemeData theme, int count) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Text(
-        '$count',
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.primary,
-          fontWeight: FontWeight.w600,
         ),
       ),
     );
