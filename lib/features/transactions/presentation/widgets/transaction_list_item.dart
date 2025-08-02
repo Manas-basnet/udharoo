@@ -23,12 +23,11 @@ class TransactionListItem extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: theme.colorScheme.outline.withValues(alpha: 0.1),
-            width: 1,
-          )
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+          width: 1
         ),
+        borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
             color: theme.shadowColor.withValues(alpha: 0.04),

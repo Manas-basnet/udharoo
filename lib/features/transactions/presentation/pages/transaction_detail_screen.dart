@@ -72,7 +72,7 @@ class TransactionDetailScreen extends StatelessWidget {
 
   Widget _buildAppBar(ThemeData theme, double horizontalPadding) {
     return SliverAppBar(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: theme.scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       pinned: true,
@@ -86,7 +86,6 @@ class TransactionDetailScreen extends StatelessWidget {
       ),
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
-          color: theme.colorScheme.surface,
           padding: EdgeInsets.fromLTRB(
             horizontalPadding, 
             kToolbarHeight + 12, 

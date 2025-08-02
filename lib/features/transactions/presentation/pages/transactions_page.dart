@@ -124,7 +124,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     double horizontalPadding,
   ) {
     return SliverAppBar(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: theme.scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       floating: true,
@@ -230,16 +230,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.colorScheme.primary.withValues(alpha: 0.05),
-              theme.colorScheme.primary.withValues(alpha: 0.02),
-            ],
-          ),
-        ),
         child: Row(
           children: [
             Expanded(
@@ -288,9 +278,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
     return SliverToBoxAdapter(
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-        ),
         child: Row(
           children: [
             Expanded(
@@ -343,7 +330,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
             vertical: 8,
           ),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
+            color: theme.scaffoldBackgroundColor,
             border: Border(
               bottom: BorderSide(
                 color: theme.colorScheme.outline.withValues(alpha: 0.1),
@@ -469,19 +456,25 @@ class _TransactionsPageState extends State<TransactionsPage> {
       );
     }
 
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final transaction = filteredTransactions[index];
-          return GestureDetector(
-            onTap: () => context.push(
-              Routes.transactionDetail,
-              extra: transaction,
-            ),
-            child: TransactionListItem(transaction: transaction),
-          );
-        },
-        childCount: filteredTransactions.length,
+    return SliverPadding(
+      padding: EdgeInsetsGeometry.all(16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final transaction = filteredTransactions[index];
+            return GestureDetector(
+              onTap: () => context.push(
+                Routes.transactionDetail,
+                extra: transaction,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: TransactionListItem(transaction: transaction),
+              ),
+            );
+          },
+          childCount: filteredTransactions.length,
+        ),
       ),
     );
   }

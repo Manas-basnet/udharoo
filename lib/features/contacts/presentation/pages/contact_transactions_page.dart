@@ -115,7 +115,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
 
   Widget _buildSliverAppBar(ThemeData theme, double horizontalPadding, double expandedHeight, ContactTransactionsState state) {
     return SliverAppBar(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: theme.scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       floating: true,
@@ -148,7 +148,6 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
       ],
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
-          color: theme.colorScheme.surface,
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -272,16 +271,6 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.colorScheme.primary.withValues(alpha: 0.05),
-              theme.colorScheme.primary.withValues(alpha: 0.02),
-            ],
-          ),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -351,7 +340,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
             vertical: 8,
           ),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
+            color: theme.scaffoldBackgroundColor,
             border: Border(
               bottom: BorderSide(
                 color: theme.colorScheme.outline.withValues(alpha: 0.1),
@@ -445,16 +434,22 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
       );
     }
 
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final transaction = filteredTransactions[index];
-          return GestureDetector(
-            onTap: () => _navigateToTransactionDetail(transaction),
-            child: TransactionListItem(transaction: transaction),
-          );
-        },
-        childCount: filteredTransactions.length,
+    return SliverPadding(
+      padding:  EdgeInsets.all(horizontalPadding),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final transaction = filteredTransactions[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: GestureDetector(
+                onTap: () => _navigateToTransactionDetail(transaction),
+                child: TransactionListItem(transaction: transaction),
+              ),
+            );
+          },
+          childCount: filteredTransactions.length,
+        ),
       ),
     );
   }

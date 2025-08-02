@@ -37,42 +37,96 @@ class ContactCubit extends Cubit<ContactState> {
         _getContactByUserIdUseCase = getContactByUserIdUseCase,
         _getUserByPhoneUseCase = getUserByPhoneUseCase,
         _firebaseAuth = firebaseAuth,
-        super(const ContactInitial());
+        super(ContactState.initial());
 
   String? get _currentUserPhone => _firebaseAuth.currentUser?.phoneNumber;
 
   Future<void> loadContacts() async {
-    if (!isClosed) {
-      emit(const ContactLoading());
+    if (!isClosed && !state.isInitialized) {
+      emit(state.copyWith(isInitialLoading: true));
     }
 
-    final result = await _getContactsUseCase();
+    try {
+      final result = await _getContactsUseCase();
 
-    if (!isClosed) {
-      result.fold(
-        onSuccess: (contacts) => emit(ContactLoaded(contacts)),
-        onFailure: (message, type) => emit(ContactError(message, type)),
-      );
+      if (!isClosed) {
+        result.fold(
+          onSuccess: (contacts) {
+            emit(state.copyWith(
+              contacts: contacts,
+              isInitialLoading: false,
+              isInitialized: true,
+              searchQuery: null,
+              searchResults: [],
+            ).clearError());
+          },
+          onFailure: (message, type) {
+            emit(state.copyWith(
+              isInitialLoading: false,
+              errorMessage: message,
+              isInitialized: true,
+            ));
+          },
+        );
+      }
+    } catch (error) {
+      if (!isClosed) {
+        emit(state.copyWith(
+          isInitialLoading: false,
+          errorMessage: _getErrorMessage(error),
+          isInitialized: true,
+        ));
+      }
     }
   }
 
   Future<void> searchContacts(String query) async {
-    if (query.trim().isEmpty) {
-      await loadContacts();
+    final trimmedQuery = query.trim();
+    
+    if (trimmedQuery.isEmpty) {
+      emit(state.copyWith(
+        searchQuery: null,
+        searchResults: [],
+      ));
       return;
     }
 
     if (!isClosed) {
-      emit(const ContactSearching());
+      emit(state.copyWith(
+        isSearching: true,
+        searchQuery: trimmedQuery,
+      ).clearError());
     }
 
-    final result = await _searchContactsUseCase(query.trim());
+    try {
+      final result = await _searchContactsUseCase(trimmedQuery);
 
-    if (!isClosed) {
-      result.fold(
-        onSuccess: (contacts) => emit(ContactSearchResults(contacts, query)),
-        onFailure: (message, type) => emit(ContactError(message, type)),
-      );
+      if (!isClosed) {
+        result.fold(
+          onSuccess: (searchResults) {
+            emit(state.copyWith(
+              searchResults: searchResults,
+              isSearching: false,
+              searchQuery: trimmedQuery,
+            ).clearError());
+          },
+          onFailure: (message, type) {
+            emit(state.copyWith(
+              isSearching: false,
+              errorMessage: message,
+              searchResults: [],
+            ));
+          },
+        );
+      }
+    } catch (error) {
+      if (!isClosed) {
+        emit(state.copyWith(
+          isSearching: false,
+          errorMessage: _getErrorMessage(error),
+          searchResults: [],
+        ));
+      }
     }
   }
 
@@ -83,24 +137,57 @@ class ContactCubit extends Cubit<ContactState> {
       return;
     }
 
-    if(_currentUserPhone != null && trimmedPhoneNumber == _currentUserPhone) {
-      emit(ContactError('You cannot create a contact with yourself.', FailureType.validation));
+    if (_currentUserPhone != null && trimmedPhoneNumber == _currentUserPhone) {
+      emit(state.copyWith(
+        errorMessage: 'You cannot create a contact with yourself.',
+        foundUser: null,
+      ));
       return;
     }
 
-    final result = await _getUserByPhoneUseCase(trimmedPhoneNumber);
-
     if (!isClosed) {
-      result.fold(
-        onSuccess: (user) {
-          if (user != null) {
-            emit(ContactUserLookupSuccess(user));
-          } else {
-            emit(const ContactError('User not found.', FailureType.validation));
-          }
-        },
-        onFailure: (message, type) => emit(ContactError(message, type)),
-      );
+      emit(state.copyWith(
+        isLookingUpUser: true,
+        foundUser: null,
+      ).clearError());
+    }
+
+    try {
+      final result = await _getUserByPhoneUseCase(trimmedPhoneNumber);
+
+      if (!isClosed) {
+        result.fold(
+          onSuccess: (user) {
+            if (user != null) {
+              emit(state.copyWith(
+                foundUser: user,
+                isLookingUpUser: false,
+              ).clearError());
+            } else {
+              emit(state.copyWith(
+                errorMessage: 'User not found.',
+                isLookingUpUser: false,
+                foundUser: null,
+              ));
+            }
+          },
+          onFailure: (message, type) {
+            emit(state.copyWith(
+              errorMessage: message,
+              isLookingUpUser: false,
+              foundUser: null,
+            ));
+          },
+        );
+      }
+    } catch (error) {
+      if (!isClosed) {
+        emit(state.copyWith(
+          errorMessage: _getErrorMessage(error),
+          isLookingUpUser: false,
+          foundUser: null,
+        ));
+      }
     }
   }
 
@@ -112,39 +199,78 @@ class ContactCubit extends Cubit<ContactState> {
     String? photoUrl,
   }) async {
     if (!isClosed) {
-      emit(const ContactAdding());
+      emit(state.copyWith(isAdding: true).clearMessages());
     }
 
-    final result = await _addContactUseCase(
-      contactUserId: contactUserId,
-      name: name,
-      phoneNumber: phoneNumber,
-      email: email,
-      photoUrl: photoUrl,
-    );
-
-    if (!isClosed) {
-      result.fold(
-        onSuccess: (_) {
-          emit(const ContactAddSuccess());
-          loadContacts();
-        },
-        onFailure: (message, type) => emit(ContactError(message, type)),
+    try {
+      final result = await _addContactUseCase(
+        contactUserId: contactUserId,
+        name: name,
+        phoneNumber: phoneNumber,
+        email: email,
+        photoUrl: photoUrl,
       );
+
+      if (!isClosed) {
+        result.fold(
+          onSuccess: (_) {
+            emit(state.copyWith(
+              isAdding: false,
+              successMessage: 'Contact added successfully',
+              foundUser: null,
+            ));
+            loadContacts();
+          },
+          onFailure: (message, type) {
+            emit(state.copyWith(
+              isAdding: false,
+              errorMessage: message,
+            ));
+          },
+        );
+      }
+    } catch (error) {
+      if (!isClosed) {
+        emit(state.copyWith(
+          isAdding: false,
+          errorMessage: _getErrorMessage(error),
+        ));
+      }
     }
   }
 
   Future<void> deleteContact(String contactId) async {
-    final result = await _deleteContactUseCase(contactId);
-
     if (!isClosed) {
-      result.fold(
-        onSuccess: (_) {
-          emit(const ContactDeleteSuccess());
-          loadContacts();
-        },
-        onFailure: (message, type) => emit(ContactError(message, type)),
-      );
+      emit(state.copyWith(isDeleting: true).clearMessages());
+    }
+
+    try {
+      final result = await _deleteContactUseCase(contactId);
+
+      if (!isClosed) {
+        result.fold(
+          onSuccess: (_) {
+            emit(state.copyWith(
+              isDeleting: false,
+              successMessage: 'Contact deleted successfully',
+            ));
+            loadContacts();
+          },
+          onFailure: (message, type) {
+            emit(state.copyWith(
+              isDeleting: false,
+              errorMessage: message,
+            ));
+          },
+        );
+      }
+    } catch (error) {
+      if (!isClosed) {
+        emit(state.copyWith(
+          isDeleting: false,
+          errorMessage: _getErrorMessage(error),
+        ));
+      }
     }
   }
 
@@ -159,13 +285,45 @@ class ContactCubit extends Cubit<ContactState> {
 
   void clearSearch() {
     if (!isClosed) {
-      loadContacts();
+      emit(state.copyWith(
+        searchQuery: null,
+        searchResults: [],
+      ));
     }
   }
 
   void clearMessages() {
-    if (!isClosed && (state is ContactAddSuccess || state is ContactDeleteSuccess || state is ContactError)) {
-      loadContacts();
+    if (!isClosed) {
+      emit(state.clearMessages());
     }
+  }
+
+  void clearError() {
+    if (!isClosed) {
+      emit(state.clearError());
+    }
+  }
+
+  void clearSuccess() {
+    if (!isClosed) {
+      emit(state.clearSuccess());
+    }
+  }
+
+  void clearFoundUser() {
+    if (!isClosed) {
+      emit(state.clearFoundUser());
+    }
+  }
+
+  void resetState() {
+    if (!isClosed) {
+      emit(ContactState.initial());
+    }
+  }
+
+  String _getErrorMessage(dynamic error) {
+    if (error is String) return error;
+    return error?.toString() ?? 'An unexpected error occurred';
   }
 }

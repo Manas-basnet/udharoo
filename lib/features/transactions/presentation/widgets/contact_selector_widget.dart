@@ -101,7 +101,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
       if (phone.isNotEmpty) {
         context.read<ContactCubit>().searchContacts(phone);
       } else {
-        context.read<ContactCubit>().loadContacts();
+        context.read<ContactCubit>().clearSearch();
       }
     });
   }
@@ -201,7 +201,6 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // QR Source Indicator
         if (widget.qrSourceIndicator != null) ...[
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -375,69 +374,61 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
   }
 
   Widget _buildContactsDropdown(ContactState state, ThemeData theme) {
-    switch (state) {
-      case ContactLoading():
-      case ContactSearching():
-        return Container(
-          height: 60,
-          padding: const EdgeInsets.all(16),
-          child: const Center(
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        );
-        
-      case ContactLoaded():
-      case ContactSearchResults():
-        final contacts = state is ContactLoaded 
-            ? state.contacts 
-            : (state as ContactSearchResults).contacts;
-            
-        if (contacts.isEmpty) {
-          return Container(
-            height: 60,
-            padding: const EdgeInsets.all(16),
-            child: Center(
-              child: Text(
-                'No contacts found',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
-              ),
-            ),
-          );
-        }
-        
-        return ListView.separated(
-          shrinkWrap: true,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: contacts.length,
-          separatorBuilder: (context, index) => Divider(
-            height: 1,
-            color: theme.colorScheme.outline.withValues(alpha: 0.1),
-          ),
-          itemBuilder: (context, index) {
-            final contact = contacts[index];
-            return _buildContactItem(contact, theme);
-          },
-        );
-        
-      case ContactError():
-        return Container(
-          height: 60,
-          padding: const EdgeInsets.all(16),
-          child: Center(
-            child: Text(
-              'Error loading contacts',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.error,
-              ),
-            ),
-          ),
-        );
-        
-      default:
-        return const SizedBox.shrink();
+    if (state.isSearching || state.isLoading) {
+      return Container(
+        height: 60,
+        padding: const EdgeInsets.all(16),
+        child: const Center(
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
     }
+    
+    if (state.hasError) {
+      return Container(
+        height: 60,
+        padding: const EdgeInsets.all(16),
+        child: Center(
+          child: Text(
+            'Error loading contacts',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+        ),
+      );
+    }
+    
+    final contacts = state.displayContacts;
+    
+    if (contacts.isEmpty) {
+      return Container(
+        height: 60,
+        padding: const EdgeInsets.all(16),
+        child: Center(
+          child: Text(
+            'No contacts found',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+        ),
+      );
+    }
+    
+    return ListView.separated(
+      shrinkWrap: true,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: contacts.length,
+      separatorBuilder: (context, index) => Divider(
+        height: 1,
+        color: theme.colorScheme.outline.withValues(alpha: 0.1),
+      ),
+      itemBuilder: (context, index) {
+        final contact = contacts[index];
+        return _buildContactItem(contact, theme);
+      },
+    );
   }
 
   Widget _buildContactItem(Contact contact, ThemeData theme) {

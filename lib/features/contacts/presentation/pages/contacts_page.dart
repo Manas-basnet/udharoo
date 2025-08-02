@@ -45,19 +45,20 @@ class _ContactsPageState extends State<ContactsPage> {
 
     return BlocConsumer<ContactCubit, ContactState>(
       listener: (context, state) {
-        if (state is ContactDeleteSuccess) {
+        if (state.hasSuccess) {
           CustomToast.show(
             context,
-            message: 'Contact deleted successfully',
+            message: state.successMessage!,
             isSuccess: true,
           );
-          context.read<ContactCubit>().clearMessages();
-        } else if (state is ContactError) {
+          context.read<ContactCubit>().clearSuccess();
+        } else if (state.hasError) {
           CustomToast.show(
             context,
-            message: state.message,
+            message: state.errorMessage!,
             isSuccess: false,
           );
+          context.read<ContactCubit>().clearError();
         }
       },
       builder: (context, state) {
@@ -72,8 +73,8 @@ class _ContactsPageState extends State<ContactsPage> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   _buildSliverAppBar(theme, horizontalPadding, expandedHeight, state),
-                  _buildQuickActions(theme, horizontalPadding),
-                  _buildSearchSection(theme, horizontalPadding),
+                  _buildQuickActions(theme, horizontalPadding, state),
+                  _buildSearchSection(theme, horizontalPadding, state),
                   _buildContactsSliver(state, theme, horizontalPadding),
                 ],
               ),
@@ -96,10 +97,8 @@ class _ContactsPageState extends State<ContactsPage> {
   }
 
   Widget _buildSliverAppBar(ThemeData theme, double horizontalPadding, double expandedHeight, ContactState state) {
-    final contacts = _getContactsFromState(state);
-    
     return SliverAppBar(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: theme.scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       floating: true,
@@ -120,7 +119,8 @@ class _ContactsPageState extends State<ContactsPage> {
           icon: Icons.person_add_rounded,
           tooltip: 'Add Contact',
           theme: theme,
-          onPressed: () => _showAddContactDialog(context),
+          isLoading: state.isAdding,
+          onPressed: state.isAdding ? null : () => _showAddContactDialog(context),
         ),
         const SizedBox(width: 8),
         _buildActionButton(
@@ -135,7 +135,6 @@ class _ContactsPageState extends State<ContactsPage> {
       ],
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
-          color: theme.colorScheme.surface,
           padding: EdgeInsets.fromLTRB(
             horizontalPadding,
             kToolbarHeight + 12,
@@ -184,7 +183,7 @@ class _ContactsPageState extends State<ContactsPage> {
                       ),
                     ),
                     child: Text(
-                      '${contacts.length} contacts',
+                      '${state.contacts.length} contacts',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.w600,
@@ -204,7 +203,8 @@ class _ContactsPageState extends State<ContactsPage> {
     required IconData icon,
     required String tooltip,
     required ThemeData theme,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
+    bool isLoading = false,
   }) {
     Color backgroundColor;
     
@@ -230,34 +230,35 @@ class _ContactsPageState extends State<ContactsPage> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: backgroundColor,
+              color: onPressed == null 
+                  ? backgroundColor.withValues(alpha: 0.5)
+                  : backgroundColor,
               borderRadius: BorderRadius.circular(18),
             ),
-            child: Icon(
-              icon,
-              size: 16,
-              color: Colors.white,
-            ),
+            child: isLoading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Icon(
+                    icon,
+                    size: 16,
+                    color: Colors.white,
+                  ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildQuickActions(ThemeData theme, double horizontalPadding) {
+  Widget _buildQuickActions(ThemeData theme, double horizontalPadding, ContactState state) {
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.colorScheme.primary.withValues(alpha: 0.05),
-              theme.colorScheme.primary.withValues(alpha: 0.02),
-            ],
-          ),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -285,8 +286,9 @@ class _ContactsPageState extends State<ContactsPage> {
                   child: _QuickActionButton(
                     icon: Icons.person_add_rounded,
                     label: 'Add Contact',
-                    onTap: () => _showAddContactDialog(context),
+                    onTap: state.isAdding ? null : () => _showAddContactDialog(context),
                     theme: theme,
+                    isLoading: state.isAdding,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -319,7 +321,7 @@ class _ContactsPageState extends State<ContactsPage> {
     );
   }
 
-  Widget _buildSearchSection(ThemeData theme, double horizontalPadding) {
+  Widget _buildSearchSection(ThemeData theme, double horizontalPadding, ContactState state) {
     return SliverPersistentHeader(
       pinned: true,
       delegate: _SearchSliverDelegate(
@@ -331,7 +333,7 @@ class _ContactsPageState extends State<ContactsPage> {
             vertical: 8,
           ),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
+            color: theme.scaffoldBackgroundColor,
             border: Border(
               bottom: BorderSide(
                 color: theme.colorScheme.outline.withValues(alpha: 0.1),
@@ -339,55 +341,67 @@ class _ContactsPageState extends State<ContactsPage> {
               ),
             ),
           ),
-          child: TextFormField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search contacts...',
-              prefixIcon: const Icon(Icons.search, size: 20),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
-                      onPressed: () {
-                        _searchController.clear();
-                        context.read<ContactCubit>().clearSearch();
-                        setState(() {});
-                      },
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search contacts...',
+                    prefixIcon: state.isSearching
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.search, size: 20),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              _searchController.clear();
+                              context.read<ContactCubit>().clearSearch();
+                              setState(() {});
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: theme.colorScheme.primary,
+                        width: 2,
+                      ),
+                    ),
+                    filled: true,
+                    fillColor: theme.scaffoldBackgroundColor,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  onChanged: (query) {
+                    setState(() {});
+                    if (query.trim().isEmpty) {
+                      context.read<ContactCubit>().clearSearch();
+                    } else {
+                      context.read<ContactCubit>().searchContacts(query);
+                    }
+                  },
                 ),
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.primary,
-                  width: 2,
-                ),
-              ),
-              filled: true,
-              fillColor: theme.scaffoldBackgroundColor,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
-            ),
-            onChanged: (query) {
-              setState(() {});
-              if (query.trim().isEmpty) {
-                context.read<ContactCubit>().clearSearch();
-              } else {
-                context.read<ContactCubit>().searchContacts(query);
-              }
-            },
+            ],
           ),
         ),
       ),
@@ -395,24 +409,16 @@ class _ContactsPageState extends State<ContactsPage> {
   }
 
   Widget _buildContactsSliver(ContactState state, ThemeData theme, double horizontalPadding) {
-    if (state is ContactLoading) {
+    if (state.isLoading) {
       return const SliverFillRemaining(
         child: Center(child: CircularProgressIndicator()),
       );
     }
 
-    if (state is ContactError && 
-        state is! ContactSearchResults && 
-        state is! ContactLoaded) {
-      return SliverFillRemaining(
-        child: _buildErrorState(state.message, theme),
-      );
-    }
+    final displayContacts = state.displayContacts;
+    final isSearchResult = state.isSearchActive;
 
-    final contacts = _getContactsFromState(state);
-    final isSearchResult = state is ContactSearchResults;
-
-    if (contacts.isEmpty) {
+    if (displayContacts.isEmpty) {
       return SliverFillRemaining(
         child: _buildEmptyState(theme, isSearchResult),
       );
@@ -423,27 +429,20 @@ class _ContactsPageState extends State<ContactsPage> {
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) {
-            final contact = contacts[index];
+            final contact = displayContacts[index];
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: ContactListItem(
                 contact: contact,
                 onTap: () => _navigateToContactTransactions(contact),
+                isDeleting: state.isDeleting,
               ),
             );
           },
-          childCount: contacts.length,
+          childCount: displayContacts.length,
         ),
       ),
     );
-  }
-
-  List<Contact> _getContactsFromState(ContactState state) {
-    return switch (state) {
-      ContactLoaded(:final contacts) => contacts,
-      ContactSearchResults(:final contacts) => contacts,
-      _ => <Contact>[],
-    };
   }
 
   Widget _buildEmptyState(ThemeData theme, bool isSearchResult) {
@@ -495,47 +494,6 @@ class _ContactsPageState extends State<ContactsPage> {
     );
   }
 
-  Widget _buildErrorState(String message, ThemeData theme) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: theme.colorScheme.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Something went wrong',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.error,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            OutlinedButton(
-              onPressed: () {
-                context.read<ContactCubit>().loadContacts();
-              },
-              child: const Text('Try Again'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showAddContactDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -556,14 +514,16 @@ class _ContactsPageState extends State<ContactsPage> {
 class _QuickActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final ThemeData theme;
+  final bool isLoading;
 
   const _QuickActionButton({
     required this.icon,
     required this.label,
     required this.onTap,
     required this.theme,
+    this.isLoading = false,
   });
 
   @override
@@ -584,17 +544,27 @@ class _QuickActionButton extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Icon(
-                icon,
-                size: 20,
-                color: theme.colorScheme.primary,
-              ),
+              isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      icon,
+                      size: 20,
+                      color: onTap == null 
+                          ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                          : theme.colorScheme.primary,
+                    ),
               const SizedBox(height: 8),
               Text(
                 label,
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: onTap == null
+                      ? theme.colorScheme.onSurface.withValues(alpha: 0.3)
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 textAlign: TextAlign.center,
               ),

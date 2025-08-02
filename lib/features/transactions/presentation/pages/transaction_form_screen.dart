@@ -244,7 +244,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
           title: Text(_getAppBarTitle()),
-          backgroundColor: theme.colorScheme.surface,
+          backgroundColor: theme.scaffoldBackgroundColor,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
         ),
@@ -261,7 +261,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
                           border: Border(
                             bottom: BorderSide(
                               color: theme.colorScheme.outline.withValues(alpha: 0.1),
@@ -303,7 +302,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
                           border: Border(
                             bottom: BorderSide(
                               color: theme.colorScheme.outline.withValues(alpha: 0.1),
@@ -345,7 +343,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
                           border: Border(
                             bottom: BorderSide(
                               color: theme.colorScheme.outline.withValues(alpha: 0.1),
@@ -393,7 +390,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
                           border: Border(
                             bottom: BorderSide(
                               color: theme.colorScheme.outline.withValues(alpha: 0.1),
@@ -414,6 +410,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: _descriptionController,
+                              textInputAction: TextInputAction.done,
                               decoration: InputDecoration(
                                 hintText: 'What was this for?',
                                 border: OutlineInputBorder(
@@ -451,7 +448,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
                   border: Border(
                     top: BorderSide(
                       color: theme.colorScheme.outline.withValues(alpha: 0.1),

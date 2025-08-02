@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/features/contacts/domain/entities/contact.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
-import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class ContactListItem extends StatelessWidget {
   final Contact contact;
   final VoidCallback? onTap;
+  final bool isDeleting;
 
   const ContactListItem({
     super.key,
     required this.contact,
     this.onTap,
+    this.isDeleting = false,
   });
 
   @override
@@ -41,60 +42,74 @@ class ContactListItem extends StatelessWidget {
       confirmDismiss: (direction) => _showDeleteConfirmation(context),
       onDismissed: (direction) {
         context.read<ContactCubit>().deleteContact(contact.id);
-        CustomToast.show(
-          context, 
-          message: 'Contact deleted', 
-          isSuccess: true,
-        );
       },
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: EdgeInsets.all(dynamicPadding),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: theme.colorScheme.outline.withValues(alpha: 0.1),
-              ),
-            ),
-            child: Row(
-              children: [
-                _buildAvatar(theme),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        contact.displayName,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        contact.phoneNumber,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Last interaction: ${contact.formattedLastInteraction}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ],
-                  ),
+      child: Opacity(
+        opacity: isDeleting ? 0.6 : 1.0,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isDeleting ? null : onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: EdgeInsets.all(dynamicPadding),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.outline.withValues(alpha: 0.1),
                 ),
-              ],
+              ),
+              child: Row(
+                children: [
+                  _buildAvatar(theme),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                contact.displayName,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (isDeleting) ...[
+                              const SizedBox(width: 8),
+                              const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          contact.phoneNumber,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Last interaction: ${contact.formattedLastInteraction}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -129,6 +144,10 @@ class ContactListItem extends StatelessWidget {
 
   Future<bool?> _showDeleteConfirmation(BuildContext context) {
     final theme = Theme.of(context);
+    
+    if (isDeleting) {
+      return Future.value(false);
+    }
     
     return showDialog<bool>(
       context: context,
