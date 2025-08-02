@@ -5,6 +5,8 @@ import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
+import 'package:udharoo/shared/presentation/widgets/status_indicator.dart';
+import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
 class TransactionDetailScreen extends StatelessWidget {
   final Transaction transaction;
@@ -40,7 +42,18 @@ class TransactionDetailScreen extends StatelessWidget {
                   
                   SizedBox(height: cardSpacing),
                   
-                  _buildContactCard(context,theme, screenWidth, verticalSpacing),
+                  StatusIndicator(
+                    transaction: transaction,
+                    isCurrentUserCreator: _isCreatedByCurrentUser(),
+                  ),
+                  
+                  SizedBox(height: cardSpacing),
+                  
+                  _buildWhatHappensNext(theme, screenWidth, verticalSpacing),
+                  
+                  SizedBox(height: cardSpacing),
+                  
+                  _buildContactCard(context, theme, screenWidth, verticalSpacing),
                   
                   SizedBox(height: cardSpacing),
                   
@@ -120,7 +133,7 @@ class TransactionDetailScreen extends StatelessWidget {
                   
                   Expanded(
                     child: Text(
-                      '${transaction.isLent ? 'Lent to' : 'Borrowed from'} ${transaction.otherParty.name}',
+                      '${TransactionDisplayHelper.getTransactionAction(transaction.type)} ${transaction.otherParty.name}',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                         fontWeight: FontWeight.w500,
@@ -130,7 +143,7 @@ class TransactionDetailScreen extends StatelessWidget {
                     ),
                   ),
                   
-                  _buildStatusBadge(theme),
+                  QuickStatusChip(transaction: transaction),
                 ],
               ),
             ],
@@ -140,55 +153,12 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: _getStatusColor(theme).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: _getStatusColor(theme).withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 5,
-            height: 5,
-            decoration: BoxDecoration(
-              color: _getStatusColor(theme),
-              borderRadius: BorderRadius.circular(2.5),
-            ),
-          ),
-          const SizedBox(width: 5),
-          Text(
-            _getStatusText(),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: _getStatusColor(theme),
-              fontWeight: FontWeight.w600,
-              fontSize: 10,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTransactionSummary(ThemeData theme, double screenWidth, double verticalSpacing) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(screenWidth * 0.05),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            _getTransactionColor(theme).withValues(alpha: 0.05),
-            _getTransactionColor(theme).withValues(alpha: 0.02),
-          ],
-        ),
+        color: _getTransactionColor(theme).withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: _getTransactionColor(theme).withValues(alpha: 0.1),
@@ -217,11 +187,21 @@ class TransactionDetailScreen extends StatelessWidget {
           SizedBox(height: verticalSpacing),
           
           Text(
-            'Rs. ${_formatAmount(transaction.amount)}',
+            'Rs. ${TransactionDisplayHelper.formatAmount(transaction.amount)}',
             style: theme.textTheme.headlineLarge?.copyWith(
               fontWeight: FontWeight.w700,
               color: _getTransactionColor(theme),
               fontSize: 32,
+            ),
+          ),
+          
+          SizedBox(height: verticalSpacing * 0.5),
+          
+          Text(
+            TransactionDisplayHelper.getTransactionDirection(transaction.type),
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: _getTransactionColor(theme),
+              fontWeight: FontWeight.w500,
             ),
           ),
           
@@ -253,7 +233,55 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContactCard(BuildContext context,ThemeData theme, double screenWidth, double verticalSpacing) {
+  Widget _buildWhatHappensNext(ThemeData theme, double screenWidth, double verticalSpacing) {
+    return Container(
+      padding: EdgeInsets.all(screenWidth * 0.04),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.help_outline,
+                size: 18,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'What happens next?',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          
+          SizedBox(height: verticalSpacing),
+          
+          Text(
+            TransactionDisplayHelper.getWhatHappensNext(
+              transaction, 
+              _isCreatedByCurrentUser(),
+            ),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContactCard(BuildContext context, ThemeData theme, double screenWidth, double verticalSpacing) {
     return GestureDetector(
       onTap: () {
         context.go(Routes.contactTransactionsF(transaction.otherParty.uid));
@@ -355,12 +383,20 @@ class TransactionDetailScreen extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    transaction.isLent ? 'Lent' : 'Borrowed',
+                    TransactionDisplayHelper.getTransactionDirection(transaction.type),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: _getTransactionColor(theme),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                ),
+                
+                const SizedBox(width: 8),
+                
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 12,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
               ],
             ),
@@ -415,7 +451,7 @@ class TransactionDetailScreen extends StatelessWidget {
             SizedBox(height: verticalSpacing * 0.8),
             _buildDetailRow(
               Icons.verified_rounded,
-              'Verified',
+              'Confirmed',
               _formatDateTime(transaction.verifiedAt!),
               theme,
               verticalSpacing,
@@ -426,7 +462,7 @@ class TransactionDetailScreen extends StatelessWidget {
             SizedBox(height: verticalSpacing * 0.8),
             _buildDetailRow(
               Icons.check_circle_rounded,
-              'Completed',
+              'Marked as Paid',
               _formatDateTime(transaction.completedAt!),
               theme,
               verticalSpacing,
@@ -498,7 +534,7 @@ class TransactionDetailScreen extends StatelessWidget {
     
     if (transaction.verifiedAt != null) {
       events.add({
-        'title': 'Transaction Verified',
+        'title': 'Transaction Confirmed',
         'time': transaction.verifiedAt!,
         'icon': Icons.verified_rounded,
         'color': Colors.green,
@@ -507,7 +543,7 @@ class TransactionDetailScreen extends StatelessWidget {
     
     if (transaction.completedAt != null) {
       events.add({
-        'title': 'Transaction Completed',
+        'title': 'Marked as Paid',
         'time': transaction.completedAt!,
         'icon': Icons.check_circle_rounded,
         'color': Colors.green,
@@ -636,7 +672,7 @@ class TransactionDetailScreen extends StatelessWidget {
     final verifiedDevice = transaction.getDeviceForAction(TransactionStatus.verified);
     if (verifiedDevice != null) {
       deviceInfos.add({
-        'label': 'Verified from',
+        'label': 'Confirmed from',
         'value': transaction.getDeviceDisplayName(verifiedDevice),
       });
     }
@@ -730,10 +766,10 @@ class TransactionDetailScreen extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: () {
                 cubit.verifyTransaction(transaction.transactionId);
-                CustomToast.show(context, message: 'Transaction verified', isSuccess: true);
+                CustomToast.show(context, message: 'Transaction confirmed', isSuccess: true);
               },
               icon: const Icon(Icons.check_rounded, size: 18),
-              label: const Text('Verify'),
+              label: const Text('Confirm'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
@@ -749,7 +785,7 @@ class TransactionDetailScreen extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: () => _showRejectDialog(context, cubit),
               icon: const Icon(Icons.close_rounded, size: 18),
-              label: const Text('Reject'),
+              label: const Text('Decline'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red,
                 side: const BorderSide(color: Colors.red),
@@ -768,10 +804,10 @@ class TransactionDetailScreen extends StatelessWidget {
         child: ElevatedButton.icon(
           onPressed: () {
             cubit.completeTransaction(transaction.transactionId);
-            CustomToast.show(context, message: 'Transaction completed', isSuccess: true);
+            CustomToast.show(context, message: 'Transaction marked as paid', isSuccess: true);
           },
           icon: const Icon(Icons.check_circle_rounded, size: 18),
-          label: const Text('Mark as Completed'),
+          label: const Text('Mark as Paid'),
           style: ElevatedButton.styleFrom(
             backgroundColor: theme.colorScheme.primary,
             foregroundColor: theme.colorScheme.onPrimary,
@@ -812,33 +848,7 @@ class TransactionDetailScreen extends StatelessWidget {
   }
 
   Color _getTransactionColor(ThemeData theme) {
-    return transaction.isLent ? Colors.green : Colors.red;
-  }
-
-  Color _getStatusColor(ThemeData theme) {
-    switch (transaction.status) {
-      case TransactionStatus.pendingVerification:
-        return Colors.orange;
-      case TransactionStatus.verified:
-        return Colors.blue;
-      case TransactionStatus.completed:
-        return Colors.green;
-      case TransactionStatus.rejected:
-        return Colors.red;
-    }
-  }
-
-  String _getStatusText() {
-    switch (transaction.status) {
-      case TransactionStatus.pendingVerification:
-        return 'PENDING';
-      case TransactionStatus.verified:
-        return 'VERIFIED';
-      case TransactionStatus.completed:
-        return 'COMPLETED';
-      case TransactionStatus.rejected:
-        return 'REJECTED';
-    }
+    return transaction.isLent ? Colors.green : Colors.orange;
   }
 
   String _formatDateTime(DateTime dateTime) {
@@ -864,14 +874,6 @@ class TransactionDetailScreen extends StatelessWidget {
     return '$displayHour:$minute $period';
   }
 
-  String _formatAmount(double amount) {
-    String amountStr = amount.toStringAsFixed(0);
-    return amountStr.replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-  }
-
   bool _shouldShowActions() {
     return (transaction.isPending && !_isCreatedByCurrentUser()) ||
            (transaction.isVerified && _canCompleteTransaction());
@@ -894,11 +896,11 @@ class TransactionDetailScreen extends StatelessWidget {
         backgroundColor: theme.colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'Reject Transaction',
+          'Decline Transaction',
           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         content: Text(
-          'Are you sure you want to reject this transaction?',
+          'Are you sure you want to decline this transaction?',
           style: theme.textTheme.bodyMedium,
         ),
         actions: [
@@ -917,7 +919,7 @@ class TransactionDetailScreen extends StatelessWidget {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Reject'),
+            child: const Text('Decline'),
           ),
         ],
       ),

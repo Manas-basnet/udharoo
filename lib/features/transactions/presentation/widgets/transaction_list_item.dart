@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/confirmation_dialog.dart';
+import 'package:udharoo/shared/presentation/widgets/status_indicator.dart';
+import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
 class TransactionListItem extends StatelessWidget {
   final Transaction transaction;
@@ -28,13 +30,6 @@ class TransactionListItem extends StatelessWidget {
           width: 1
         ),
         borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: BlocBuilder<TransactionCubit, TransactionState>(
         builder: (context, state) {
@@ -72,24 +67,13 @@ class TransactionListItem extends StatelessWidget {
                                       maxLines: 1,
                                     ),
                                     const SizedBox(height: 2),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.phone_rounded,
-                                          size: 12,
-                                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Flexible(
-                                          child: Text(
-                                            transaction.otherParty.phoneNumber,
-                                            style: theme.textTheme.bodySmall?.copyWith(
-                                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
+                                    Text(
+                                      _getTransactionDescription(),
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: _getTransactionColor(theme),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ],
                                 ),
@@ -103,7 +87,7 @@ class TransactionListItem extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text(
-                                      'Rs. ${_formatAmount(transaction.amount)}',
+                                      'Rs. ${TransactionDisplayHelper.formatAmount(transaction.amount)}',
                                       style: theme.textTheme.bodyMedium?.copyWith(
                                         color: _getTransactionColor(theme),
                                         fontWeight: FontWeight.w600,
@@ -111,7 +95,10 @@ class TransactionListItem extends StatelessWidget {
                                       textAlign: TextAlign.end,
                                     ),
                                     const SizedBox(height: 2),
-                                    _buildStatusChip(theme),
+                                    QuickStatusChip(
+                                      transaction: transaction,
+                                      compact: true,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -191,49 +178,6 @@ class TransactionListItem extends StatelessWidget {
       decoration: BoxDecoration(
         color: _getTransactionColor(theme),
         borderRadius: BorderRadius.circular(2),
-        boxShadow: [
-          BoxShadow(
-            color: _getTransactionColor(theme).withValues(alpha: 0.3),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusChip(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: _getStatusColor(theme).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: _getStatusColor(theme).withValues(alpha: 0.3),
-          width: 0.5,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 4,
-            height: 4,
-            decoration: BoxDecoration(
-              color: _getStatusColor(theme),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            _getStatusText(),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: _getStatusColor(theme),
-              fontWeight: FontWeight.w600,
-              fontSize: 10,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -276,7 +220,7 @@ class TransactionListItem extends StatelessWidget {
       buttons.addAll([
         Expanded(
           child: _CompactActionButton(
-            label: 'Verify',
+            label: 'Confirm',
             icon: Icons.verified_rounded,
             color: Colors.green,
             onPressed: () => _handleVerifyTransaction(context, cubit),
@@ -285,7 +229,7 @@ class TransactionListItem extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: _CompactActionButton(
-            label: 'Reject',
+            label: 'Decline',
             icon: Icons.cancel_rounded,
             color: Colors.red,
             onPressed: () => _handleRejectTransaction(context, cubit),
@@ -296,7 +240,7 @@ class TransactionListItem extends StatelessWidget {
       buttons.add(
         Expanded(
           child: _CompactActionButton(
-            label: 'Complete',
+            label: 'Mark as Paid',
             icon: Icons.check_circle_rounded,
             color: theme.colorScheme.primary,
             onPressed: () => _handleCompleteTransaction(context, cubit),
@@ -366,42 +310,12 @@ class TransactionListItem extends StatelessWidget {
     }
   }
 
-  String _formatAmount(double amount) {
-    String amountStr = amount.toStringAsFixed(0);
-    return amountStr.replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-  }
-
   Color _getTransactionColor(ThemeData theme) {
-    return transaction.isLent ? Colors.green : Colors.red;
+    return transaction.isLent ? Colors.green : Colors.orange;
   }
 
-  Color _getStatusColor(ThemeData theme) {
-    switch (transaction.status) {
-      case TransactionStatus.pendingVerification:
-        return Colors.orange;
-      case TransactionStatus.verified:
-        return Colors.blue;
-      case TransactionStatus.completed:
-        return Colors.green;
-      case TransactionStatus.rejected:
-        return Colors.red;
-    }
-  }
-
-  String _getStatusText() {
-    switch (transaction.status) {
-      case TransactionStatus.pendingVerification:
-        return 'PENDING';
-      case TransactionStatus.verified:
-        return 'VERIFIED';
-      case TransactionStatus.completed:
-        return 'COMPLETED';
-      case TransactionStatus.rejected:
-        return 'REJECTED';
-    }
+  String _getTransactionDescription() {
+    return TransactionDisplayHelper.getTransactionAction(transaction.type);
   }
 
   String _getFormattedDate() {
@@ -456,8 +370,7 @@ class _CompactActionButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
-          elevation: 2,
-          shadowColor: color.withValues(alpha: 0.3),
+          elevation: 1,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           shape: RoundedRectangleBorder(
