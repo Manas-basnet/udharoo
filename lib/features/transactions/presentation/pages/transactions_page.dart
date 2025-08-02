@@ -7,12 +7,13 @@ import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubi
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_list_item.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_search_delegate.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
+import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
 enum TransactionFilter { 
   all, 
   pending,
-  lent, 
-  borrowed,
+  confirmed, 
+  completed,
 }
 
 class TransactionsPage extends StatefulWidget {
@@ -74,7 +75,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     horizontalPadding,
                   ),
                   _buildSummaryCards(theme, state),
-                  _buildAnalysisSection(theme, horizontalPadding),
+                  _buildQuickInsights(theme, horizontalPadding, state),
                   _buildFilterSection(theme, horizontalPadding, state),
                   _buildTransactionsSliver(state, theme),
                 ],
@@ -135,7 +136,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
       centerTitle: false,
       titleSpacing: horizontalPadding,
       title: Text(
-        'Transactions',
+        'My Transactions',
         style: theme.textTheme.headlineMedium?.copyWith(
           fontWeight: FontWeight.w600,
         ),
@@ -159,8 +160,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
         ),
         const SizedBox(width: 8),
         _buildActionButton(
-          icon: Icons.done_all_rounded,
-          tooltip: 'Completed',
+          icon: Icons.history_rounded,
+          tooltip: 'History',
           theme: theme,
           onPressed: () => context.push(Routes.completedTransactions),
         ),
@@ -181,7 +182,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
       case 'Search':
         backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.9);
         break;
-      case 'Completed':
+      case 'History':
         backgroundColor = Colors.green.withValues(alpha: 0.9);
         break;
       default:
@@ -214,59 +215,76 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   Widget _buildSummaryCards(ThemeData theme, TransactionState state) {
-    double totalLent = 0;
-    double totalBorrowed = 0;
+    double totalTheyOwe = 0;
+    double totalIOwe = 0;
     
     for (final transaction in state.lentTransactions) {
-      totalLent += transaction.amount;
+      totalTheyOwe += transaction.amount;
     }
     
     for (final transaction in state.borrowedTransactions) {
-      totalBorrowed += transaction.amount;
+      totalIOwe += transaction.amount;
     }
 
-    final netAmount = totalLent - totalBorrowed;
+    final netBalance = totalTheyOwe - totalIOwe;
 
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: _SummaryCard(
-                title: 'Total Lent',
-                amount: totalLent,
-                color: Colors.green,
-                icon: Icons.trending_up_rounded,
-              ),
+            Row(
+              children: [
+                Icon(
+                  Icons.account_balance_wallet_outlined,
+                  size: 16,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Your Balance Overview',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ],
             ),
-            Container(
-              width: 1,
-              height: 40,
-              color: theme.colorScheme.outline.withValues(alpha: 0.2),
-            ),
-            Expanded(
-              child: _SummaryCard(
-                title: 'Total Borrowed',
-                amount: totalBorrowed,
-                color: Colors.red,
-                icon: Icons.trending_down_rounded,
-              ),
-            ),
-            Container(
-              width: 1,
-              height: 40,
-              color: theme.colorScheme.outline.withValues(alpha: 0.2),
-            ),
-            Expanded(
-              child: _SummaryCard(
-                title: 'Net Balance',
-                amount: netAmount.abs(),
-                color: netAmount >= 0 ? Colors.green : Colors.red,
-                icon: netAmount >= 0 ? Icons.add_circle_outline : Icons.remove_circle_outline,
-                isNet: true,
-                netPrefix: netAmount >= 0 ? '+' : '-',
-              ),
+            
+            const SizedBox(height: 12),
+            
+            Row(
+              children: [
+                Expanded(
+                  child: _SummaryCard(
+                    title: 'They owe you',
+                    amount: totalTheyOwe,
+                    color: Colors.green,
+                    icon: Icons.trending_up_rounded,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _SummaryCard(
+                    title: 'You owe them',
+                    amount: totalIOwe,
+                    color: Colors.orange,
+                    icon: Icons.trending_down_rounded,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _SummaryCard(
+                    title: TransactionDisplayHelper.getBalanceLabel(netBalance),
+                    amount: netBalance.abs(),
+                    color: netBalance >= 0 ? Colors.green : Colors.orange,
+                    icon: netBalance >= 0 ? Icons.add_circle_outline : Icons.remove_circle_outline,
+                    isNet: true,
+                    netPrefix: netBalance >= 0 ? '+' : '-',
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -274,44 +292,52 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
-  Widget _buildAnalysisSection(ThemeData theme, double horizontalPadding) {
+  Widget _buildQuickInsights(ThemeData theme, double horizontalPadding, TransactionState state) {
+    final pendingCount = state.pendingTransactions.length;
+    final overdueCount = state.transactions.where((t) => 
+      t.isVerified && 
+      DateTime.now().difference(t.verifiedAt ?? t.createdAt).inDays > 30
+    ).length;
+
+    if (pendingCount == 0 && overdueCount == 0) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+
     return SliverToBoxAdapter(
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
         child: Row(
           children: [
-            Expanded(
-              child: _AnalysisButton(
-                icon: Icons.date_range_rounded,
-                label: 'Date Range',
-                onTap: () {
-                  // TODO: Implement date range picker
-                },
-                theme: theme,
+            if (pendingCount > 0) ...[
+              Expanded(
+                child: _InsightCard(
+                  icon: Icons.hourglass_empty,
+                  count: pendingCount,
+                  label: pendingCount == 1 ? 'Needs confirmation' : 'Need confirmation',
+                  color: Colors.orange,
+                  onTap: () {
+                    setState(() {
+                      _selectedFilter = TransactionFilter.pending;
+                    });
+                  },
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _AnalysisButton(
-                icon: Icons.analytics_outlined,
-                label: 'Analytics',
-                onTap: () {
-                  // TODO: Implement analytics view
-                },
-                theme: theme,
+              if (overdueCount > 0) const SizedBox(width: 8),
+            ],
+            if (overdueCount > 0)
+              Expanded(
+                child: _InsightCard(
+                  icon: Icons.schedule,
+                  count: overdueCount,
+                  label: overdueCount == 1 ? 'Long pending' : 'Long pending',
+                  color: Colors.red,
+                  onTap: () {
+                    setState(() {
+                      _selectedFilter = TransactionFilter.confirmed;
+                    });
+                  },
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _AnalysisButton(
-                icon: Icons.filter_list_rounded,
-                label: 'Filters',
-                onTap: () {
-                  // TODO: Implement advanced filters
-                },
-                theme: theme,
-              ),
-            ),
           ],
         ),
       ),
@@ -346,9 +372,9 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 const SizedBox(width: 8),
                 _buildFilterChip('Pending', TransactionFilter.pending, theme, state),
                 const SizedBox(width: 8),
-                _buildFilterChip('Lent', TransactionFilter.lent, theme, state),
+                _buildFilterChip('Confirmed', TransactionFilter.confirmed, theme, state),
                 const SizedBox(width: 8),
-                _buildFilterChip('Borrowed', TransactionFilter.borrowed, theme, state),
+                _buildFilterChip('Completed', TransactionFilter.completed, theme, state),
               ],
             ),
           ),
@@ -457,20 +483,14 @@ class _TransactionsPageState extends State<TransactionsPage> {
     }
 
     return SliverPadding(
-      padding: EdgeInsetsGeometry.all(16),
+      padding: const EdgeInsets.all(16),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final transaction = filteredTransactions[index];
-            return GestureDetector(
-              onTap: () => context.push(
-                Routes.transactionDetail,
-                extra: transaction,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
-                child: TransactionListItem(transaction: transaction),
-              ),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: TransactionListItem(transaction: transaction),
             );
           },
           childCount: filteredTransactions.length,
@@ -491,13 +511,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
         transactions = state.pendingTransactions
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
-      case TransactionFilter.lent:
-        transactions = state.lentTransactions
+      case TransactionFilter.confirmed:
+        transactions = state.transactions.where((t) => t.isVerified).toList()
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
-      case TransactionFilter.borrowed:
-        transactions = state.borrowedTransactions
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      case TransactionFilter.completed:
+        transactions = state.completedTransactions
+          ..sort((a, b) => (b.completedAt ?? b.createdAt).compareTo(a.completedAt ?? a.createdAt));
         break;
     }
 
@@ -512,23 +532,23 @@ class _TransactionsPageState extends State<TransactionsPage> {
     switch (_selectedFilter) {
       case TransactionFilter.all:
         message = 'No transactions yet';
-        subtitle = 'Create your first transaction to get started';
+        subtitle = 'Your transactions will appear here';
         icon = Icons.receipt_long_outlined;
         break;
       case TransactionFilter.pending:
-        message = 'All caught up!';
-        subtitle = 'No pending transactions require your attention';
+        message = 'All caught up! ✨';
+        subtitle = 'No transactions need your attention';
         icon = Icons.check_circle_outline;
         break;
-      case TransactionFilter.lent:
-        message = 'No lending records';
-        subtitle = 'Money you lend will appear here';
-        icon = Icons.trending_up;
+      case TransactionFilter.confirmed:
+        message = 'No confirmed transactions';
+        subtitle = 'Confirmed transactions waiting for payment will appear here';
+        icon = Icons.verified_outlined;
         break;
-      case TransactionFilter.borrowed:
-        message = 'No borrowing records';
-        subtitle = 'Money you borrow will appear here';
-        icon = Icons.trending_down;
+      case TransactionFilter.completed:
+        message = 'No completed transactions';
+        subtitle = 'Completed transactions will appear here';
+        icon = Icons.history_rounded;
         break;
     }
 
@@ -629,29 +649,24 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+        ),
+      ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: color.withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 20,
-            ),
+          Icon(
+            icon,
+            color: color,
+            size: 18,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             title,
             style: theme.textTheme.bodySmall?.copyWith(
@@ -659,7 +674,7 @@ class _SummaryCard extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
@@ -669,7 +684,7 @@ class _SummaryCard extends StatelessWidget {
               textAlign: TextAlign.center,
               text: TextSpan(
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   color: color,
                 ),
                 children: [
@@ -677,12 +692,12 @@ class _SummaryCard extends StatelessWidget {
                     TextSpan(
                       text: netPrefix,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                         color: color,
                       ),
                     ),
                   const TextSpan(text: 'Rs. '),
-                  TextSpan(text: _formatAmount(amount)),
+                  TextSpan(text: TransactionDisplayHelper.formatAmount(amount)),
                 ],
               ),
             ),
@@ -691,63 +706,78 @@ class _SummaryCard extends StatelessWidget {
       ),
     );
   }
-
-  String _formatAmount(double amount) {
-    String amountStr = amount.toStringAsFixed(0);
-    return amountStr.replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-  }
 }
 
-class _AnalysisButton extends StatelessWidget {
+class _InsightCard extends StatelessWidget {
   final IconData icon;
+  final int count;
   final String label;
+  final Color color;
   final VoidCallback onTap;
-  final ThemeData theme;
 
-  const _AnalysisButton({
+  const _InsightCard({
     required this.icon,
+    required this.count,
     required this.label,
+    required this.color,
     required this.onTap,
-    required this.theme,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: theme.colorScheme.outline.withValues(alpha: 0.2),
+              color: color.withValues(alpha: 0.2),
             ),
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 16,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(16),
                 ),
+                child: Icon(icon, color: color, size: 16),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      count.toString(),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: color,
+                      ),
+                    ),
+                    Text(
+                      label,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 12,
+                color: color.withValues(alpha: 0.7),
               ),
             ],
           ),

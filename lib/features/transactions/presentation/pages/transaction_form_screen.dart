@@ -13,10 +13,12 @@ import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
 class TransactionFormExtra {
   final QRTransactionData? qrData;
+  final Contact? prefilledContact;
   final TransactionType? initialTransactionType;
 
   TransactionFormExtra({
     this.qrData,
+    this.prefilledContact,
     this.initialTransactionType,
   });
 }
@@ -64,7 +66,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     } else if (widget.prefilledContact != null) {
       _initializeFromContact(widget.prefilledContact!);
     } else if (widget.initialTransactionType != null) {
-      _selectedType = widget.initialTransactionType;
+      _initializeFromType(widget.initialTransactionType!);
     }
   }
 
@@ -129,6 +131,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     _updateSubmitButtonState();
   }
 
+  void _initializeFromType(TransactionType type) {
+    setState(() {
+      _selectedType = type;
+    });
+    _updateSubmitButtonState();
+  }
+
   TransactionType _getConstrainedTransactionType(TransactionType constraint) {
     switch (constraint) {
       case TransactionType.lent:
@@ -151,7 +160,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     }
   }
 
-  void _onUserSelected(AuthUser? user, String? phoneNumber) {
+  void _onUserSelected(AuthUser? user, String? phoneNumber,TransactionType? type) {
     setState(() {
       _selectedUser = user;
       _selectedPhoneNumber = phoneNumber;

@@ -44,10 +44,10 @@ class _QuickTransactionDialogState extends State<QuickTransactionDialog> {
     Navigator.of(context).pop();
     context.go(
       Routes.transactionForm,
-      extra: {
-        'prefilledContact': contact,
-        'initialTransactionType': widget.preSelectedType,
-      },
+      extra: TransactionFormExtra(
+        initialTransactionType: widget.preSelectedType,
+        prefilledContact: contact,
+      ),
     );
   }
 

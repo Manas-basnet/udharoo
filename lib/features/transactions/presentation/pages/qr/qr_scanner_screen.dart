@@ -84,17 +84,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     }
   }
 
-  void _showManualInputDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => _ManualInputDialog(
-        onSubmit: (qrCode) {
-          _processQRCode(qrCode);
-        },
-      ),
-    );
-  }
-
   void _resetScanning() {
     setState(() {
       _isScanning = true;
@@ -114,11 +103,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          IconButton(
-            onPressed: _showManualInputDialog,
-            icon: const Icon(Icons.keyboard, color: Colors.white),
-            tooltip: 'Enter manually',
-          ),
           if (_hasPermission)
             IconButton(
               onPressed: _toggleFlash,
@@ -126,7 +110,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 _flashOn ? Icons.flash_on : Icons.flash_off,
                 color: Colors.white,
               ),
-              tooltip: _flashOn ? 'Turn off flash' : 'Turn on flash',
             ),
         ],
       ),
@@ -142,7 +125,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             case QRScannerError():
               CustomToast.show(
                 context,
-                message: state.message,
+                message: 'Invalid QR code. Please try again.',
                 isSuccess: false,
               );
               Future.delayed(const Duration(seconds: 2), () {
@@ -168,7 +151,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               
               _buildScannerOverlay(state, theme),
               
-              _buildBottomControls(state, theme),
+              _buildInstructions(state, theme),
             ],
           );
         },
@@ -183,46 +166,54 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.camera_alt_outlined,
-              size: 80,
-              color: Colors.white.withValues(alpha: 0.7),
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: Icon(
+                Icons.camera_alt_outlined,
+                size: 50,
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
             ),
+            
             const SizedBox(height: 24),
+            
             Text(
-              'Camera Permission Required',
-              style: theme.textTheme.titleLarge?.copyWith(
+              'Camera Access Needed',
+              style: theme.textTheme.headlineSmall?.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
             ),
+            
             const SizedBox(height: 16),
+            
             Text(
-              'To scan QR codes, please allow camera access in your device settings.',
+              'To scan QR codes, we need access to your camera. Please enable camera permission in settings.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: Colors.white.withValues(alpha: 0.8),
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: () async {
-                await openAppSettings();
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Open Settings'),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: _showManualInputDialog,
-              child: Text(
-                'Enter QR Code Manually',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.8),
+            
+            const SizedBox(height: 32),
+            
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () async {
+                  await openAppSettings();
+                },
+                icon: const Icon(Icons.settings),
+                label: const Text('Open Settings'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
               ),
             ),
@@ -236,195 +227,184 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     return Container(
       decoration: ShapeDecoration(
         shape: QRScannerOverlayShape(
-          borderColor: theme.colorScheme.primary,
-          borderRadius: 16,
-          borderLength: 30,
+          borderColor: _getBorderColor(state),
+          borderRadius: 20,
+          borderLength: 40,
           borderWidth: 4,
           cutOutSize: 280,
         ),
       ),
-      child: Container(
-        width: double.infinity,
-        height: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          children: [
-            // Top instruction
-            const SizedBox(height: 120),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                _isScanning ? 'Position QR code within the frame' : 'Processing...',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            
-            const Spacer(),
-            
-            // Status message at bottom
-            if (state is QRScannerLoading)
-              Container(
-                margin: const EdgeInsets.only(bottom: 200),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    const CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Validating QR code...',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-            if (state is QRScannerError)
-              Container(
-                margin: const EdgeInsets.only(bottom: 200),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      color: Colors.white,
-                      size: 32,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Invalid QR Code',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      state.message,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      ),
     );
   }
 
-  Widget _buildBottomControls(QRScannerState state, ThemeData theme) {
+  Widget _buildInstructions(QRScannerState state, ThemeData theme) {
     return Positioned(
-      bottom: 0,
+      top: 0,
       left: 0,
       right: 0,
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.8),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      bottom: 0,
+      child: Column(
+        children: [
+          const SizedBox(height: 120),
+          
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Text(
+              _getInstructionText(state),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          
+          const Spacer(),
+          
+          if (state is QRScannerLoading)
+            Container(
+              margin: const EdgeInsets.only(bottom: 120),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildControlButton(
-                    icon: Icons.keyboard,
-                    label: 'Manual Input',
-                    onPressed: _showManualInputDialog,
-                    theme: theme,
+                  const CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
                   ),
-                  if (state is QRScannerError)
-                    _buildControlButton(
-                      icon: Icons.refresh,
-                      label: 'Try Again',
-                      onPressed: _resetScanning,
-                      theme: theme,
+                  const SizedBox(height: 12),
+                  Text(
+                    'Processing QR code...',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white,
                     ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Point your camera at a Udharoo QR code to scan',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.7),
-                ),
-                textAlign: TextAlign.center,
+            ),
+            
+          if (state is QRScannerError)
+            Container(
+              margin: const EdgeInsets.only(bottom: 120),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(16),
               ),
-            ],
-          ),
-        ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Invalid QR Code',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Please scan a valid Udharoo QR code',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: _resetScanning,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white),
+                      ),
+                      child: const Text('Try Again'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          
+          if (state is! QRScannerLoading && state is! QRScannerError)
+            Container(
+              margin: const EdgeInsets.only(bottom: 60),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.qr_code_scanner,
+                          color: Colors.white.withValues(alpha: 0.8),
+                          size: 32,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Position the QR code within the frame',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Make sure the QR code is clearly visible and well-lit',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.7),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
 
-  Widget _buildControlButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-    required ThemeData theme,
-  }) {
-    return Column(
-      children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: theme.colorScheme.primary,
-              width: 2,
-            ),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(28),
-              onTap: onPressed,
-              child: Icon(
-                icon,
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
+  Color _getBorderColor(QRScannerState state) {
+    if (state is QRScannerError) {
+      return Colors.red;
+    } else if (state is QRScannerLoading) {
+      return Colors.orange;
+    } else {
+      return Colors.green;
+    }
+  }
+
+  String _getInstructionText(QRScannerState state) {
+    if (state is QRScannerLoading) {
+      return 'Processing...';
+    } else if (state is QRScannerError) {
+      return 'Invalid QR code';
+    } else {
+      return 'Point camera at someone\'s Udharoo QR code';
+    }
   }
 }
 
@@ -488,7 +468,6 @@ class QRScannerOverlayShape extends ShapeBorder {
       ..style = PaintingStyle.stroke
       ..strokeWidth = borderWidth;
 
-    // Center the cutout properly
     final cutOutRect = Rect.fromCenter(
       center: Offset(width / 2, height / 2),
       width: cutOutSize,
@@ -502,27 +481,22 @@ class QRScannerOverlayShape extends ShapeBorder {
 
     canvas.drawPath(backgroundPath, backgroundPaint);
 
-    // Draw corner borders
     final path = Path()
-      // Top left
       ..moveTo(cutOutRect.left, cutOutRect.top + borderLength)
       ..lineTo(cutOutRect.left, cutOutRect.top + borderRadius)
       ..quadraticBezierTo(cutOutRect.left, cutOutRect.top,
           cutOutRect.left + borderRadius, cutOutRect.top)
       ..lineTo(cutOutRect.left + borderLength, cutOutRect.top)
-      // Top right
       ..moveTo(cutOutRect.right - borderLength, cutOutRect.top)
       ..lineTo(cutOutRect.right - borderRadius, cutOutRect.top)
       ..quadraticBezierTo(cutOutRect.right, cutOutRect.top,
           cutOutRect.right, cutOutRect.top + borderRadius)
       ..lineTo(cutOutRect.right, cutOutRect.top + borderLength)
-      // Bottom right
       ..moveTo(cutOutRect.right, cutOutRect.bottom - borderLength)
       ..lineTo(cutOutRect.right, cutOutRect.bottom - borderRadius)
       ..quadraticBezierTo(cutOutRect.right, cutOutRect.bottom,
           cutOutRect.right - borderRadius, cutOutRect.bottom)
       ..lineTo(cutOutRect.right - borderLength, cutOutRect.bottom)
-      // Bottom left
       ..moveTo(cutOutRect.left + borderLength, cutOutRect.bottom)
       ..lineTo(cutOutRect.left + borderRadius, cutOutRect.bottom)
       ..quadraticBezierTo(cutOutRect.left, cutOutRect.bottom,
@@ -538,102 +512,6 @@ class QRScannerOverlayShape extends ShapeBorder {
       borderColor: borderColor,
       borderWidth: borderWidth,
       overlayColor: overlayColor,
-    );
-  }
-}
-
-class _ManualInputDialog extends StatefulWidget {
-  final Function(String) onSubmit;
-
-  const _ManualInputDialog({required this.onSubmit});
-
-  @override
-  State<_ManualInputDialog> createState() => _ManualInputDialogState();
-}
-
-class _ManualInputDialogState extends State<_ManualInputDialog> {
-  final _textController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return AlertDialog(
-      backgroundColor: theme.colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      title: Text(
-        'Enter QR Code Manually',
-        style: theme.textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Paste or type the QR code data received from someone:',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _textController,
-              decoration: InputDecoration(
-                hintText: 'Paste QR code data here...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                filled: true,
-                fillColor: theme.scaffoldBackgroundColor,
-              ),
-              maxLines: 3,
-              validator: (value) {
-                if (value?.trim().isEmpty ?? true) {
-                  return 'Please enter QR code data';
-                }
-                return null;
-              },
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(
-            'Cancel',
-            style: TextStyle(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-        ),
-        FilledButton(
-          onPressed: () {
-            if (_formKey.currentState?.validate() ?? false) {
-              Navigator.of(context).pop();
-              widget.onSubmit(_textController.text.trim());
-            }
-          },
-          style: FilledButton.styleFrom(
-            backgroundColor: theme.colorScheme.primary,
-            foregroundColor: theme.colorScheme.onPrimary,
-          ),
-          child: const Text('Process'),
-        ),
-      ],
     );
   }
 }

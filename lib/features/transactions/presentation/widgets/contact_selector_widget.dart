@@ -5,14 +5,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/features/auth/domain/entities/auth_user.dart';
 import 'package:udharoo/features/contacts/domain/entities/contact.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
+import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
+import 'package:udharoo/shared/services/smart_suggestions_service.dart';
 
 class ContactSelectorWidget extends StatefulWidget {
   final TextEditingController phoneController;
   final TextEditingController nameController;
   final String? Function(String?)? phoneValidator;
   final String? Function(String?)? nameValidator;
-  final Function(AuthUser?, String?)? onUserSelected;
+  final Function(AuthUser?, String?, TransactionType?)? onUserSelected;
   final bool readOnly;
   final String? qrSourceIndicator;
 
@@ -39,6 +42,8 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   bool _showSuggestions = false;
+  List<Contact> _recentContacts = [];
+  TransactionType? _suggestedType;
 
   @override
   void initState() {
@@ -63,6 +68,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         context.read<ContactCubit>().loadContacts();
+        _loadRecentContacts();
       });
     }
   }
@@ -77,6 +83,30 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
     _debounceTimer?.cancel();
     _animationController.dispose();
     super.dispose();
+  }
+
+  void _loadRecentContacts() {
+    final transactionState = context.read<TransactionCubit>().state;
+    final recentContactIds = SmartSuggestionsService.getRecentContacts(
+      transactionState.transactions,
+      limit: 5,
+    );
+    
+    final contactState = context.read<ContactCubit>().state;
+    final recentContacts = <Contact>[];
+    
+    for (final contactId in recentContactIds) {
+      final contact = contactState.contacts
+          .where((c) => c.contactUserId == contactId)
+          .firstOrNull;
+      if (contact != null) {
+        recentContacts.add(contact);
+      }
+    }
+    
+    setState(() {
+      _recentContacts = recentContacts;
+    });
   }
 
   void _onFocusChanged() {
@@ -112,14 +142,21 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
       formattedPhone = '+977$formattedPhone';
     }
     
+    final transactionState = context.read<TransactionCubit>().state;
+    final suggestedType = SmartSuggestionsService.suggestTransactionType(
+      user.uid,
+      transactionState.transactions,
+    );
+    
     setState(() {
       _selectedUser = user;
+      _suggestedType = suggestedType;
     });
     
     widget.nameController.text = user.displayName ?? user.fullName ?? '';
     
     if (widget.onUserSelected != null) {
-      widget.onUserSelected!(user, formattedPhone);
+      widget.onUserSelected!(user, formattedPhone, suggestedType);
     }
     
     _hideContactsDropdown();
@@ -141,23 +178,25 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
   void _clearSelectedUser() {
     setState(() {
       _selectedUser = null;
+      _suggestedType = null;
     });
     
     widget.nameController.clear();
     
     if (widget.onUserSelected != null) {
-      widget.onUserSelected!(null, null);
+      widget.onUserSelected!(null, null, null);
     }
   }
 
   void _editPhoneNumber() {
     setState(() {
       _selectedUser = null;
+      _suggestedType = null;
     });
     widget.nameController.clear();
     context.read<TransactionFormCubit>().clearUserLookup();
     if (widget.onUserSelected != null) {
-      widget.onUserSelected!(null, null);
+      widget.onUserSelected!(null, null, null);
     }
   }
 
@@ -232,6 +271,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
           ),
           const SizedBox(height: 8),
         ],
+        
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(6),
@@ -296,7 +336,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
                 FadeTransition(
                   opacity: _fadeAnimation,
                   child: Container(
-                    constraints: const BoxConstraints(maxHeight: 200),
+                    constraints: const BoxConstraints(maxHeight: 300),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surface,
                       borderRadius: const BorderRadius.only(
@@ -369,6 +409,11 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
             readOnly: true,
           ),
         ],
+        
+        if (_suggestedType != null && _selectedUser != null) ...[
+          const SizedBox(height: 12),
+          _buildSmartSuggestion(theme),
+        ],
       ],
     );
   }
@@ -399,39 +444,79 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
       );
     }
     
-    final contacts = state.displayContacts;
+    final searchQuery = widget.phoneController.text.trim();
+    final displayContacts = searchQuery.isEmpty ? _recentContacts : state.displayContacts;
     
-    if (contacts.isEmpty) {
+    if (displayContacts.isEmpty) {
       return Container(
-        height: 60,
+        height: 80,
         padding: const EdgeInsets.all(16),
-        child: Center(
-          child: Text(
-            'No contacts found',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              searchQuery.isEmpty ? Icons.history : Icons.search_off,
+              size: 24,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
-          ),
+            const SizedBox(height: 8),
+            Text(
+              searchQuery.isEmpty ? 'No recent contacts' : 'No contacts found',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
         ),
       );
     }
     
-    return ListView.separated(
-      shrinkWrap: true,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: contacts.length,
-      separatorBuilder: (context, index) => Divider(
-        height: 1,
-        color: theme.colorScheme.outline.withValues(alpha: 0.1),
-      ),
-      itemBuilder: (context, index) {
-        final contact = contacts[index];
-        return _buildContactItem(contact, theme);
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (searchQuery.isEmpty && _recentContacts.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.history,
+                  size: 14,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Recent contacts',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        
+        Flexible(
+          child: ListView.separated(
+            shrinkWrap: true,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: displayContacts.length,
+            separatorBuilder: (context, index) => Divider(
+              height: 1,
+              color: theme.colorScheme.outline.withValues(alpha: 0.1),
+            ),
+            itemBuilder: (context, index) {
+              final contact = displayContacts[index];
+              return _buildContactItem(contact, theme, searchQuery.isEmpty);
+            },
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildContactItem(Contact contact, ThemeData theme) {
+  Widget _buildContactItem(Contact contact, ThemeData theme, bool isRecentContact) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -468,26 +553,41 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      contact.displayName,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
                     Row(
                       children: [
                         Expanded(
                           child: Text(
-                            contact.phoneNumber,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            contact.displayName,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        if (isRecentContact)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Recent',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.green,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
                       ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      contact.phoneNumber,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
                     ),
                   ],
                 ),
@@ -582,7 +682,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'User Found: ${state.user.displayName ?? state.user.fullName ?? 'Unknown'}',
+                    'Contact found: ${state.user.displayName ?? state.user.fullName ?? 'Unknown'}',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w500,
                       color: Colors.green.shade700,
@@ -625,7 +725,7 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'User not found. This phone number is not registered on Udharoo.',
+                'Contact not found. This phone number is not registered on Udharoo.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
                   color: Colors.red.shade700,
@@ -638,5 +738,39 @@ class _ContactSelectorWidgetState extends State<ContactSelectorWidget>
     }
     
     return const SizedBox.shrink();
+  }
+
+  Widget _buildSmartSuggestion(ThemeData theme) {
+    final typeText = _suggestedType == TransactionType.lent ? 'give money' : 'receive money';
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.blue.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.lightbulb_outline,
+            size: 16,
+            color: Colors.blue.shade600,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Smart suggestion: You usually $typeText with ${_selectedUser?.displayName ?? 'this contact'}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.blue.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

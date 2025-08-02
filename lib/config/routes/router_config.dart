@@ -111,12 +111,9 @@ class AppRouter {
                           TransactionType? initialTransactionType;
 
                           final extra = state.extra;
-                          if (extra is Map<String, dynamic>) {
-                            qrData = extra['qrData'] as QRTransactionData?;
-                            prefilledContact = extra['prefilledContact'] as Contact?;
-                            initialTransactionType = extra['initialTransactionType'] as TransactionType?;
-                          } else if (extra is TransactionFormExtra) {
+                          if (extra is TransactionFormExtra) {
                             qrData = extra.qrData;
+                            prefilledContact = extra.prefilledContact;
                             initialTransactionType = extra.initialTransactionType;
                           }
 
