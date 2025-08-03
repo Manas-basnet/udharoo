@@ -49,26 +49,28 @@ class _LentTransactionsPageState extends State<LentTransactionsPage> {
         _handleStateChanges(context, state);
       },
       builder: (context, state) {
-        return Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          body: RefreshIndicator(
-            onRefresh: () async {
-              context.read<TransactionCubit>().loadTransactions();
-            },
-            child: CustomScrollView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                _buildSliverAppBar(
-                  theme, 
-                  state, 
-                  expandedHeight, 
-                  horizontalPadding,
-                ),
-                _buildSummaryCards(theme, state),
-                _buildFilterSection(theme, horizontalPadding, state),
-                _buildTransactionsSliver(state, theme),
-              ],
+        return SafeArea(
+          child: Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            body: RefreshIndicator(
+              onRefresh: () async {
+                context.read<TransactionCubit>().loadTransactions();
+              },
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  _buildSliverAppBar(
+                    theme, 
+                    state, 
+                    expandedHeight, 
+                    horizontalPadding,
+                  ),
+                  _buildSummaryCards(theme, state),
+                  _buildFilterSection(theme, horizontalPadding, state),
+                  _buildTransactionsSliver(state, theme),
+                ],
+              ),
             ),
           ),
         );
@@ -114,7 +116,7 @@ class _LentTransactionsPageState extends State<LentTransactionsPage> {
     double horizontalPadding,
   ) {
     return SliverAppBar(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: theme.scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       floating: true,
@@ -154,7 +156,7 @@ class _LentTransactionsPageState extends State<LentTransactionsPage> {
           icon: Icons.trending_down_rounded,
           tooltip: 'Borrowed',
           theme: theme,
-          onPressed: () => context.pushReplacement('/transactions/borrowed'),
+          onPressed: () => context.pushReplacement(Routes.borrowedTransactions),
         ),
         SizedBox(width: horizontalPadding),
       ],
@@ -219,16 +221,6 @@ class _LentTransactionsPageState extends State<LentTransactionsPage> {
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.green.withValues(alpha: 0.05),
-              Colors.green.withValues(alpha: 0.02),
-            ],
-          ),
-        ),
         child: Row(
           children: [
             Expanded(

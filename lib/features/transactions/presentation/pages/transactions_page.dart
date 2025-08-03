@@ -159,10 +159,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
         ),
         const SizedBox(width: 8),
         _buildActionButton(
-          icon: Icons.history_rounded,
-          tooltip: 'History',
+          icon: Icons.delete_forever,
+          tooltip: 'Rejected Transactions',
           theme: theme,
-          onPressed: () => context.push(Routes.completedTransactions),
+          onPressed: () => context.push(Routes.rejectedTransactions),
         ),
         SizedBox(width: horizontalPadding),
       ],
@@ -181,8 +181,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
       case 'Search':
         backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.9);
         break;
-      case 'History':
-        backgroundColor = Colors.green.withValues(alpha: 0.9);
+      case 'Rejected Transactions':
+        backgroundColor = Colors.red.withValues(alpha: 0.9);
         break;
       default:
         backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.9);

@@ -7,6 +7,7 @@ import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubi
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_list_item.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_search_delegate.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
+import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
 enum TransactionFilter { 
   all, 
@@ -47,27 +48,28 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
         _handleStateChanges(context, state);
       },
       builder: (context, state) {
-        return Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          body: RefreshIndicator(
-            onRefresh: () async {
-              context.read<TransactionCubit>().loadTransactions();
-            },
-            child: CustomScrollView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                _buildSliverAppBar(
-                  theme, 
-                  state, 
-                  expandedHeight, 
-                  horizontalPadding,
-                ),
-                _buildSummaryCards(theme, state),
-                _buildAnalysisSection(theme, horizontalPadding),
-                _buildFilterSection(theme, horizontalPadding, state),
-                _buildTransactionsSliver(state, theme),
-              ],
+        return SafeArea(
+          child: Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            body: RefreshIndicator(
+              onRefresh: () async {
+                context.read<TransactionCubit>().loadTransactions();
+              },
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  _buildSliverAppBar(
+                    theme, 
+                    state, 
+                    expandedHeight, 
+                    horizontalPadding,
+                  ),
+                  _buildSummaryCards(theme, state),
+                  _buildFilterSection(theme, horizontalPadding, state),
+                  _buildTransactionsSliver(state, theme),
+                ],
+              ),
             ),
           ),
         );
@@ -113,7 +115,7 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
     double horizontalPadding,
   ) {
     return SliverAppBar(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: theme.scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       floating: true,
@@ -123,7 +125,7 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
       centerTitle: false,
       titleSpacing: horizontalPadding,
       title: Text(
-        'Rejected Transactions',
+        'Declined Transactions',
         style: theme.textTheme.headlineMedium?.copyWith(
           fontWeight: FontWeight.w600,
         ),
@@ -142,18 +144,11 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
                 context: context,
                 delegate: TransactionSearchDelegate(
                   transactions: rejectedTransactions,
-                  searchType: 'rejected',
+                  searchType: 'declined',
                 ),
               );
             }
           },
-        ),
-        const SizedBox(width: 8),
-        _buildActionButton(
-          icon: Icons.done_all_rounded,
-          tooltip: 'Completed',
-          theme: theme,
-          onPressed: () => context.push(Routes.completedTransactions),
         ),
         SizedBox(width: horizontalPadding),
       ],
@@ -220,110 +215,50 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
       }
     }
 
-    final netAmount = totalLent - totalBorrowed;
-
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.red.withValues(alpha: 0.05),
-              Colors.red.withValues(alpha: 0.02),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.red.withValues(alpha: 0.1),
-            width: 1,
-          ),
-        ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: _SummaryCard(
-                title: 'Total Lent',
-                amount: totalLent,
-                color: Colors.green,
-                icon: Icons.trending_up_rounded,
-              ),
+            Row(
+              children: [
+                Icon(
+                  Icons.cancel_outlined,
+                  size: 16,
+                  color: Colors.red,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Declined Transaction Overview',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
             ),
-            Container(
-              width: 1,
-              height: 40,
-              color: theme.colorScheme.outline.withValues(alpha: 0.2),
-            ),
-            Expanded(
-              child: _SummaryCard(
-                title: 'Total Borrowed',
-                amount: totalBorrowed,
-                color: Colors.red,
-                icon: Icons.trending_down_rounded,
-              ),
-            ),
-            Container(
-              width: 1,
-              height: 40,
-              color: theme.colorScheme.outline.withValues(alpha: 0.2),
-            ),
-            Expanded(
-              child: _SummaryCard(
-                title: 'Net Balance',
-                amount: netAmount.abs(),
-                color: netAmount >= 0 ? Colors.green : Colors.red,
-                icon: netAmount >= 0 ? Icons.add_circle_outline : Icons.remove_circle_outline,
-                isNet: true,
-                netPrefix: netAmount >= 0 ? '+' : '-',
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAnalysisSection(ThemeData theme, double horizontalPadding) {
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: _AnalysisButton(
-                icon: Icons.date_range_rounded,
-                label: 'Date Range',
-                onTap: () {
-                  // TODO: Implement date range picker
-                },
-                theme: theme,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _AnalysisButton(
-                icon: Icons.analytics_outlined,
-                label: 'Analytics',
-                onTap: () {
-                  // TODO: Implement analytics view
-                },
-                theme: theme,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _AnalysisButton(
-                icon: Icons.delete_outline_rounded,
-                label: 'Clear All',
-                onTap: () {
-                  // TODO: Implement clear all rejected
-                },
-                theme: theme,
-              ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _SummaryCard(
+                    title: 'They declined your lending',
+                    amount: totalLent,
+                    color: Colors.green,
+                    icon: Icons.trending_up_rounded,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _SummaryCard(
+                    title: 'You declined their lending',
+                    amount: totalBorrowed,
+                    color: Colors.orange,
+                    icon: Icons.trending_down_rounded,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -343,7 +278,7 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
             vertical: 8,
           ),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
+            color: theme.scaffoldBackgroundColor,
             border: Border(
               bottom: BorderSide(
                 color: theme.colorScheme.outline.withValues(alpha: 0.1),
@@ -385,15 +320,15 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              theme.colorScheme.primary,
-              theme.colorScheme.primary.withValues(alpha: 0.8),
+              Colors.red,
+              Colors.red.withValues(alpha: 0.8),
             ],
           ) : null,
           color: isSelected ? null : theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected 
-                ? theme.colorScheme.primary
+                ? Colors.red
                 : theme.colorScheme.outline.withValues(alpha: 0.2),
             width: isSelected ? 0 : 1,
           ),
@@ -432,19 +367,25 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
       );
     }
 
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final transaction = filteredTransactions[index];
-          return GestureDetector(
-            onTap: () => context.push(
-              Routes.transactionDetail,
-              extra: transaction,
-            ),
-            child: TransactionListItem(transaction: transaction),
-          );
-        },
-        childCount: filteredTransactions.length,
+    return SliverPadding(
+      padding: const EdgeInsets.all(16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final transaction = filteredTransactions[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: GestureDetector(
+                onTap: () => context.push(
+                  Routes.transactionDetail,
+                  extra: transaction,
+                ),
+                child: TransactionListItem(transaction: transaction),
+              ),
+            );
+          },
+          childCount: filteredTransactions.length,
+        ),
       ),
     );
   }
@@ -483,18 +424,18 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
 
     switch (_selectedFilter) {
       case TransactionFilter.all:
-        message = 'No Rejected Transactions';
-        subtitle = 'Great! You don\'t have any rejected transactions';
+        message = 'No Declined Transactions';
+        subtitle = 'Great! You don\'t have any declined transactions';
         icon = Icons.thumb_up_outlined;
         break;
       case TransactionFilter.lent:
-        message = 'No Rejected Lending';
-        subtitle = 'No rejected lending transactions found';
+        message = 'No Declined Lending';
+        subtitle = 'No declined lending transactions found';
         icon = Icons.trending_up;
         break;
       case TransactionFilter.borrowed:
-        message = 'No Rejected Borrowing';
-        subtitle = 'No rejected borrowing transactions found';
+        message = 'No Declined Borrowing';
+        subtitle = 'No declined borrowing transactions found';
         icon = Icons.trending_down;
         break;
     }
@@ -580,45 +521,36 @@ class _SummaryCard extends StatelessWidget {
   final double amount;
   final Color color;
   final IconData icon;
-  final bool isNet;
-  final String? netPrefix;
 
   const _SummaryCard({
     required this.title,
     required this.amount,
     required this.color,
     required this.icon,
-    this.isNet = false,
-    this.netPrefix,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+        ),
+      ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: color.withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 20,
-            ),
+          Icon(
+            icon,
+            color: color,
+            size: 18,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             title,
             style: theme.textTheme.bodySmall?.copyWith(
@@ -626,7 +558,7 @@ class _SummaryCard extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
@@ -636,89 +568,17 @@ class _SummaryCard extends StatelessWidget {
               textAlign: TextAlign.center,
               text: TextSpan(
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   color: color,
                 ),
                 children: [
-                  if (isNet && netPrefix != null)
-                    TextSpan(
-                      text: netPrefix,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
-                    ),
                   const TextSpan(text: 'Rs. '),
-                  TextSpan(text: _formatAmount(amount)),
+                  TextSpan(text: TransactionDisplayHelper.formatAmount(amount)),
                 ],
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  String _formatAmount(double amount) {
-    String amountStr = amount.toStringAsFixed(0);
-    return amountStr.replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-  }
-}
-
-class _AnalysisButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final ThemeData theme;
-
-  const _AnalysisButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    required this.theme,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: theme.colorScheme.outline.withValues(alpha: 0.2),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 16,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
-import 'package:udharoo/config/routes/routes_constants.dart';
+import 'package:udharoo/core/di/di.dart' as di;
 import 'package:udharoo/features/contacts/domain/entities/contact.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
 import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
+
+/// Quick transaction dialog
+/// USE this widget with dialogs or any use where the [TransactionCubit] and [ContactCubit] are available
 class QuickTransactionDialog extends StatefulWidget {
   final TransactionType preSelectedType;
 
-  const QuickTransactionDialog({
-    super.key,
-    required this.preSelectedType,
-  });
+  const QuickTransactionDialog({super.key, required this.preSelectedType});
 
   @override
   State<QuickTransactionDialog> createState() => _QuickTransactionDialogState();
@@ -30,23 +31,21 @@ class _QuickTransactionDialogState extends State<QuickTransactionDialog> {
     });
   }
 
-  void _openFullTransactionForm() {
+  _navigateToTransactionForm({Contact? contact}) {
     Navigator.of(context).pop();
-    context.go(
-      Routes.transactionForm,
-      extra: TransactionFormExtra(
-        initialTransactionType: widget.preSelectedType,
-      ),
-    );
-  }
-
-  void _selectContact(Contact contact) {
-    Navigator.of(context).pop();
-    context.go(
-      Routes.transactionForm,
-      extra: TransactionFormExtra(
-        initialTransactionType: widget.preSelectedType,
-        prefilledContact: contact,
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => MultiBlocProvider(
+          providers: [
+            BlocProvider(create: (context) => di.sl<TransactionFormCubit>()),
+            BlocProvider(create: (_) => context.read<ContactCubit>()),
+            BlocProvider(create: (_) => context.read<TransactionCubit>()),
+          ],
+          child: TransactionFormScreen(
+            initialTransactionType: widget.preSelectedType,
+            prefilledContact: contact,
+          ),
+        ),
       ),
     );
   }
@@ -57,9 +56,7 @@ class _QuickTransactionDialogState extends State<QuickTransactionDialog> {
 
     return Dialog(
       backgroundColor: theme.colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -74,11 +71,7 @@ class _QuickTransactionDialogState extends State<QuickTransactionDialog> {
                     color: _getTypeColor().withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
-                    _getTypeIcon(),
-                    color: _getTypeColor(),
-                    size: 20,
-                  ),
+                  child: Icon(_getTypeIcon(), color: _getTypeColor(), size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -92,7 +85,9 @@ class _QuickTransactionDialogState extends State<QuickTransactionDialog> {
                         ),
                       ),
                       Text(
-                        TransactionDisplayHelper.getTransactionTypeLabel(widget.preSelectedType),
+                        TransactionDisplayHelper.getTransactionTypeLabel(
+                          widget.preSelectedType,
+                        ),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: _getTypeColor(),
                           fontWeight: FontWeight.w500,
@@ -136,20 +131,26 @@ class _QuickTransactionDialogState extends State<QuickTransactionDialog> {
                       Icon(
                         Icons.person_add_outlined,
                         size: 32,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         'No contacts yet',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.7,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Add contacts to use quick transactions',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -187,7 +188,7 @@ class _QuickTransactionDialogState extends State<QuickTransactionDialog> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton(
-                    onPressed: _openFullTransactionForm,
+                    onPressed: _navigateToTransactionForm,
                     style: FilledButton.styleFrom(
                       backgroundColor: theme.colorScheme.primary,
                     ),
@@ -221,7 +222,7 @@ class _QuickTransactionDialogState extends State<QuickTransactionDialog> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _selectContact(contact),
+        onTap: () => _navigateToTransactionForm(contact: contact),
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.all(12),
@@ -243,7 +244,7 @@ class _QuickTransactionDialogState extends State<QuickTransactionDialog> {
                 ),
                 child: Center(
                   child: Text(
-                    contact.displayName.isNotEmpty 
+                    contact.displayName.isNotEmpty
                         ? contact.displayName[0].toUpperCase()
                         : '?',
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -253,9 +254,9 @@ class _QuickTransactionDialogState extends State<QuickTransactionDialog> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(width: 12),
-              
+
               // Contact info
               Expanded(
                 child: Column(
@@ -270,13 +271,15 @@ class _QuickTransactionDialogState extends State<QuickTransactionDialog> {
                     Text(
                       contact.phoneNumber,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.6,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              
+
               // Arrow
               Icon(
                 Icons.arrow_forward_ios,

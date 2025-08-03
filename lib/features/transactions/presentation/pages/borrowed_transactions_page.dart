@@ -49,26 +49,28 @@ class _BorrowedTransactionsPageState extends State<BorrowedTransactionsPage> {
         _handleStateChanges(context, state);
       },
       builder: (context, state) {
-        return Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          body: RefreshIndicator(
-            onRefresh: () async {
-              context.read<TransactionCubit>().loadTransactions();
-            },
-            child: CustomScrollView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                _buildSliverAppBar(
-                  theme, 
-                  state, 
-                  expandedHeight, 
-                  horizontalPadding,
-                ),
-                _buildSummaryCards(theme, state),
-                _buildFilterSection(theme, horizontalPadding, state),
-                _buildTransactionsSliver(state, theme),
-              ],
+        return SafeArea(
+          child: Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            body: RefreshIndicator(
+              onRefresh: () async {
+                context.read<TransactionCubit>().loadTransactions();
+              },
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  _buildSliverAppBar(
+                    theme, 
+                    state, 
+                    expandedHeight, 
+                    horizontalPadding,
+                  ),
+                  _buildSummaryCards(theme, state),
+                  _buildFilterSection(theme, horizontalPadding, state),
+                  _buildTransactionsSliver(state, theme),
+                ],
+              ),
             ),
           ),
         );
@@ -114,7 +116,7 @@ class _BorrowedTransactionsPageState extends State<BorrowedTransactionsPage> {
     double horizontalPadding,
   ) {
     return SliverAppBar(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: theme.scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       floating: true,
@@ -154,7 +156,7 @@ class _BorrowedTransactionsPageState extends State<BorrowedTransactionsPage> {
           icon: Icons.trending_up_rounded,
           tooltip: 'Lent',
           theme: theme,
-          onPressed: () => context.pushReplacement('/transactions/lent'),
+          onPressed: () => context.pushReplacement(Routes.lentTransactions),
         ),
         SizedBox(width: horizontalPadding),
       ],
@@ -219,16 +221,6 @@ class _BorrowedTransactionsPageState extends State<BorrowedTransactionsPage> {
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.orange.withValues(alpha: 0.05),
-              Colors.orange.withValues(alpha: 0.02),
-            ],
-          ),
-        ),
         child: Row(
           children: [
             Expanded(
@@ -244,7 +236,7 @@ class _BorrowedTransactionsPageState extends State<BorrowedTransactionsPage> {
               child: _SummaryCard(
                 title: 'Pending',
                 amount: pendingAmount,
-                color: Colors.amber,
+                color: Colors.orange,
                 icon: Icons.hourglass_empty_rounded,
               ),
             ),

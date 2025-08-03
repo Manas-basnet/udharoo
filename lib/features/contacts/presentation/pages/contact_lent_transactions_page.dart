@@ -253,16 +253,6 @@ class _ContactLentTransactionsPageState extends State<ContactLentTransactionsPag
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.green.withValues(alpha: 0.05),
-              Colors.green.withValues(alpha: 0.02),
-            ],
-          ),
-        ),
         child: Row(
           children: [
             Expanded(

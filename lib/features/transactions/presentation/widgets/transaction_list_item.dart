@@ -58,23 +58,22 @@ class TransactionListItem extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      transaction.otherParty.name,
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            transaction.otherParty.name,
+                                            style: theme.textTheme.bodyMedium?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     const SizedBox(height: 2),
-                                    Text(
-                                      _getTransactionDescription(),
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: _getTransactionColor(theme),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                    _buildTransactionHelper(theme),
                                   ],
                                 ),
                               ),
@@ -182,6 +181,35 @@ class TransactionListItem extends StatelessWidget {
     );
   }
 
+  Widget _buildTransactionHelper(ThemeData theme) {
+    final helperText = transaction.isLent ? 'I gave money to' : 'I received money from';
+    final helperColor = transaction.isLent ? Colors.green : Colors.orange;
+    
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: helperColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: helperColor.withValues(alpha: 0.3),
+              width: 0.5,
+            ),
+          ),
+          child: Text(
+            helperText,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: helperColor,
+              fontWeight: FontWeight.w500,
+              fontSize: 10,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildTransactionTypeIcon(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(6),
@@ -223,7 +251,7 @@ class TransactionListItem extends StatelessWidget {
             label: 'Confirm',
             icon: Icons.verified_rounded,
             color: Colors.green,
-            onPressed: () => _handleVerifyTransaction(context, cubit),
+            onPressed: () => _handleConfirmTransaction(context, cubit),
           ),
         ),
         const SizedBox(width: 12),
@@ -232,7 +260,7 @@ class TransactionListItem extends StatelessWidget {
             label: 'Decline',
             icon: Icons.cancel_rounded,
             color: Colors.red,
-            onPressed: () => _handleRejectTransaction(context, cubit),
+            onPressed: () => _handleDeclineTransaction(context, cubit),
           ),
         ),
       ]);
@@ -265,7 +293,7 @@ class TransactionListItem extends StatelessWidget {
     );
   }
 
-  Future<void> _handleVerifyTransaction(BuildContext context, TransactionCubit cubit) async {
+  Future<void> _handleConfirmTransaction(BuildContext context, TransactionCubit cubit) async {
     final confirmed = await ConfirmationDialog.show(
       context: context,
       data: ConfirmationDialogData.forTransactionAction(
@@ -295,7 +323,7 @@ class TransactionListItem extends StatelessWidget {
     }
   }
 
-  Future<void> _handleRejectTransaction(BuildContext context, TransactionCubit cubit) async {
+  Future<void> _handleDeclineTransaction(BuildContext context, TransactionCubit cubit) async {
     final confirmed = await ConfirmationDialog.show(
       context: context,
       data: ConfirmationDialogData.forTransactionAction(
@@ -312,10 +340,6 @@ class TransactionListItem extends StatelessWidget {
 
   Color _getTransactionColor(ThemeData theme) {
     return transaction.isLent ? Colors.green : Colors.orange;
-  }
-
-  String _getTransactionDescription() {
-    return TransactionDisplayHelper.getTransactionAction(transaction.type);
   }
 
   String _getFormattedDate() {

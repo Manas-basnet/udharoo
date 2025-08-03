@@ -253,16 +253,6 @@ class _ContactBorrowedTransactionsPageState extends State<ContactBorrowedTransac
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.orange.withValues(alpha: 0.05),
-              Colors.orange.withValues(alpha: 0.02),
-            ],
-          ),
-        ),
         child: Row(
           children: [
             Expanded(

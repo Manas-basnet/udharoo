@@ -31,7 +31,6 @@ import 'package:udharoo/features/transactions/presentation/pages/qr/qr_scanner_s
 import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_detail_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transactions_page.dart';
-import 'package:udharoo/features/transactions/presentation/pages/completed_transactions_page.dart';
 import 'package:udharoo/features/transactions/presentation/pages/rejected_transactions_page.dart';
 import 'package:udharoo/features/transactions/presentation/pages/lent_transactions_page.dart';
 import 'package:udharoo/features/transactions/presentation/pages/borrowed_transactions_page.dart';
@@ -107,6 +106,16 @@ class AppRouter {
                     builder: (context, state) => const TransactionsPage(),
                     routes: [
                       GoRoute(
+                        path: '/lent',
+                        name: 'lentTransactions',
+                        builder: (context, state) => const LentTransactionsPage(),
+                      ),
+                      GoRoute(
+                        path: '/borrowed',
+                        name: 'borrowedTransactions',
+                        builder: (context, state) => const BorrowedTransactionsPage(),
+                      ),
+                      GoRoute(
                         path: '/transaction-form',
                         name: 'transactionForm',
                         builder: (context, state) {
@@ -132,12 +141,6 @@ class AppRouter {
                             ),
                           );
                         },
-                      ),
-                      GoRoute(
-                        path: '/completed-transactions',
-                        name: 'completedTransactions',
-                        builder: (context, state) =>
-                            const CompletedTransactionsPage(),
                       ),
                       GoRoute(
                         path: '/rejected-transactions',
@@ -333,24 +336,6 @@ class AppRouter {
             ],
           ),
         ],
-      ),
-
-      GoRoute(
-        path: Routes.lentTransactions,
-        name: 'lentTransactions',
-        builder: (context, state) => BlocProvider.value(
-          value: di.sl<TransactionCubit>(),
-          child: const LentTransactionsPage(),
-        ),
-      ),
-
-      GoRoute(
-        path: Routes.borrowedTransactions,
-        name: 'borrowedTransactions',
-        builder: (context, state) => BlocProvider.value(
-          value: di.sl<TransactionCubit>(),
-          child: const BorrowedTransactionsPage(),
-        ),
       ),
 
       GoRoute(

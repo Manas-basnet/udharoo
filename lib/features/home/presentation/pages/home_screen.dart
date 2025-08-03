@@ -480,6 +480,7 @@ class HomeScreen extends StatelessWidget {
       builder: (dialogContext) => MultiBlocProvider(
         providers: [
           BlocProvider.value(value: context.read<ContactCubit>()),
+          BlocProvider.value(value: context.read<TransactionCubit>()),
         ],
         child: QuickTransactionDialog(preSelectedType: type),
       ),
