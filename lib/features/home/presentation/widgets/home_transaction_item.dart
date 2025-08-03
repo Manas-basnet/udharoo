@@ -75,12 +75,26 @@ class HomeTransactionItem extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Expanded(
-                                child: Text(
-                                  transaction.otherParty.name,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _getTransactionDescription(),
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      transaction.otherParty.name,
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  ],
                                 ),
                               ),
                               Text(
@@ -93,36 +107,70 @@ class HomeTransactionItem extends StatelessWidget {
                             ],
                           ),
                           
-                          const SizedBox(height: 4),
+                          if (transaction.description.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                transaction.description,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                          
+                          const SizedBox(height: 8),
                           
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                _getFormattedDate(),
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                ),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.schedule_rounded,
+                                    size: 12,
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _getFormattedDate(),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: _getStatusColor(theme).withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: _getStatusColor(theme).withValues(alpha: 0.3),
-                                    width: 0.5,
+                              
+                              if (isProcessing)
+                                _buildProcessingIndicator(theme)
+                              else
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: _getStatusColor(theme).withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: _getStatusColor(theme).withValues(alpha: 0.3),
+                                      width: 0.5,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _getStatusText(),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: _getStatusColor(theme),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 9,
+                                    ),
                                   ),
                                 ),
-                                child: Text(
-                                  _getStatusText(),
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: _getStatusColor(theme),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 9,
-                                  ),
-                                ),
-                              ),
                             ],
                           ),
                         ],
@@ -176,7 +224,7 @@ class HomeTransactionItem extends StatelessWidget {
         children: [
           Expanded(
             child: _ActionButton(
-              label: 'Verify',
+              label: 'Confirm',
               icon: Icons.check_rounded,
               color: Colors.green,
               onPressed: () => _handleVerifyTransaction(context, cubit),
@@ -185,7 +233,7 @@ class HomeTransactionItem extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: _ActionButton(
-              label: 'Reject',
+              label: 'Decline',
               icon: Icons.close_rounded,
               color: Colors.red,
               onPressed: () => _handleRejectTransaction(context, cubit),
@@ -203,6 +251,17 @@ class HomeTransactionItem extends StatelessWidget {
     }
     
     return const SizedBox.shrink();
+  }
+
+  Widget _buildProcessingIndicator(ThemeData theme) {
+    return SizedBox(
+      width: 16,
+      height: 16,
+      child: CircularProgressIndicator(
+        strokeWidth: 2,
+        valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+      ),
+    );
   }
 
   Future<void> _handleVerifyTransaction(BuildContext context, TransactionCubit cubit) async {
@@ -259,7 +318,7 @@ class HomeTransactionItem extends StatelessWidget {
   }
 
   Color _getTransactionColor(ThemeData theme) {
-    return transaction.isLent ? Colors.green : Colors.red;
+    return transaction.isLent ? Colors.green : Colors.orange;
   }
 
   Color _getStatusColor(ThemeData theme) {
@@ -285,6 +344,14 @@ class HomeTransactionItem extends StatelessWidget {
         return 'COMPLETED';
       case TransactionStatus.rejected:
         return 'REJECTED';
+    }
+  }
+
+  String _getTransactionDescription() {
+    if (transaction.isLent) {
+      return 'I gave money to';
+    } else {
+      return 'I received money from';
     }
   }
 

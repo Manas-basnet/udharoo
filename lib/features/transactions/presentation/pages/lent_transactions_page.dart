@@ -9,31 +9,23 @@ import 'package:udharoo/features/transactions/presentation/widgets/transaction_s
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
-enum TransactionFilter { 
+enum LentTransactionFilter { 
   all, 
   pending,
-  confirmed, 
+  verified, 
   completed,
 }
 
-class TransactionsPage extends StatefulWidget {
-  const TransactionsPage({super.key});
+class LentTransactionsPage extends StatefulWidget {
+  const LentTransactionsPage({super.key});
 
   @override
-  State<TransactionsPage> createState() => _TransactionsPageState();
+  State<LentTransactionsPage> createState() => _LentTransactionsPageState();
 }
 
-class _TransactionsPageState extends State<TransactionsPage> {
+class _LentTransactionsPageState extends State<LentTransactionsPage> {
   final ScrollController _scrollController = ScrollController();
-  TransactionFilter _selectedFilter = TransactionFilter.all;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TransactionCubit>().loadTransactions();
-    });
-  }
+  LentTransactionFilter _selectedFilter = LentTransactionFilter.all;
 
   @override
   void dispose() {
@@ -57,28 +49,26 @@ class _TransactionsPageState extends State<TransactionsPage> {
         _handleStateChanges(context, state);
       },
       builder: (context, state) {
-        return SafeArea(
-          child: Scaffold(
-            backgroundColor: theme.scaffoldBackgroundColor,
-            body: RefreshIndicator(
-              onRefresh: () async {
-                context.read<TransactionCubit>().loadTransactions();
-              },
-              child: CustomScrollView(
-                controller: _scrollController,
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  _buildSliverAppBar(
-                    theme, 
-                    state, 
-                    expandedHeight, 
-                    horizontalPadding,
-                  ),
-                  _buildSummaryCards(theme, state),
-                  _buildFilterSection(theme, horizontalPadding, state),
-                  _buildTransactionsSliver(state, theme),
-                ],
-              ),
+        return Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          body: RefreshIndicator(
+            onRefresh: () async {
+              context.read<TransactionCubit>().loadTransactions();
+            },
+            child: CustomScrollView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                _buildSliverAppBar(
+                  theme, 
+                  state, 
+                  expandedHeight, 
+                  horizontalPadding,
+                ),
+                _buildSummaryCards(theme, state),
+                _buildFilterSection(theme, horizontalPadding, state),
+                _buildTransactionsSliver(state, theme),
+              ],
             ),
           ),
         );
@@ -124,18 +114,17 @@ class _TransactionsPageState extends State<TransactionsPage> {
     double horizontalPadding,
   ) {
     return SliverAppBar(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: theme.colorScheme.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       floating: true,
       snap: true,
       pinned: false,
       expandedHeight: expandedHeight,
-      automaticallyImplyLeading: false,
       centerTitle: false,
       titleSpacing: horizontalPadding,
       title: Text(
-        'My Transactions',
+        'Money I Lent',
         style: theme.textTheme.headlineMedium?.copyWith(
           fontWeight: FontWeight.w600,
         ),
@@ -146,12 +135,15 @@ class _TransactionsPageState extends State<TransactionsPage> {
           tooltip: 'Search',
           theme: theme,
           onPressed: () {
-            if (state.hasTransactions) {
+            final lentTransactions = state.transactions
+                .where((t) => t.isLent)
+                .toList();
+            if (lentTransactions.isNotEmpty) {
               showSearch(
                 context: context,
                 delegate: TransactionSearchDelegate(
-                  transactions: state.transactions,
-                  searchType: 'all',
+                  transactions: lentTransactions,
+                  searchType: 'lent',
                 ),
               );
             }
@@ -159,10 +151,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
         ),
         const SizedBox(width: 8),
         _buildActionButton(
-          icon: Icons.history_rounded,
-          tooltip: 'History',
+          icon: Icons.trending_down_rounded,
+          tooltip: 'Borrowed',
           theme: theme,
-          onPressed: () => context.push(Routes.completedTransactions),
+          onPressed: () => context.pushReplacement('/transactions/borrowed'),
         ),
         SizedBox(width: horizontalPadding),
       ],
@@ -181,8 +173,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
       case 'Search':
         backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.9);
         break;
-      case 'History':
-        backgroundColor = Colors.green.withValues(alpha: 0.9);
+      case 'Borrowed':
+        backgroundColor = Colors.orange.withValues(alpha: 0.9);
         break;
       default:
         backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.9);
@@ -214,82 +206,56 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   Widget _buildSummaryCards(ThemeData theme, TransactionState state) {
-    double totalTheyOwe = 0;
-    double totalIOwe = 0;
+    final lentTransactions = state.transactions.where((t) => t.isLent).toList();
     
-    for (final transaction in state.lentTransactions) {
-      totalTheyOwe += transaction.amount;
-    }
-    
-    for (final transaction in state.borrowedTransactions) {
-      totalIOwe += transaction.amount;
-    }
-
-    final netBalance = totalTheyOwe - totalIOwe;
+    final totalAmount = lentTransactions.fold(0.0, (sum, t) => sum + t.amount);
+    final pendingAmount = lentTransactions
+        .where((t) => t.isPending)
+        .fold(0.0, (sum, t) => sum + t.amount);
+    final completedAmount = lentTransactions
+        .where((t) => t.isCompleted)
+        .fold(0.0, (sum, t) => sum + t.amount);
 
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.green.withValues(alpha: 0.05),
+              Colors.green.withValues(alpha: 0.02),
+            ],
+          ),
+        ),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.account_balance_wallet_outlined,
-                  size: 16,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Your Balance Overview',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              ],
+            Expanded(
+              child: _SummaryCard(
+                title: 'Total Lent',
+                amount: totalAmount,
+                color: Colors.green,
+                icon: Icons.trending_up_rounded,
+              ),
             ),
-            
-            const SizedBox(height: 12),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => context.push(Routes.lentTransactions),
-                    child: _SummaryCard(
-                      title: 'They owe you',
-                      amount: totalTheyOwe,
-                      color: Colors.green,
-                      icon: Icons.trending_up_rounded,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => context.push(Routes.borrowedTransactions),
-                    child: _SummaryCard(
-                      title: 'You owe them',
-                      amount: totalIOwe,
-                      color: Colors.orange,
-                      icon: Icons.trending_down_rounded,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _SummaryCard(
-                    title: TransactionDisplayHelper.getBalanceLabel(netBalance),
-                    amount: netBalance.abs(),
-                    color: netBalance >= 0 ? Colors.green : Colors.orange,
-                    icon: netBalance >= 0 ? Icons.add_circle_outline : Icons.remove_circle_outline,
-                    isNet: true,
-                    netPrefix: netBalance >= 0 ? '+' : '-',
-                  ),
-                ),
-              ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: _SummaryCard(
+                title: 'Pending',
+                amount: pendingAmount,
+                color: Colors.orange,
+                icon: Icons.hourglass_empty_rounded,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _SummaryCard(
+                title: 'Received',
+                amount: completedAmount,
+                color: Colors.blue,
+                icon: Icons.check_circle_outline,
+              ),
             ),
           ],
         ),
@@ -321,13 +287,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildFilterChip('All', TransactionFilter.all, theme, state),
+                _buildFilterChip('All', LentTransactionFilter.all, theme, state),
                 const SizedBox(width: 8),
-                _buildFilterChip('Pending', TransactionFilter.pending, theme, state),
+                _buildFilterChip('Pending', LentTransactionFilter.pending, theme, state),
                 const SizedBox(width: 8),
-                _buildFilterChip('Confirmed', TransactionFilter.confirmed, theme, state),
+                _buildFilterChip('Verified', LentTransactionFilter.verified, theme, state),
                 const SizedBox(width: 8),
-                _buildFilterChip('Completed', TransactionFilter.completed, theme, state),
+                _buildFilterChip('Completed', LentTransactionFilter.completed, theme, state),
               ],
             ),
           ),
@@ -336,13 +302,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
-  Widget _buildFilterChip(String label, TransactionFilter filter, ThemeData theme, TransactionState state) {
+  Widget _buildFilterChip(String label, LentTransactionFilter filter, ThemeData theme, TransactionState state) {
     final isSelected = _selectedFilter == filter;
-    int? badgeCount;
-    
-    if (filter == TransactionFilter.pending) {
-      badgeCount = state.pendingTransactions.length;
-    }
     
     return GestureDetector(
       onTap: () {
@@ -358,57 +319,27 @@ class _TransactionsPageState extends State<TransactionsPage> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              theme.colorScheme.primary,
-              theme.colorScheme.primary.withValues(alpha: 0.8),
+              Colors.green,
+              Colors.green.withValues(alpha: 0.8),
             ],
           ) : null,
           color: isSelected ? null : theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected 
-                ? theme.colorScheme.primary
+                ? Colors.green
                 : theme.colorScheme.outline.withValues(alpha: 0.2),
             width: isSelected ? 0 : 1,
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (filter == TransactionFilter.pending && badgeCount != null && badgeCount > 0) ...[
-              Container(
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  gradient: isSelected ? const LinearGradient(
-                    colors: [Colors.white, Colors.white],
-                  ) : const LinearGradient(
-                    colors: [Colors.orange, Colors.deepOrange],
-                  ),
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Center(
-                  child: Text(
-                    badgeCount > 99 ? '99+' : badgeCount.toString(),
-                    style: TextStyle(
-                      color: isSelected ? theme.colorScheme.primary : Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: isSelected 
-                    ? Colors.white
-                    : theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              ),
-            ),
-          ],
+        child: Text(
+          label,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: isSelected 
+                ? Colors.white
+                : theme.colorScheme.onSurface.withValues(alpha: 0.8),
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+          ),
         ),
       ),
     );
@@ -442,8 +373,14 @@ class _TransactionsPageState extends State<TransactionsPage> {
           (context, index) {
             final transaction = filteredTransactions[index];
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12.0),
-              child: TransactionListItem(transaction: transaction),
+              padding: const EdgeInsets.only(bottom: 12),
+              child: GestureDetector(
+                onTap: () => context.push(
+                  Routes.transactionDetail,
+                  extra: transaction,
+                ),
+                child: TransactionListItem(transaction: transaction),
+              ),
             );
           },
           childCount: filteredTransactions.length,
@@ -453,28 +390,33 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   List<Transaction> _getFilteredTransactions(TransactionState state) {
-    List<Transaction> transactions;
+    final lentTransactions = state.transactions.where((t) => t.isLent).toList();
+
+    List<Transaction> filteredTransactions;
 
     switch (_selectedFilter) {
-      case TransactionFilter.all:
-        transactions = [...state.lentTransactions, ...state.borrowedTransactions]
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      case LentTransactionFilter.all:
+        filteredTransactions = lentTransactions;
         break;
-      case TransactionFilter.pending:
-        transactions = state.pendingTransactions
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      case LentTransactionFilter.pending:
+        filteredTransactions = lentTransactions
+            .where((t) => t.isPending)
+            .toList();
         break;
-      case TransactionFilter.confirmed:
-        transactions = state.transactions.where((t) => t.isVerified).toList()
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      case LentTransactionFilter.verified:
+        filteredTransactions = lentTransactions
+            .where((t) => t.isVerified)
+            .toList();
         break;
-      case TransactionFilter.completed:
-        transactions = state.completedTransactions
-          ..sort((a, b) => (b.completedAt ?? b.createdAt).compareTo(a.completedAt ?? a.createdAt));
+      case LentTransactionFilter.completed:
+        filteredTransactions = lentTransactions
+            .where((t) => t.isCompleted)
+            .toList();
         break;
     }
 
-    return transactions;
+    return filteredTransactions
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   Widget _buildEmptyState(ThemeData theme) {
@@ -483,25 +425,25 @@ class _TransactionsPageState extends State<TransactionsPage> {
     IconData icon;
 
     switch (_selectedFilter) {
-      case TransactionFilter.all:
-        message = 'No transactions yet';
-        subtitle = 'Your transactions will appear here';
-        icon = Icons.receipt_long_outlined;
+      case LentTransactionFilter.all:
+        message = 'No Lending Records';
+        subtitle = 'Money you lend to others will appear here';
+        icon = Icons.trending_up_rounded;
         break;
-      case TransactionFilter.pending:
-        message = 'All caught up! ✨';
-        subtitle = 'No transactions need your attention';
+      case LentTransactionFilter.pending:
+        message = 'No Pending Lending';
+        subtitle = 'All your lending transactions are confirmed';
         icon = Icons.check_circle_outline;
         break;
-      case TransactionFilter.confirmed:
-        message = 'No confirmed transactions';
-        subtitle = 'Confirmed transactions waiting for payment will appear here';
+      case LentTransactionFilter.verified:
+        message = 'No Verified Lending';
+        subtitle = 'Verified lending transactions will appear here';
         icon = Icons.verified_outlined;
         break;
-      case TransactionFilter.completed:
-        message = 'No completed transactions';
-        subtitle = 'Completed transactions will appear here';
-        icon = Icons.history_rounded;
+      case LentTransactionFilter.completed:
+        message = 'No Completed Lending';
+        subtitle = 'Money you\'ve received back will appear here';
+        icon = Icons.done_all_rounded;
         break;
     }
 
@@ -586,16 +528,12 @@ class _SummaryCard extends StatelessWidget {
   final double amount;
   final Color color;
   final IconData icon;
-  final bool isNet;
-  final String? netPrefix;
 
   const _SummaryCard({
     required this.title,
     required this.amount,
     required this.color,
     required this.icon,
-    this.isNet = false,
-    this.netPrefix,
   });
 
   @override
@@ -627,7 +565,7 @@ class _SummaryCard extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
@@ -641,14 +579,6 @@ class _SummaryCard extends StatelessWidget {
                   color: color,
                 ),
                 children: [
-                  if (isNet && netPrefix != null)
-                    TextSpan(
-                      text: netPrefix,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: color,
-                      ),
-                    ),
                   const TextSpan(text: 'Rs. '),
                   TextSpan(text: TransactionDisplayHelper.formatAmount(amount)),
                 ],

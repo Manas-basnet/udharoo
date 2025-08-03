@@ -53,7 +53,6 @@ class HomeScreen extends StatelessWidget {
                     return Column(
                       children: [
                         _buildNetBalanceCard(state, theme),
-                        _buildPendingAlerts(state, theme, context),
                         _buildQuickActions(context, theme),
                         _buildRecentTransactions(context, state, theme),
                       ],
@@ -101,19 +100,55 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: theme.colorScheme.outline.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Icon(
-              Icons.notifications_outlined,
-              color: theme.colorScheme.onSurface,
-            ),
+          BlocBuilder<TransactionCubit, TransactionState>(
+            builder: (context, state) {
+              final pendingCount = state.pendingTransactions.length;
+              
+              return Stack(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.notifications_outlined,
+                      color: theme.colorScheme.onSurface,
+                      size: 20,
+                    ),
+                  ),
+                  if (pendingCount > 0)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 20,
+                          minHeight: 20,
+                        ),
+                        child: Text(
+                          pendingCount > 99 ? '99+' : pendingCount.toString(),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 10,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -127,56 +162,81 @@ class HomeScreen extends StatelessWidget {
     
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary,
-        borderRadius: BorderRadius.circular(16),
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+        ),
       ),
       child: Column(
         children: [
-          Text(
-            'Your Net Balance',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontWeight: FontWeight.w500,
-            ),
+          Row(
+            children: [
+              Icon(
+                Icons.account_balance_wallet_outlined,
+                size: 16,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Net Balance',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
             '₹${TransactionDisplayHelper.formatAmount(netBalance.abs())}',
             style: theme.textTheme.headlineLarge?.copyWith(
-              color: Colors.white,
               fontWeight: FontWeight.w700,
+              fontSize: 28,
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            TransactionDisplayHelper.getBalanceLabel(netBalance),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.white.withValues(alpha: 0.8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: netBalance >= 0 
+                  ? Colors.green.withValues(alpha: 0.1)
+                  : Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              TransactionDisplayHelper.getBalanceLabel(netBalance),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: netBalance >= 0 ? Colors.green : Colors.orange,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: _buildBalanceItem(
-                  '↗️ They owe you', 
+                  Icons.trending_up_rounded,
+                  'They owe you', 
                   totalTheyOwe, 
-                  Colors.green.shade300,
+                  Colors.green,
                   theme,
                 ),
               ),
               Container(
                 width: 1,
                 height: 32,
-                color: Colors.white.withValues(alpha: 0.3),
+                color: theme.colorScheme.outline.withValues(alpha: 0.2),
               ),
               Expanded(
                 child: _buildBalanceItem(
-                  '↘️ You owe them', 
+                  Icons.trending_down_rounded,
+                  'You owe them', 
                   totalIOwe, 
-                  Colors.orange.shade300,
+                  Colors.orange,
                   theme,
                 ),
               ),
@@ -187,71 +247,32 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBalanceItem(String label, double amount, Color color, ThemeData theme) {
+  Widget _buildBalanceItem(IconData icon, String label, double amount, Color color, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(
         children: [
-          Text(
-            '₹${TransactionDisplayHelper.formatAmount(amount)}',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 4),
+              Text(
+                '₹${TransactionDisplayHelper.formatAmount(amount)}',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 2),
           Text(
             label,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.white.withValues(alpha: 0.8),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPendingAlerts(TransactionState state, ThemeData theme, BuildContext context) {
-    final pendingCount = state.pendingTransactions.length;
-    if (pendingCount == 0) return const SizedBox.shrink();
-    
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.orange.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.notifications_active,
-            color: Colors.orange,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'You have $pendingCount transaction${pendingCount > 1 ? 's' : ''} waiting for confirmation',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.orange.shade700,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () => context.go(Routes.transactions),
-            child: Text(
-              'Review',
-              style: TextStyle(
-                color: Colors.orange.shade700,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
           ),
         ],
       ),

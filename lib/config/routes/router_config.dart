@@ -9,6 +9,8 @@ import 'package:udharoo/features/auth/presentation/pages/sign_up_screen.dart';
 import 'package:udharoo/features/contacts/domain/entities/contact.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
+import 'package:udharoo/features/contacts/presentation/pages/contact_borrowed_transactions_page.dart';
+import 'package:udharoo/features/contacts/presentation/pages/contact_lent_transactions_page.dart';
 import 'package:udharoo/features/contacts/presentation/pages/contact_transactions_page.dart';
 import 'package:udharoo/features/contacts/presentation/pages/contacts_page.dart';
 import 'package:udharoo/features/phone_verification/presentation/pages/phone_setup_screen.dart';
@@ -31,6 +33,8 @@ import 'package:udharoo/features/transactions/presentation/pages/transaction_det
 import 'package:udharoo/features/transactions/presentation/pages/transactions_page.dart';
 import 'package:udharoo/features/transactions/presentation/pages/completed_transactions_page.dart';
 import 'package:udharoo/features/transactions/presentation/pages/rejected_transactions_page.dart';
+import 'package:udharoo/features/transactions/presentation/pages/lent_transactions_page.dart';
+import 'package:udharoo/features/transactions/presentation/pages/borrowed_transactions_page.dart';
 import 'package:udharoo/shared/presentation/layouts/scaffold_with_bottom_nav_bar.dart';
 import 'package:udharoo/shared/presentation/widgets/auth_wrapper.dart';
 
@@ -216,6 +220,100 @@ class AppRouter {
                             child: ContactTransactionsPage(contactUserId: contactUserId),
                           );
                         },
+                        routes: [
+                          GoRoute(
+                            path: '/lent',
+                            name: 'contactLentTransactions',
+                            builder: (context, state) {
+                              final contactUserId = state.uri.queryParameters['contactUserId'];
+                              
+                              if (contactUserId == null || contactUserId.isEmpty) {
+                                return Scaffold(
+                                  body: Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.error_outline,
+                                          size: 64,
+                                          color: Theme.of(context).colorScheme.error,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'Invalid Contact',
+                                          style: Theme.of(context).textTheme.titleLarge,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Contact ID is required',
+                                          style: Theme.of(context).textTheme.bodyMedium,
+                                        ),
+                                        const SizedBox(height: 24),
+                                        ElevatedButton(
+                                          onPressed: () => context.go(Routes.contacts),
+                                          child: const Text('Go Back'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              return MultiBlocProvider(
+                                providers: [
+                                  BlocProvider(create: (_) => di.sl<ContactTransactionsCubit>()),
+                                ],
+                                child: ContactLentTransactionsPage(contactUserId: contactUserId),
+                              );
+                            },
+                          ),
+                          GoRoute(
+                            path: '/borrowed',
+                            name: 'contactBorrowedTransactions',
+                            builder: (context, state) {
+                              final contactUserId = state.uri.queryParameters['contactUserId'];
+                              
+                              if (contactUserId == null || contactUserId.isEmpty) {
+                                return Scaffold(
+                                  body: Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.error_outline,
+                                          size: 64,
+                                          color: Theme.of(context).colorScheme.error,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'Invalid Contact',
+                                          style: Theme.of(context).textTheme.titleLarge,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Contact ID is required',
+                                          style: Theme.of(context).textTheme.bodyMedium,
+                                        ),
+                                        const SizedBox(height: 24),
+                                        ElevatedButton(
+                                          onPressed: () => context.go(Routes.contacts),
+                                          child: const Text('Go Back'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              return MultiBlocProvider(
+                                providers: [
+                                  BlocProvider(create: (_) => di.sl<ContactTransactionsCubit>()),
+                                ],
+                                child: ContactBorrowedTransactionsPage(contactUserId: contactUserId),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -235,6 +333,24 @@ class AppRouter {
             ],
           ),
         ],
+      ),
+
+      GoRoute(
+        path: Routes.lentTransactions,
+        name: 'lentTransactions',
+        builder: (context, state) => BlocProvider.value(
+          value: di.sl<TransactionCubit>(),
+          child: const LentTransactionsPage(),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.borrowedTransactions,
+        name: 'borrowedTransactions',
+        builder: (context, state) => BlocProvider.value(
+          value: di.sl<TransactionCubit>(),
+          child: const BorrowedTransactionsPage(),
+        ),
       ),
 
       GoRoute(

@@ -9,6 +9,8 @@ class Routes {
   static const String pendingTransactions = '/transactions/pending-transactions';
   static const String completedTransactions = '/transactions/completed-transactions';
   static const String rejectedTransactions = '/transactions/rejected-transactions';
+  static const String lentTransactions = '/transactions/lent';
+  static const String borrowedTransactions = '/transactions/borrowed';
   static const String contactTransactions = '$contacts/contact-transactions';
   static const String contacts = '/contacts';
   static const String profile = '/profile';
@@ -22,6 +24,8 @@ class Routes {
   static const String qrGenerator = '/qr-generator';
 
   static String contactTransactionsF(String contactUserId) => '${Routes.contactTransactions}?contactUserId=$contactUserId';
+  static String contactLentTransactionsF(String contactUserId) => '${Routes.contactTransactions}/lent?contactUserId=$contactUserId';
+  static String contactBorrowedTransactionsF(String contactUserId) => '${Routes.contactTransactions}/borrowed?contactUserId=$contactUserId';
  
   Routes._();
 }
