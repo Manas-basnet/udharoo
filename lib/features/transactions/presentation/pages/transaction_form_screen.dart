@@ -63,9 +63,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     
     if (widget.qrData != null) {
       _initializeFromQRData(widget.qrData!);
-    } else if (widget.prefilledContact != null) {
+    }
+    if (widget.prefilledContact != null) {
       _initializeFromContact(widget.prefilledContact!);
-    } else if (widget.initialTransactionType != null) {
+    }
+    if (widget.initialTransactionType != null) {
       _initializeFromType(widget.initialTransactionType!);
     }
   }

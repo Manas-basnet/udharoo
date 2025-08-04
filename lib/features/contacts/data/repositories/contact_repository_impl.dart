@@ -75,6 +75,7 @@ class ContactRepositoryImpl extends BaseRepository implements ContactRepository 
         try {
           await _remoteDatasource.saveContact(contact);
         } catch (e) {
+          //TODO: handle
         }
       }
 
@@ -93,6 +94,7 @@ class ContactRepositoryImpl extends BaseRepository implements ContactRepository 
           await _localDatasource.saveContacts(remoteContacts, _currentUserId);
           contacts = remoteContacts;
         } catch (e) {
+          //TODO: handle
         }
       }
 

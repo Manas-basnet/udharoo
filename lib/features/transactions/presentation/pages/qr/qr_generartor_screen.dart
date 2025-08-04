@@ -316,7 +316,10 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
           version: QrVersions.auto,
           size: 248,
           backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
+          eyeStyle: const QrEyeStyle(
+            eyeShape: QrEyeShape.square,
+            color: Colors.black,
+          ),
         );
       case QRGeneratorError():
         return Center(
