@@ -11,8 +11,8 @@ import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
 enum TransactionFilter { 
   all, 
-  pending,
-  confirmed, 
+  needsResponse,
+  active, 
   completed,
 }
 
@@ -323,9 +323,9 @@ class _TransactionsPageState extends State<TransactionsPage> {
               children: [
                 _buildFilterChip('All', TransactionFilter.all, theme, state),
                 const SizedBox(width: 8),
-                _buildFilterChip('Pending', TransactionFilter.pending, theme, state),
+                _buildFilterChip('Needs Response', TransactionFilter.needsResponse, theme, state),
                 const SizedBox(width: 8),
-                _buildFilterChip('Confirmed', TransactionFilter.confirmed, theme, state),
+                _buildFilterChip('Active', TransactionFilter.active, theme, state),
                 const SizedBox(width: 8),
                 _buildFilterChip('Completed', TransactionFilter.completed, theme, state),
               ],
@@ -340,7 +340,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     final isSelected = _selectedFilter == filter;
     int? badgeCount;
     
-    if (filter == TransactionFilter.pending) {
+    if (filter == TransactionFilter.needsResponse) {
       badgeCount = state.pendingTransactions.length;
     }
     
@@ -374,7 +374,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (filter == TransactionFilter.pending && badgeCount != null && badgeCount > 0) ...[
+            if (filter == TransactionFilter.needsResponse && badgeCount != null && badgeCount > 0) ...[
               Container(
                 width: 18,
                 height: 18,
@@ -460,11 +460,11 @@ class _TransactionsPageState extends State<TransactionsPage> {
         transactions = [...state.lentTransactions, ...state.borrowedTransactions]
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
-      case TransactionFilter.pending:
+      case TransactionFilter.needsResponse:
         transactions = state.pendingTransactions
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
-      case TransactionFilter.confirmed:
+      case TransactionFilter.active:
         transactions = state.transactions.where((t) => t.isVerified).toList()
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
@@ -488,14 +488,14 @@ class _TransactionsPageState extends State<TransactionsPage> {
         subtitle = 'Your transactions will appear here';
         icon = Icons.receipt_long_outlined;
         break;
-      case TransactionFilter.pending:
+      case TransactionFilter.needsResponse:
         message = 'All caught up! ✨';
         subtitle = 'No transactions need your attention';
         icon = Icons.check_circle_outline;
         break;
-      case TransactionFilter.confirmed:
-        message = 'No confirmed transactions';
-        subtitle = 'Confirmed transactions waiting for payment will appear here';
+      case TransactionFilter.active:
+        message = 'No active transactions';
+        subtitle = 'Active transactions waiting for payment will appear here';
         icon = Icons.verified_outlined;
         break;
       case TransactionFilter.completed:

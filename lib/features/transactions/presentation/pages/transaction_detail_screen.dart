@@ -143,11 +143,36 @@ class TransactionDetailScreen extends StatelessWidget {
                     ),
                   ),
                   
-                  QuickStatusChip(transaction: transaction),
+                  _buildQuickStatusChip(theme),
                 ],
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickStatusChip(ThemeData theme) {
+    final statusLabel = TransactionDisplayHelper.getContextualStatusLabel(transaction, _isCreatedByCurrentUser());
+    final statusColor = _getStatusColor();
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: statusColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: statusColor.withValues(alpha: 0.3),
+          width: 0.5,
+        ),
+      ),
+      child: Text(
+        statusLabel,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: statusColor,
+          fontWeight: FontWeight.w600,
+          fontSize: 10,
         ),
       ),
     );
@@ -804,10 +829,10 @@ class TransactionDetailScreen extends StatelessWidget {
         child: ElevatedButton.icon(
           onPressed: () {
             cubit.completeTransaction(transaction.transactionId);
-            CustomToast.show(context, message: 'Transaction marked as paid', isSuccess: true);
+            CustomToast.show(context, message: 'Transaction marked as received', isSuccess: true);
           },
           icon: const Icon(Icons.check_circle_rounded, size: 18),
-          label: const Text('Mark as Paid'),
+          label: const Text('Mark as Received'),
           style: ElevatedButton.styleFrom(
             backgroundColor: theme.colorScheme.primary,
             foregroundColor: theme.colorScheme.onPrimary,
@@ -849,6 +874,19 @@ class TransactionDetailScreen extends StatelessWidget {
 
   Color _getTransactionColor(ThemeData theme) {
     return transaction.isLent ? Colors.green : Colors.orange;
+  }
+
+  Color _getStatusColor() {
+    switch (transaction.status) {
+      case TransactionStatus.pendingVerification:
+        return Colors.orange;
+      case TransactionStatus.verified:
+        return Colors.blue;
+      case TransactionStatus.completed:
+        return Colors.green;
+      case TransactionStatus.rejected:
+        return Colors.red;
+    }
   }
 
   String _formatDateTime(DateTime dateTime) {

@@ -167,9 +167,6 @@ class _RejectedTransactionsPageState extends State<RejectedTransactionsPage> {
       case 'Search':
         backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.9);
         break;
-      case 'Completed':
-        backgroundColor = Colors.green.withValues(alpha: 0.9);
-        break;
       default:
         backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.9);
     }

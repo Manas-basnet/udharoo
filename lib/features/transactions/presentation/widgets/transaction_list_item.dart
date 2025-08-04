@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/confirmation_dialog.dart';
-import 'package:udharoo/shared/presentation/widgets/status_indicator.dart';
 import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
 class TransactionListItem extends StatelessWidget {
@@ -94,10 +93,7 @@ class TransactionListItem extends StatelessWidget {
                                       textAlign: TextAlign.end,
                                     ),
                                     const SizedBox(height: 2),
-                                    QuickStatusChip(
-                                      transaction: transaction,
-                                      compact: true,
-                                    ),
+                                    _buildStatusChip(theme),
                                   ],
                                 ),
                               ),
@@ -210,6 +206,31 @@ class TransactionListItem extends StatelessWidget {
     );
   }
 
+  Widget _buildStatusChip(ThemeData theme) {
+    final statusLabel = TransactionDisplayHelper.getContextualStatusLabel(transaction, transaction.isLent);
+    final statusColor = _getStatusColor();
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: statusColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: statusColor.withValues(alpha: 0.3),
+          width: 0.5,
+        ),
+      ),
+      child: Text(
+        statusLabel,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: statusColor,
+          fontWeight: FontWeight.w600,
+          fontSize: 10,
+        ),
+      ),
+    );
+  }
+
   Widget _buildTransactionTypeIcon(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(6),
@@ -268,7 +289,7 @@ class TransactionListItem extends StatelessWidget {
       buttons.add(
         Expanded(
           child: _CompactActionButton(
-            label: 'Mark as Paid',
+            label: 'Mark as Received',
             icon: Icons.check_circle_rounded,
             color: theme.colorScheme.primary,
             onPressed: () => _handleCompleteTransaction(context, cubit),
@@ -340,6 +361,19 @@ class TransactionListItem extends StatelessWidget {
 
   Color _getTransactionColor(ThemeData theme) {
     return transaction.isLent ? Colors.green : Colors.orange;
+  }
+
+  Color _getStatusColor() {
+    switch (transaction.status) {
+      case TransactionStatus.pendingVerification:
+        return Colors.orange;
+      case TransactionStatus.verified:
+        return Colors.blue;
+      case TransactionStatus.completed:
+        return Colors.green;
+      case TransactionStatus.rejected:
+        return Colors.red;
+    }
   }
 
   String _getFormattedDate() {

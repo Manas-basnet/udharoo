@@ -1,127 +1,114 @@
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 
 class TransactionDisplayHelper {
-  static String getTransactionDirection(TransactionType type) {
-    switch (type) {
-      case TransactionType.lent:
-        return "They owe me";
-      case TransactionType.borrowed:
-        return "I owe them";
+  static String formatAmount(double amount) {
+    if (amount >= 10000000) {
+      return '${(amount / 10000000).toStringAsFixed(2)}Cr';
+    } else if (amount >= 100000) {
+      return '${(amount / 100000).toStringAsFixed(1)}L';
+    } else if (amount >= 1000) {
+      return '${(amount / 1000).toStringAsFixed(1)}K';
+    } else {
+      return amount.toStringAsFixed(0);
     }
   }
-  
+
   static String getTransactionAction(TransactionType type) {
     switch (type) {
       case TransactionType.lent:
-        return "I gave money to";
+        return 'Lent to';
       case TransactionType.borrowed:
-        return "I received money from";
+        return 'Borrowed from';
     }
   }
-  
-  static String getTransactionTypeLabel(TransactionType type) {
+
+  static String getTransactionDirection(TransactionType type) {
     switch (type) {
       case TransactionType.lent:
-        return "I gave money";
+        return 'Lent';
       case TransactionType.borrowed:
-        return "I received money";
+        return 'Borrowed';
     }
   }
-  
-  static String getTransactionTypeDescription(TransactionType type) {
-    switch (type) {
-      case TransactionType.lent:
-        return "They owe me money";
-      case TransactionType.borrowed:
-        return "I owe them money";
-    }
-  }
-  
-  static String getStatusDescription(TransactionStatus status, bool isLender) {
-    switch (status) {
-      case TransactionStatus.pendingVerification:
-        return isLender ? "Waiting for them to confirm" : "Please confirm this transaction";
-      case TransactionStatus.verified:
-        return "Confirmed - Waiting for payment";
-      case TransactionStatus.completed:
-        return "✅ Paid back";
-      case TransactionStatus.rejected:
-        return "❌ Declined";
-    }
-  }
-  
-  static String getActionRequired(Transaction transaction, bool isCurrentUserCreator) {
-    if (transaction.isPending && !isCurrentUserCreator) {
-      return "Tap to confirm this transaction";
-    }
-    if (transaction.isVerified && transaction.isLent) {
-      return "Waiting for payment";
-    }
-    if (transaction.isCompleted) {
-      return "All done! ✅";
-    }
-    if (transaction.isRejected) {
-      return "Transaction was declined";
-    }
-    return "";
-  }
-  
-  static String getSimpleStatusText(TransactionStatus status) {
-    switch (status) {
-      case TransactionStatus.pendingVerification:
-        return "Pending";
-      case TransactionStatus.verified:
-        return "Confirmed";
-      case TransactionStatus.completed:
-        return "Paid";
-      case TransactionStatus.rejected:
-        return "Declined";
-    }
-  }
-  
-  static String getWhatHappensNext(Transaction transaction, bool isCurrentUserCreator) {
-    if (transaction.isPending) {
-      if (isCurrentUserCreator) {
-        return "Wait for ${transaction.otherParty.name} to confirm this transaction.";
-      } else {
-        return "Please confirm if this transaction is correct.";
-      }
-    }
-    
-    if (transaction.isVerified) {
-      if (transaction.isLent) {
-        return "Wait for ${transaction.otherParty.name} to pay you back.";
-      } else {
-        return "Pay back ${transaction.otherParty.name} when convenient.";
-      }
-    }
-    
-    if (transaction.isCompleted) {
-      return "This transaction is complete. No further action needed.";
-    }
-    
-    if (transaction.isRejected) {
-      return "This transaction was declined. You can create a new one if needed.";
-    }
-    
-    return "";
-  }
-  
-  static String formatAmount(double amount) {
-    String amountStr = amount.toStringAsFixed(0);
-    return amountStr.replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-  }
-  
-  static String getBalanceLabel(double netBalance) {
-    if (netBalance > 0) {
-      return "People owe you";
-    } else if (netBalance < 0) {
-      return "You owe people";
+
+  static String getBalanceLabel(double balance) {
+    if (balance >= 0) {
+      return 'Net Credit';
     } else {
-      return "All settled";
+      return 'Net Debit';
+    }
+  }
+
+  static String getContextualStatusLabel(Transaction transaction, bool isCurrentUserCreator) {
+    final isLender = transaction.isLent;
+    
+    switch (transaction.status) {
+      case TransactionStatus.pendingVerification:
+        return isLender ? "Awaiting their response" : "Awaiting your response";
+      case TransactionStatus.verified:
+        return isLender ? "They owe you" : "You owe them";
+      case TransactionStatus.completed:
+        return isLender ? "Received" : "Paid back";
+      case TransactionStatus.rejected:
+        return isLender ? "They declined" : "You declined";
+    }
+  }
+
+  static String getStatusDescription(Transaction transaction, bool isCurrentUserCreator) {
+    final isLender = transaction.isLent;
+    final contactName = transaction.otherParty.name;
+    
+    switch (transaction.status) {
+      case TransactionStatus.pendingVerification:
+        return isLender 
+            ? "Waiting for $contactName to confirm this transaction"
+            : "You need to confirm this transaction from $contactName";
+      case TransactionStatus.verified:
+        return isLender 
+            ? "$contactName has confirmed they owe you money"
+            : "You have confirmed you owe $contactName money";
+      case TransactionStatus.completed:
+        return isLender 
+            ? "You have received the money back from $contactName"
+            : "You have paid back the money to $contactName";
+      case TransactionStatus.rejected:
+        return isLender 
+            ? "$contactName declined this transaction"
+            : "You declined this transaction from $contactName";
+    }
+  }
+
+  static String getWhatHappensNext(Transaction transaction, bool isCurrentUserCreator) {
+    final isLender = transaction.isLent;
+    final contactName = transaction.otherParty.name;
+    
+    switch (transaction.status) {
+      case TransactionStatus.pendingVerification:
+        return isLender
+            ? "$contactName will receive a notification to confirm this transaction. Once they confirm, you can mark it as paid when you receive the money back."
+            : "You need to confirm whether you received money from $contactName. If you confirm, they can mark it as paid when you return the money.";
+      case TransactionStatus.verified:
+        return isLender
+            ? "The transaction is confirmed. You can mark it as 'Received' when $contactName pays you back."
+            : "The transaction is confirmed. $contactName will mark it as 'Received' when you pay them back.";
+      case TransactionStatus.completed:
+        return "This transaction is complete. The money has been returned successfully.";
+      case TransactionStatus.rejected:
+        return "This transaction was declined and no money exchange took place.";
+    }
+  }
+
+  static String getActionButtonText(Transaction transaction, bool isCurrentUserCreator) {
+    final isLender = transaction.isLent;
+    
+    switch (transaction.status) {
+      case TransactionStatus.pendingVerification:
+        return isLender ? "Waiting..." : "Confirm";
+      case TransactionStatus.verified:
+        return isLender ? "Mark as Received" : "Waiting...";
+      case TransactionStatus.completed:
+      case TransactionStatus.rejected:
+        return "";
     }
   }
 }

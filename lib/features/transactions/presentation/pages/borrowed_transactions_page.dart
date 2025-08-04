@@ -11,8 +11,8 @@ import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
 enum BorrowedTransactionFilter { 
   all, 
-  pending,
-  verified, 
+  needsResponse,
+  active, 
   completed,
 }
 
@@ -211,7 +211,7 @@ class _BorrowedTransactionsPageState extends State<BorrowedTransactionsPage> {
     final borrowedTransactions = state.transactions.where((t) => t.isBorrowed).toList();
     
     final totalAmount = borrowedTransactions.fold(0.0, (sum, t) => sum + t.amount);
-    final pendingAmount = borrowedTransactions
+    final needsResponseAmount = borrowedTransactions
         .where((t) => t.isPending)
         .fold(0.0, (sum, t) => sum + t.amount);
     final completedAmount = borrowedTransactions
@@ -234,8 +234,8 @@ class _BorrowedTransactionsPageState extends State<BorrowedTransactionsPage> {
             const SizedBox(width: 8),
             Expanded(
               child: _SummaryCard(
-                title: 'Pending',
-                amount: pendingAmount,
+                title: 'Needs Response',
+                amount: needsResponseAmount,
                 color: Colors.orange,
                 icon: Icons.hourglass_empty_rounded,
               ),
@@ -281,9 +281,9 @@ class _BorrowedTransactionsPageState extends State<BorrowedTransactionsPage> {
               children: [
                 _buildFilterChip('All', BorrowedTransactionFilter.all, theme, state),
                 const SizedBox(width: 8),
-                _buildFilterChip('Pending', BorrowedTransactionFilter.pending, theme, state),
+                _buildFilterChip('Needs Response', BorrowedTransactionFilter.needsResponse, theme, state),
                 const SizedBox(width: 8),
-                _buildFilterChip('Verified', BorrowedTransactionFilter.verified, theme, state),
+                _buildFilterChip('Active', BorrowedTransactionFilter.active, theme, state),
                 const SizedBox(width: 8),
                 _buildFilterChip('Completed', BorrowedTransactionFilter.completed, theme, state),
               ],
@@ -390,12 +390,12 @@ class _BorrowedTransactionsPageState extends State<BorrowedTransactionsPage> {
       case BorrowedTransactionFilter.all:
         filteredTransactions = borrowedTransactions;
         break;
-      case BorrowedTransactionFilter.pending:
+      case BorrowedTransactionFilter.needsResponse:
         filteredTransactions = borrowedTransactions
             .where((t) => t.isPending)
             .toList();
         break;
-      case BorrowedTransactionFilter.verified:
+      case BorrowedTransactionFilter.active:
         filteredTransactions = borrowedTransactions
             .where((t) => t.isVerified)
             .toList();
@@ -422,14 +422,14 @@ class _BorrowedTransactionsPageState extends State<BorrowedTransactionsPage> {
         subtitle = 'Money you borrow from others will appear here';
         icon = Icons.trending_down_rounded;
         break;
-      case BorrowedTransactionFilter.pending:
-        message = 'No Pending Borrowing';
-        subtitle = 'All your borrowing transactions are confirmed';
+      case BorrowedTransactionFilter.needsResponse:
+        message = 'All Caught Up!';
+        subtitle = 'No borrowing transactions need your response';
         icon = Icons.check_circle_outline;
         break;
-      case BorrowedTransactionFilter.verified:
-        message = 'No Verified Borrowing';
-        subtitle = 'Verified borrowing transactions will appear here';
+      case BorrowedTransactionFilter.active:
+        message = 'No Active Borrowing';
+        subtitle = 'Active borrowing transactions will appear here';
         icon = Icons.verified_outlined;
         break;
       case BorrowedTransactionFilter.completed:

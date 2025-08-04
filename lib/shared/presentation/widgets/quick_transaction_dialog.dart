@@ -85,7 +85,7 @@ class _QuickTransactionDialogState extends State<QuickTransactionDialog> {
                         ),
                       ),
                       Text(
-                        TransactionDisplayHelper.getTransactionTypeLabel(
+                        TransactionDisplayHelper.getTransactionAction(
                           widget.preSelectedType,
                         ),
                         style: theme.textTheme.bodySmall?.copyWith(

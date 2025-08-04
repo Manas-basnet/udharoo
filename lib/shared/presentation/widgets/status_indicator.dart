@@ -5,97 +5,142 @@ import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 class StatusIndicator extends StatelessWidget {
   final Transaction transaction;
   final bool isCurrentUserCreator;
-  final bool showActionHint;
+  final bool compact;
 
   const StatusIndicator({
     super.key,
     required this.transaction,
     required this.isCurrentUserCreator,
-    this.showActionHint = true,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
+    if (compact) {
+      return _buildCompactChip(theme);
+    }
+    
+    return _buildFullIndicator(theme);
+  }
+
+  Widget _buildCompactChip(ThemeData theme) {
+    final statusData = _getStatusData();
+    
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _getStatusColor().withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        color: statusData.color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _getStatusColor().withValues(alpha: 0.3),
-          width: 1,
+          color: statusData.color.withValues(alpha: 0.3),
+          width: 0.5,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Icon(
-                _getStatusIcon(), 
-                color: _getStatusColor(), 
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _getStatusTitle(),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: _getStatusColor(),
-                  ),
-                ),
-              ),
-            ],
+          Icon(
+            statusData.icon,
+            size: 12,
+            color: statusData.color,
           ),
-          if (showActionHint) ...[
-            const SizedBox(height: 4),
-            Text(
-              TransactionDisplayHelper.getActionRequired(transaction, isCurrentUserCreator),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: _getStatusColor(),
-              ),
+          const SizedBox(width: 4),
+          Text(
+            TransactionDisplayHelper.getContextualStatusLabel(transaction, isCurrentUserCreator),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: statusData.color,
+              fontWeight: FontWeight.w600,
+              fontSize: 10,
             ),
-          ],
+          ),
         ],
       ),
     );
   }
 
-  Color _getStatusColor() {
-    switch (transaction.status) {
-      case TransactionStatus.pendingVerification:
-        return Colors.orange;
-      case TransactionStatus.verified:
-        return Colors.blue;
-      case TransactionStatus.completed:
-        return Colors.green;
-      case TransactionStatus.rejected:
-        return Colors.red;
-    }
-  }
-
-  IconData _getStatusIcon() {
-    switch (transaction.status) {
-      case TransactionStatus.pendingVerification:
-        return Icons.hourglass_empty;
-      case TransactionStatus.verified:
-        return Icons.verified;
-      case TransactionStatus.completed:
-        return Icons.check_circle;
-      case TransactionStatus.rejected:
-        return Icons.cancel;
-    }
-  }
-
-  String _getStatusTitle() {
-    return TransactionDisplayHelper.getStatusDescription(
-      transaction.status, 
-      isCurrentUserCreator,
+  Widget _buildFullIndicator(ThemeData theme) {
+    final statusData = _getStatusData();
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: statusData.color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: statusData.color.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: statusData.color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  statusData.icon,
+                  size: 20,
+                  color: statusData.color,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      TransactionDisplayHelper.getContextualStatusLabel(transaction, isCurrentUserCreator),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: statusData.color,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      TransactionDisplayHelper.getStatusDescription(transaction, isCurrentUserCreator),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
+  }
+
+  _StatusData _getStatusData() {
+    switch (transaction.status) {
+      case TransactionStatus.pendingVerification:
+        return _StatusData(
+          color: Colors.orange,
+          icon: Icons.hourglass_empty_rounded,
+        );
+      case TransactionStatus.verified:
+        return _StatusData(
+          color: Colors.blue,
+          icon: Icons.verified_rounded,
+        );
+      case TransactionStatus.completed:
+        return _StatusData(
+          color: Colors.green,
+          icon: Icons.check_circle_rounded,
+        );
+      case TransactionStatus.rejected:
+        return _StatusData(
+          color: Colors.red,
+          icon: Icons.cancel_rounded,
+        );
+    }
   }
 }
 
@@ -111,57 +156,20 @@ class QuickStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = _getStatusColor();
-    
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 6 : 8,
-        vertical: compact ? 2 : 4,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(compact ? 6 : 8),
-        border: Border.all(
-          color: color.withValues(alpha: 0.3),
-          width: 0.5,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: compact ? 3 : 4,
-            height: compact ? 3 : 4,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(compact ? 1.5 : 2),
-            ),
-          ),
-          SizedBox(width: compact ? 3 : 4),
-          Text(
-            TransactionDisplayHelper.getSimpleStatusText(transaction.status),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontSize: compact ? 9 : 10,
-            ),
-          ),
-        ],
-      ),
+    return StatusIndicator(
+      transaction: transaction,
+      isCurrentUserCreator: transaction.isLent,
+      compact: compact,
     );
   }
+}
 
-  Color _getStatusColor() {
-    switch (transaction.status) {
-      case TransactionStatus.pendingVerification:
-        return Colors.orange;
-      case TransactionStatus.verified:
-        return Colors.blue;
-      case TransactionStatus.completed:
-        return Colors.green;
-      case TransactionStatus.rejected:
-        return Colors.red;
-    }
-  }
+class _StatusData {
+  final Color color;
+  final IconData icon;
+
+  _StatusData({
+    required this.color,
+    required this.icon,
+  });
 }

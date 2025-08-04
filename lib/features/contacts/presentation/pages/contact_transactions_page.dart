@@ -13,7 +13,7 @@ import 'package:udharoo/features/transactions/presentation/widgets/transaction_l
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
-enum ContactTransactionFilter { all, pending, confirmed, completed }
+enum ContactTransactionFilter { all, needsResponse, active, completed }
 
 class ContactTransactionsPage extends StatefulWidget {
   final String contactUserId;
@@ -420,15 +420,15 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
                 ),
                 const SizedBox(width: 8),
                 _buildFilterChip(
-                  'Pending',
-                  ContactTransactionFilter.pending,
+                  'Needs Response',
+                  ContactTransactionFilter.needsResponse,
                   theme,
                   state,
                 ),
                 const SizedBox(width: 8),
                 _buildFilterChip(
-                  'Confirmed',
-                  ContactTransactionFilter.confirmed,
+                  'Active',
+                  ContactTransactionFilter.active,
                   theme,
                   state,
                 ),
@@ -545,10 +545,10 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
       case ContactTransactionFilter.all:
         filtered = transactions;
         break;
-      case ContactTransactionFilter.pending:
+      case ContactTransactionFilter.needsResponse:
         filtered = transactions.where((t) => t.isPending).toList();
         break;
-      case ContactTransactionFilter.confirmed:
+      case ContactTransactionFilter.active:
         filtered = transactions.where((t) => t.isVerified).toList();
         break;
       case ContactTransactionFilter.completed:
@@ -570,16 +570,16 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
         subtitle = 'Start your first transaction with ${_contact!.displayName}';
         icon = Icons.receipt_long_outlined;
         break;
-      case ContactTransactionFilter.pending:
-        message = 'No Pending Transactions';
+      case ContactTransactionFilter.needsResponse:
+        message = 'No Pending Actions';
         subtitle =
             'All transactions with ${_contact!.displayName} are up to date';
         icon = Icons.check_circle_outline;
         break;
-      case ContactTransactionFilter.confirmed:
-        message = 'No Confirmed Transactions';
+      case ContactTransactionFilter.active:
+        message = 'No Active Transactions';
         subtitle =
-            'Confirmed transactions with ${_contact!.displayName} will appear here';
+            'Active transactions with ${_contact!.displayName} will appear here';
         icon = Icons.verified_outlined;
         break;
       case ContactTransactionFilter.completed:

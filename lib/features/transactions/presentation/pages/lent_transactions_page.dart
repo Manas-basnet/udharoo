@@ -11,8 +11,8 @@ import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
 enum LentTransactionFilter { 
   all, 
-  pending,
-  verified, 
+  awaitingResponse,
+  active, 
   completed,
 }
 
@@ -211,7 +211,7 @@ class _LentTransactionsPageState extends State<LentTransactionsPage> {
     final lentTransactions = state.transactions.where((t) => t.isLent).toList();
     
     final totalAmount = lentTransactions.fold(0.0, (sum, t) => sum + t.amount);
-    final pendingAmount = lentTransactions
+    final awaitingResponseAmount = lentTransactions
         .where((t) => t.isPending)
         .fold(0.0, (sum, t) => sum + t.amount);
     final completedAmount = lentTransactions
@@ -234,8 +234,8 @@ class _LentTransactionsPageState extends State<LentTransactionsPage> {
             const SizedBox(width: 8),
             Expanded(
               child: _SummaryCard(
-                title: 'Pending',
-                amount: pendingAmount,
+                title: 'Awaiting Response',
+                amount: awaitingResponseAmount,
                 color: Colors.orange,
                 icon: Icons.hourglass_empty_rounded,
               ),
@@ -281,9 +281,9 @@ class _LentTransactionsPageState extends State<LentTransactionsPage> {
               children: [
                 _buildFilterChip('All', LentTransactionFilter.all, theme, state),
                 const SizedBox(width: 8),
-                _buildFilterChip('Pending', LentTransactionFilter.pending, theme, state),
+                _buildFilterChip('Awaiting Response', LentTransactionFilter.awaitingResponse, theme, state),
                 const SizedBox(width: 8),
-                _buildFilterChip('Verified', LentTransactionFilter.verified, theme, state),
+                _buildFilterChip('Active', LentTransactionFilter.active, theme, state),
                 const SizedBox(width: 8),
                 _buildFilterChip('Completed', LentTransactionFilter.completed, theme, state),
               ],
@@ -390,12 +390,12 @@ class _LentTransactionsPageState extends State<LentTransactionsPage> {
       case LentTransactionFilter.all:
         filteredTransactions = lentTransactions;
         break;
-      case LentTransactionFilter.pending:
+      case LentTransactionFilter.awaitingResponse:
         filteredTransactions = lentTransactions
             .where((t) => t.isPending)
             .toList();
         break;
-      case LentTransactionFilter.verified:
+      case LentTransactionFilter.active:
         filteredTransactions = lentTransactions
             .where((t) => t.isVerified)
             .toList();
@@ -422,14 +422,14 @@ class _LentTransactionsPageState extends State<LentTransactionsPage> {
         subtitle = 'Money you lend to others will appear here';
         icon = Icons.trending_up_rounded;
         break;
-      case LentTransactionFilter.pending:
-        message = 'No Pending Lending';
-        subtitle = 'All your lending transactions are confirmed';
+      case LentTransactionFilter.awaitingResponse:
+        message = 'All Caught Up!';
+        subtitle = 'No lending transactions are awaiting response';
         icon = Icons.check_circle_outline;
         break;
-      case LentTransactionFilter.verified:
-        message = 'No Verified Lending';
-        subtitle = 'Verified lending transactions will appear here';
+      case LentTransactionFilter.active:
+        message = 'No Active Lending';
+        subtitle = 'Active lending transactions will appear here';
         icon = Icons.verified_outlined;
         break;
       case LentTransactionFilter.completed:
