@@ -246,9 +246,17 @@ class _ContactBorrowedTransactionsPageState extends State<ContactBorrowedTransac
   }
 
   Widget _buildQuickStats(ThemeData theme, double horizontalPadding, List<Transaction> borrowedTransactions) {
-    final totalBorrowed = borrowedTransactions.fold(0.0, (sum, t) => sum + t.amount);
-    final needsResponseAmount = borrowedTransactions.where((t) => t.isPending).fold(0.0, (sum, t) => sum + t.amount);
-    final completedAmount = borrowedTransactions.where((t) => t.isCompleted).fold(0.0, (sum, t) => sum + t.amount);
+    final activeBorrowedAmount = borrowedTransactions
+        .where((t) => t.isVerified)
+        .fold(0.0, (sum, t) => sum + t.amount);
+        
+    final needsResponseAmount = borrowedTransactions
+        .where((t) => t.isPending)
+        .fold(0.0, (sum, t) => sum + t.amount);
+        
+    final completedAmount = borrowedTransactions
+        .where((t) => t.isCompleted)
+        .fold(0.0, (sum, t) => sum + t.amount);
 
     return SliverToBoxAdapter(
       child: Container(
@@ -257,13 +265,13 @@ class _ContactBorrowedTransactionsPageState extends State<ContactBorrowedTransac
           children: [
             Expanded(
               child: _StatCard(
-                title: 'Total Borrowed',
-                value: 'Rs. ${TransactionDisplayHelper.formatAmount(totalBorrowed)}',
+                title: 'You owe them',
+                value: 'Rs. ${TransactionDisplayHelper.formatAmount(activeBorrowedAmount)}',
                 color: Colors.orange,
                 icon: Icons.trending_down_rounded,
                 onTap: () {
                   setState(() {
-                    _selectedFilter = ContactBorrowedFilter.all;
+                    _selectedFilter = ContactBorrowedFilter.active;
                   });
                 },
               ),

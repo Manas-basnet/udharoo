@@ -210,10 +210,14 @@ class _LentTransactionsPageState extends State<LentTransactionsPage> {
   Widget _buildSummaryCards(ThemeData theme, TransactionState state) {
     final lentTransactions = state.transactions.where((t) => t.isLent).toList();
     
-    final totalAmount = lentTransactions.fold(0.0, (sum, t) => sum + t.amount);
+    final activeLentAmount = lentTransactions
+        .where((t) => t.isVerified)
+        .fold(0.0, (sum, t) => sum + t.amount);
+        
     final awaitingResponseAmount = lentTransactions
         .where((t) => t.isPending)
         .fold(0.0, (sum, t) => sum + t.amount);
+        
     final completedAmount = lentTransactions
         .where((t) => t.isCompleted)
         .fold(0.0, (sum, t) => sum + t.amount);
@@ -225,13 +229,13 @@ class _LentTransactionsPageState extends State<LentTransactionsPage> {
           children: [
             Expanded(
               child: _SummaryCard(
-                title: 'Total Lent',
-                amount: totalAmount,
+                title: 'They owe you',
+                amount: activeLentAmount,
                 color: Colors.green,
                 icon: Icons.trending_up_rounded,
                 onTap: () {
                   setState(() {
-                    _selectedFilter = LentTransactionFilter.all;
+                    _selectedFilter = LentTransactionFilter.active;
                   });
                 },
               ),

@@ -156,9 +156,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildNetBalanceCard(TransactionState state, ThemeData theme) {
-    final totalTheyOwe = state.lentTransactions.fold(0.0, (sum, t) => sum + t.amount);
-    final totalIOwe = state.borrowedTransactions.fold(0.0, (sum, t) => sum + t.amount);
-    final netBalance = totalTheyOwe - totalIOwe;
+    final netBalance = state.netActiveBalance;
     
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -221,7 +219,7 @@ class HomeScreen extends StatelessWidget {
                 child: _buildBalanceItem(
                   Icons.trending_up_rounded,
                   'They owe you', 
-                  totalTheyOwe, 
+                  state.totalActiveTheyOweYou, 
                   Colors.green,
                   theme,
                 ),
@@ -235,7 +233,7 @@ class HomeScreen extends StatelessWidget {
                 child: _buildBalanceItem(
                   Icons.trending_down_rounded,
                   'You owe them', 
-                  totalIOwe, 
+                  state.totalActiveYouOweThem, 
                   Colors.orange,
                   theme,
                 ),

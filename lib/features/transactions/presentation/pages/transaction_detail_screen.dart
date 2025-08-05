@@ -381,7 +381,7 @@ class TransactionDetailScreen extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    TransactionDisplayHelper.getTransactionDirection(transaction.type),
+                    TransactionDisplayHelper.getContextualStatusLabel(transaction, transaction.isLent),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: _getTransactionColor(theme),
                       fontWeight: FontWeight.w600,

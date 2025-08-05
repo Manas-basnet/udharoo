@@ -210,10 +210,14 @@ class _BorrowedTransactionsPageState extends State<BorrowedTransactionsPage> {
   Widget _buildSummaryCards(ThemeData theme, TransactionState state) {
     final borrowedTransactions = state.transactions.where((t) => t.isBorrowed).toList();
     
-    final totalAmount = borrowedTransactions.fold(0.0, (sum, t) => sum + t.amount);
+    final activeBorrowedAmount = borrowedTransactions
+        .where((t) => t.isVerified)
+        .fold(0.0, (sum, t) => sum + t.amount);
+        
     final needsResponseAmount = borrowedTransactions
         .where((t) => t.isPending)
         .fold(0.0, (sum, t) => sum + t.amount);
+        
     final completedAmount = borrowedTransactions
         .where((t) => t.isCompleted)
         .fold(0.0, (sum, t) => sum + t.amount);
@@ -225,13 +229,13 @@ class _BorrowedTransactionsPageState extends State<BorrowedTransactionsPage> {
           children: [
             Expanded(
               child: _SummaryCard(
-                title: 'Total Borrowed',
-                amount: totalAmount,
+                title: 'You owe them',
+                amount: activeBorrowedAmount,
                 color: Colors.orange,
                 icon: Icons.trending_down_rounded,
                 onTap: () {
                   setState(() {
-                    _selectedFilter = BorrowedTransactionFilter.all;
+                    _selectedFilter = BorrowedTransactionFilter.active;
                   });
                 },
               ),

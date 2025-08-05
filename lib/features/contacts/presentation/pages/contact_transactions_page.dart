@@ -303,9 +303,9 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
     double horizontalPadding,
     List<Transaction> transactions,
   ) {
-    final totalLent = _calculateTotalLent(transactions);
-    final totalBorrowed = _calculateTotalBorrowed(transactions);
-    final netBalance = totalLent - totalBorrowed;
+    final activeTotalLent = _calculateActiveTotalLent(transactions);
+    final activeTotalBorrowed = _calculateActiveTotalBorrowed(transactions);
+    final netBalance = activeTotalLent - activeTotalBorrowed;
 
     return SliverToBoxAdapter(
       child: Container(
@@ -322,7 +322,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Transaction Overview',
+                  'Active Transaction Overview',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: theme.colorScheme.primary,
@@ -336,8 +336,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
                 Expanded(
                   child: _StatCard(
                     title: 'They owe you',
-                    value:
-                        'Rs. ${TransactionDisplayHelper.formatAmount(totalLent)}',
+                    value: 'Rs. ${TransactionDisplayHelper.formatAmount(activeTotalLent)}',
                     color: Colors.green,
                     icon: Icons.trending_up_rounded,
                     onTap: () => context.push(
@@ -349,8 +348,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
                 Expanded(
                   child: _StatCard(
                     title: 'You owe them',
-                    value:
-                        'Rs. ${TransactionDisplayHelper.formatAmount(totalBorrowed)}',
+                    value: 'Rs. ${TransactionDisplayHelper.formatAmount(activeTotalBorrowed)}',
                     color: Colors.orange,
                     icon: Icons.trending_down_rounded,
                     onTap: () {
@@ -364,8 +362,7 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
                 Expanded(
                   child: _StatCard(
                     title: TransactionDisplayHelper.getBalanceLabel(netBalance),
-                    value:
-                        '${netBalance >= 0 ? '+' : '-'}Rs. ${TransactionDisplayHelper.formatAmount(netBalance.abs())}',
+                    value: '${netBalance >= 0 ? '+' : '-'}Rs. ${TransactionDisplayHelper.formatAmount(netBalance.abs())}',
                     color: netBalance >= 0 ? Colors.green : Colors.orange,
                     icon: netBalance >= 0
                         ? Icons.add_circle_outline
@@ -383,6 +380,18 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
         ),
       ),
     );
+  }
+
+  double _calculateActiveTotalLent(List<Transaction> transactions) {
+    return transactions
+        .where((t) => t.isLent && t.isVerified)
+        .fold(0.0, (sum, t) => sum + t.amount);
+  }
+
+  double _calculateActiveTotalBorrowed(List<Transaction> transactions) {
+    return transactions
+        .where((t) => t.isBorrowed && t.isVerified)
+        .fold(0.0, (sum, t) => sum + t.amount);
   }
 
   Widget _buildFilterSection(
@@ -676,18 +685,6 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
         ),
       ),
     );
-  }
-
-  double _calculateTotalLent(List<Transaction> transactions) {
-    return transactions
-        .where((t) => t.isLent)
-        .fold(0.0, (sum, t) => sum + t.amount);
-  }
-
-  double _calculateTotalBorrowed(List<Transaction> transactions) {
-    return transactions
-        .where((t) => t.isBorrowed)
-        .fold(0.0, (sum, t) => sum + t.amount);
   }
 
   void _createNewTransaction(BuildContext context) {

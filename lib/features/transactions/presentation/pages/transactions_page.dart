@@ -214,18 +214,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   Widget _buildSummaryCards(ThemeData theme, TransactionState state) {
-    double totalTheyOwe = 0;
-    double totalIOwe = 0;
-    
-    for (final transaction in state.lentTransactions) {
-      totalTheyOwe += transaction.amount;
-    }
-    
-    for (final transaction in state.borrowedTransactions) {
-      totalIOwe += transaction.amount;
-    }
-
-    final netBalance = totalTheyOwe - totalIOwe;
+    final netBalance = state.netActiveBalance;
 
     return SliverToBoxAdapter(
       child: Container(
@@ -260,7 +249,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     onTap: () => context.push(Routes.lentTransactions),
                     child: _SummaryCard(
                       title: 'They owe you',
-                      amount: totalTheyOwe,
+                      amount: state.totalActiveTheyOweYou,
                       color: Colors.green,
                       icon: Icons.trending_up_rounded,
                     ),
@@ -272,7 +261,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     onTap: () => context.push(Routes.borrowedTransactions),
                     child: _SummaryCard(
                       title: 'You owe them',
-                      amount: totalIOwe,
+                      amount: state.totalActiveYouOweThem,
                       color: Colors.orange,
                       icon: Icons.trending_down_rounded,
                     ),

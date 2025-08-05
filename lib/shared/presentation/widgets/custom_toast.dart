@@ -8,6 +8,14 @@ class CustomToast {
     Duration duration = const Duration(seconds: 3),
   }) {
     OverlayEntry? overlayEntry;
+    bool isRemoved = false;
+    
+    void removeOverlay() {
+      if (!isRemoved && overlayEntry != null) {
+        isRemoved = true;
+        overlayEntry.remove();
+      }
+    }
     
     overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
@@ -18,9 +26,7 @@ class CustomToast {
           child: AnimatedSnackbar(
             message: message,
             isSuccess: isSuccess,
-            onDismiss: () {
-              overlayEntry?.remove();
-            },
+            onDismiss: removeOverlay,
           ),
         ),
       ),
@@ -32,7 +38,7 @@ class CustomToast {
     }
 
     Future.delayed(duration, () {
-      overlayEntry?.remove();
+      removeOverlay();
     });
   }
 }
@@ -58,6 +64,7 @@ class _AnimatedSnackbarState extends State<AnimatedSnackbar>
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
+  bool _isDismissing = false;
 
   @override
   void initState() {
@@ -90,6 +97,9 @@ class _AnimatedSnackbarState extends State<AnimatedSnackbar>
   }
 
   void _dismiss() async {
+    if (_isDismissing) return;
+    _isDismissing = true;
+    
     await _controller.reverse();
     widget.onDismiss();
   }

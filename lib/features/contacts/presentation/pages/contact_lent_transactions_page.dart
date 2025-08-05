@@ -246,9 +246,17 @@ class _ContactLentTransactionsPageState extends State<ContactLentTransactionsPag
   }
 
   Widget _buildQuickStats(ThemeData theme, double horizontalPadding, List<Transaction> lentTransactions) {
-    final totalLent = lentTransactions.fold(0.0, (sum, t) => sum + t.amount);
-    final awaitingResponseAmount = lentTransactions.where((t) => t.isPending).fold(0.0, (sum, t) => sum + t.amount);
-    final completedAmount = lentTransactions.where((t) => t.isCompleted).fold(0.0, (sum, t) => sum + t.amount);
+    final activeLentAmount = lentTransactions
+        .where((t) => t.isVerified)
+        .fold(0.0, (sum, t) => sum + t.amount);
+        
+    final awaitingResponseAmount = lentTransactions
+        .where((t) => t.isPending)
+        .fold(0.0, (sum, t) => sum + t.amount);
+        
+    final completedAmount = lentTransactions
+        .where((t) => t.isCompleted)
+        .fold(0.0, (sum, t) => sum + t.amount);
 
     return SliverToBoxAdapter(
       child: Container(
@@ -257,13 +265,13 @@ class _ContactLentTransactionsPageState extends State<ContactLentTransactionsPag
           children: [
             Expanded(
               child: _StatCard(
-                title: 'Total Lent',
-                value: 'Rs. ${TransactionDisplayHelper.formatAmount(totalLent)}',
+                title: 'They owe you',
+                value: 'Rs. ${TransactionDisplayHelper.formatAmount(activeLentAmount)}',
                 color: Colors.green,
                 icon: Icons.trending_up_rounded,
                 onTap: () {
                   setState(() {
-                    _selectedFilter = ContactLentFilter.all;
+                    _selectedFilter = ContactLentFilter.active;
                   });
                 },
               ),

@@ -54,6 +54,8 @@ class TransactionCubit extends Cubit<TransactionState> {
       transactions: transactions,
       lentTransactions: categorizedTransactions.lent,
       borrowedTransactions: categorizedTransactions.borrowed,
+      activeLentTransactions: categorizedTransactions.activeLent,
+      activeBorrowedTransactions: categorizedTransactions.activeBorrowed,
       pendingTransactions: categorizedTransactions.pending,
       completedTransactions: categorizedTransactions.completed,
       isInitialLoading: false,
@@ -75,17 +77,23 @@ class TransactionCubit extends Cubit<TransactionState> {
   ({
     List<Transaction> lent,
     List<Transaction> borrowed,
+    List<Transaction> activeLent,
+    List<Transaction> activeBorrowed,
     List<Transaction> pending,
     List<Transaction> completed,
   }) _categorizeTransactions(List<Transaction> transactions) {
     final lent = transactions.where((t) => t.isLent && (t.isVerified || t.isCompleted)).toList();
     final borrowed = transactions.where((t) => t.isBorrowed && (t.isVerified || t.isCompleted)).toList();
+    final activeLent = transactions.where((t) => t.isLent && t.isVerified).toList();
+    final activeBorrowed = transactions.where((t) => t.isBorrowed && t.isVerified).toList();
     final pending = transactions.where((t) => t.isPending).toList();
     final completed = transactions.where((t) => t.isCompleted).toList();
 
     return (
       lent: lent,
       borrowed: borrowed,
+      activeLent: activeLent,
+      activeBorrowed: activeBorrowed,
       pending: pending,
       completed: completed,
     );

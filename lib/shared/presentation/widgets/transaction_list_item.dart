@@ -19,7 +19,7 @@ class TransactionListItem extends StatelessWidget {
     final mediaQuery = MediaQuery.of(context);
     final screenWidth = mediaQuery.size.width;
     
-    final dynamicPadding = screenWidth < 360 ? 12.0 : 16.0;
+    final dynamicPadding = screenWidth < 360 ? 10.0 : 14.0;
     
     return Container(
       decoration: BoxDecoration(
@@ -42,7 +42,7 @@ class TransactionListItem extends StatelessWidget {
                   children: [
                     _buildTransactionIndicator(theme),
                     
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     
                     Expanded(
                       child: Column(
@@ -77,7 +77,7 @@ class TransactionListItem extends StatelessWidget {
                                 ),
                               ),
                               
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 10),
                               
                               Flexible(
                                 flex: 2,
@@ -101,7 +101,7 @@ class TransactionListItem extends StatelessWidget {
                           ),
                           
                           if (transaction.description.isNotEmpty) ...[
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
@@ -120,7 +120,7 @@ class TransactionListItem extends StatelessWidget {
                             ),
                           ],
                           
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -129,7 +129,7 @@ class TransactionListItem extends StatelessWidget {
                                 children: [
                                   Icon(
                                     Icons.schedule_rounded,
-                                    size: 12,
+                                    size: 11,
                                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                   ),
                                   const SizedBox(width: 4),
@@ -155,7 +155,7 @@ class TransactionListItem extends StatelessWidget {
                 ),
                 
                 if (_shouldShowActionButtons() && !isProcessing) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   _buildCompactActionButtons(context, theme),
                 ],
               ],
@@ -169,7 +169,7 @@ class TransactionListItem extends StatelessWidget {
   Widget _buildTransactionIndicator(ThemeData theme) {
     return Container(
       width: 4,
-      height: 48,
+      height: 44,
       decoration: BoxDecoration(
         color: _getTransactionColor(theme),
         borderRadius: BorderRadius.circular(2),
@@ -233,7 +233,7 @@ class TransactionListItem extends StatelessWidget {
 
   Widget _buildTransactionTypeIcon(ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.all(6),
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
         color: _getTransactionColor(theme).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
@@ -245,15 +245,15 @@ class TransactionListItem extends StatelessWidget {
       child: Icon(
         transaction.isLent ? Icons.trending_up_rounded : Icons.trending_down_rounded,
         color: _getTransactionColor(theme),
-        size: 16,
+        size: 14,
       ),
     );
   }
 
   Widget _buildProcessingIndicator(ThemeData theme) {
     return SizedBox(
-      width: 16,
-      height: 16,
+      width: 14,
+      height: 14,
       child: CircularProgressIndicator(
         strokeWidth: 2,
         valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
@@ -275,7 +275,7 @@ class TransactionListItem extends StatelessWidget {
             onPressed: () => _handleConfirmTransaction(context, cubit),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Expanded(
           child: _CompactActionButton(
             label: 'Decline',
@@ -300,18 +300,7 @@ class TransactionListItem extends StatelessWidget {
 
     if (buttons.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.1),
-          width: 0.5,
-        ),
-      ),
-      child: Row(children: buttons),
-    );
+    return Row(children: buttons);
   }
 
   Future<void> _handleConfirmTransaction(BuildContext context, TransactionCubit cubit) async {
@@ -422,20 +411,20 @@ class _CompactActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 36,
+      height: 34,
       child: ElevatedButton.icon(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
           elevation: 1,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
         ),
-        icon: Icon(icon, size: 16),
+        icon: Icon(icon, size: 14),
         label: Text(label),
       ),
     );

@@ -4,6 +4,8 @@ class TransactionState extends Equatable {
   final List<Transaction> transactions;
   final List<Transaction> lentTransactions;
   final List<Transaction> borrowedTransactions;
+  final List<Transaction> activeLentTransactions;
+  final List<Transaction> activeBorrowedTransactions;
   final List<Transaction> pendingTransactions;
   final List<Transaction> completedTransactions;
   
@@ -19,6 +21,8 @@ class TransactionState extends Equatable {
     this.transactions = const [],
     this.lentTransactions = const [],
     this.borrowedTransactions = const [],
+    this.activeLentTransactions = const [],
+    this.activeBorrowedTransactions = const [],
     this.pendingTransactions = const [],
     this.completedTransactions = const [],
     this.isInitialLoading = false,
@@ -35,6 +39,8 @@ class TransactionState extends Equatable {
     List<Transaction>? transactions,
     List<Transaction>? lentTransactions,
     List<Transaction>? borrowedTransactions,
+    List<Transaction>? activeLentTransactions,
+    List<Transaction>? activeBorrowedTransactions,
     List<Transaction>? pendingTransactions,
     List<Transaction>? completedTransactions,
     bool? isInitialLoading,
@@ -48,6 +54,8 @@ class TransactionState extends Equatable {
       transactions: transactions ?? this.transactions,
       lentTransactions: lentTransactions ?? this.lentTransactions,
       borrowedTransactions: borrowedTransactions ?? this.borrowedTransactions,
+      activeLentTransactions: activeLentTransactions ?? this.activeLentTransactions,
+      activeBorrowedTransactions: activeBorrowedTransactions ?? this.activeBorrowedTransactions,
       pendingTransactions: pendingTransactions ?? this.pendingTransactions,
       completedTransactions: completedTransactions ?? this.completedTransactions,
       isInitialLoading: isInitialLoading ?? this.isInitialLoading,
@@ -64,6 +72,8 @@ class TransactionState extends Equatable {
       transactions: transactions,
       lentTransactions: lentTransactions,
       borrowedTransactions: borrowedTransactions,
+      activeLentTransactions: activeLentTransactions,
+      activeBorrowedTransactions: activeBorrowedTransactions,
       pendingTransactions: pendingTransactions,
       completedTransactions: completedTransactions,
       isInitialLoading: isInitialLoading,
@@ -80,6 +90,8 @@ class TransactionState extends Equatable {
       transactions: transactions,
       lentTransactions: lentTransactions,
       borrowedTransactions: borrowedTransactions,
+      activeLentTransactions: activeLentTransactions,
+      activeBorrowedTransactions: activeBorrowedTransactions,
       pendingTransactions: pendingTransactions,
       completedTransactions: completedTransactions,
       isInitialLoading: isInitialLoading,
@@ -96,6 +108,8 @@ class TransactionState extends Equatable {
       transactions: transactions,
       lentTransactions: lentTransactions,
       borrowedTransactions: borrowedTransactions,
+      activeLentTransactions: activeLentTransactions,
+      activeBorrowedTransactions: activeBorrowedTransactions,
       pendingTransactions: pendingTransactions,
       completedTransactions: completedTransactions,
       isInitialLoading: isInitialLoading,
@@ -117,11 +131,17 @@ class TransactionState extends Equatable {
   bool get isLoading => isInitialLoading && !isInitialized;
   bool get isEmpty => transactions.isEmpty && isInitialized;
 
+  double get totalActiveTheyOweYou => activeLentTransactions.fold(0.0, (sum, t) => sum + t.amount);
+  double get totalActiveYouOweThem => activeBorrowedTransactions.fold(0.0, (sum, t) => sum + t.amount);
+  double get netActiveBalance => totalActiveTheyOweYou - totalActiveYouOweThem;
+
   @override
   List<Object?> get props => [
         transactions,
         lentTransactions,
         borrowedTransactions,
+        activeLentTransactions,
+        activeBorrowedTransactions,
         pendingTransactions,
         completedTransactions,
         isInitialLoading,
