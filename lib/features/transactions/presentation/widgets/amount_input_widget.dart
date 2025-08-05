@@ -40,7 +40,6 @@ class _AmountInputWidgetState extends State<AmountInputWidget> {
   }
 
   void _loadSmartSuggestions() {
-    // Get transaction history from cubit
     final transactionState = context.read<TransactionCubit>().state;
     final recentAmounts = SmartSuggestionsService.getRecentAmounts(
       transactionState.transactions,
@@ -90,7 +89,6 @@ class _AmountInputWidgetState extends State<AmountInputWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Main amount input with large display
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -148,7 +146,6 @@ class _AmountInputWidgetState extends State<AmountInputWidget> {
         
         const SizedBox(height: 20),
         
-        // Smart amount suggestions
         if (_smartAmounts.isNotEmpty) ...[
           Row(
             children: [
@@ -184,7 +181,6 @@ class _AmountInputWidgetState extends State<AmountInputWidget> {
           const SizedBox(height: 20),
         ],
         
-        // Common amounts
         Row(
           children: [
             Icon(
@@ -216,7 +212,6 @@ class _AmountInputWidgetState extends State<AmountInputWidget> {
           )).toList(),
         ),
         
-        // Description suggestions based on amount
         if (_descriptionSuggestions.isNotEmpty && widget.controller.text.isNotEmpty) ...[
           const SizedBox(height: 20),
           Row(

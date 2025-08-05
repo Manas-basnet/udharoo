@@ -9,20 +9,19 @@ import 'package:udharoo/shared/presentation/widgets/confirmation_dialog.dart';
 class HomeTransactionItem extends StatelessWidget {
   final Transaction transaction;
 
-  const HomeTransactionItem({
-    super.key,
-    required this.transaction,
-  });
+  const HomeTransactionItem({super.key, required this.transaction});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return GestureDetector(
-      onTap: () => context.go(
-        Routes.transactionDetail,
-        extra: transaction,
-      ),
+      onTap: () {
+        context.push(
+          Routes.homeTransactionDetail,
+          extra: transaction,
+        );
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
@@ -42,8 +41,10 @@ class HomeTransactionItem extends StatelessWidget {
         ),
         child: BlocBuilder<TransactionCubit, TransactionState>(
           builder: (context, state) {
-            final isProcessing = state.isTransactionProcessing(transaction.transactionId);
-            
+            final isProcessing = state.isTransactionProcessing(
+              transaction.transactionId,
+            );
+
             return Column(
               children: [
                 Row(
@@ -52,21 +53,27 @@ class HomeTransactionItem extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: _getTransactionColor(theme).withValues(alpha: 0.1),
+                        color: _getTransactionColor(
+                          theme,
+                        ).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: _getTransactionColor(theme).withValues(alpha: 0.2),
+                          color: _getTransactionColor(
+                            theme,
+                          ).withValues(alpha: 0.2),
                         ),
                       ),
                       child: Icon(
-                        transaction.isLent ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                        transaction.isLent
+                            ? Icons.trending_up_rounded
+                            : Icons.trending_down_rounded,
                         color: _getTransactionColor(theme),
                         size: 18,
                       ),
                     ),
-                    
+
                     const SizedBox(width: 12),
-                    
+
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,17 +87,20 @@ class HomeTransactionItem extends StatelessWidget {
                                   children: [
                                     Text(
                                       _getTransactionDescription(),
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: theme.colorScheme.onSurface
+                                                .withValues(alpha: 0.6),
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       transaction.otherParty.name,
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 1,
                                     ),
@@ -106,13 +116,18 @@ class HomeTransactionItem extends StatelessWidget {
                               ),
                             ],
                           ),
-                          
+
                           if (transaction.description.isNotEmpty) ...[
                             const SizedBox(height: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.08,
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -126,9 +141,9 @@ class HomeTransactionItem extends StatelessWidget {
                               ),
                             ),
                           ],
-                          
+
                           const SizedBox(height: 8),
-                          
+
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -137,28 +152,37 @@ class HomeTransactionItem extends StatelessWidget {
                                   Icon(
                                     Icons.schedule_rounded,
                                     size: 12,
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.6),
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     _getFormattedDate(),
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                      color: theme.colorScheme.onSurface
+                                          .withValues(alpha: 0.6),
                                     ),
                                   ),
                                 ],
                               ),
-                              
+
                               if (isProcessing)
                                 _buildProcessingIndicator(theme)
                               else
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: _getStatusColor(theme).withValues(alpha: 0.1),
+                                    color: _getStatusColor(
+                                      theme,
+                                    ).withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(6),
                                     border: Border.all(
-                                      color: _getStatusColor(theme).withValues(alpha: 0.3),
+                                      color: _getStatusColor(
+                                        theme,
+                                      ).withValues(alpha: 0.3),
                                       width: 0.5,
                                     ),
                                   ),
@@ -178,12 +202,12 @@ class HomeTransactionItem extends StatelessWidget {
                     ),
                   ],
                 ),
-                
+
                 if (_shouldShowActionButtons() && !isProcessing) ...[
                   const SizedBox(height: 8),
                   _buildActionButtons(context, theme),
                 ],
-                
+
                 if (isProcessing) ...[
                   const SizedBox(height: 8),
                   Row(
@@ -194,7 +218,9 @@ class HomeTransactionItem extends StatelessWidget {
                         height: 14,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            theme.colorScheme.primary,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -218,7 +244,7 @@ class HomeTransactionItem extends StatelessWidget {
 
   Widget _buildActionButtons(BuildContext context, ThemeData theme) {
     final cubit = context.read<TransactionCubit>();
-    
+
     if (transaction.isPending && !_isCreatedByCurrentUser()) {
       return Row(
         children: [
@@ -249,7 +275,7 @@ class HomeTransactionItem extends StatelessWidget {
         onPressed: () => _handleCompleteTransaction(context, cubit),
       );
     }
-    
+
     return const SizedBox.shrink();
   }
 
@@ -264,7 +290,10 @@ class HomeTransactionItem extends StatelessWidget {
     );
   }
 
-  Future<void> _handleVerifyTransaction(BuildContext context, TransactionCubit cubit) async {
+  Future<void> _handleVerifyTransaction(
+    BuildContext context,
+    TransactionCubit cubit,
+  ) async {
     final confirmed = await ConfirmationDialog.show(
       context: context,
       data: ConfirmationDialogData.forTransactionAction(
@@ -279,7 +308,10 @@ class HomeTransactionItem extends StatelessWidget {
     }
   }
 
-  Future<void> _handleCompleteTransaction(BuildContext context, TransactionCubit cubit) async {
+  Future<void> _handleCompleteTransaction(
+    BuildContext context,
+    TransactionCubit cubit,
+  ) async {
     final confirmed = await ConfirmationDialog.show(
       context: context,
       data: ConfirmationDialogData.forTransactionAction(
@@ -294,7 +326,10 @@ class HomeTransactionItem extends StatelessWidget {
     }
   }
 
-  Future<void> _handleRejectTransaction(BuildContext context, TransactionCubit cubit) async {
+  Future<void> _handleRejectTransaction(
+    BuildContext context,
+    TransactionCubit cubit,
+  ) async {
     final confirmed = await ConfirmationDialog.show(
       context: context,
       data: ConfirmationDialogData.forTransactionAction(
@@ -373,7 +408,7 @@ class HomeTransactionItem extends StatelessWidget {
 
   bool _shouldShowActionButtons() {
     return (transaction.isPending && !_isCreatedByCurrentUser()) ||
-           (transaction.isVerified && _canCompleteTransaction());
+        (transaction.isVerified && _canCompleteTransaction());
   }
 
   bool _isCreatedByCurrentUser() {
@@ -411,9 +446,7 @@ class _ActionButton extends StatelessWidget {
           shadowColor: color.withValues(alpha: 0.2),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(6),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
         icon: Icon(icon, size: 12),
         label: Text(label),

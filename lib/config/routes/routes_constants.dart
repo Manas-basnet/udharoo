@@ -1,5 +1,6 @@
 class Routes {
   static const String home = '/home';
+  static const String homeTransactionDetail = '/home/transaction-detail';
   static const String signUp = '/sign-up';
   static const String login = '/login';
   
@@ -12,6 +13,7 @@ class Routes {
   
   static const String contacts = '/contacts';
   static const String contactTransactions = '/contacts/contact-transactions';
+  static const String contactTransactionsDetail = '/contacts/contact-transactions/transaction-detail';
   static const String contactLentTransactions = '/contacts/contact-transactions/lent';
   static const String contactBorrowedTransactions = '/contacts/contact-transactions/borrowed';
   

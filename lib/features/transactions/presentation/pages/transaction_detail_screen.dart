@@ -142,37 +142,10 @@ class TransactionDetailScreen extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  
-                  _buildQuickStatusChip(theme),
                 ],
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickStatusChip(ThemeData theme) {
-    final statusLabel = TransactionDisplayHelper.getContextualStatusLabel(transaction, _isCreatedByCurrentUser());
-    final statusColor = _getStatusColor();
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: statusColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: statusColor.withValues(alpha: 0.3),
-          width: 0.5,
-        ),
-      ),
-      child: Text(
-        statusLabel,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: statusColor,
-          fontWeight: FontWeight.w600,
-          fontSize: 10,
         ),
       ),
     );
@@ -874,19 +847,6 @@ class TransactionDetailScreen extends StatelessWidget {
 
   Color _getTransactionColor(ThemeData theme) {
     return transaction.isLent ? Colors.green : Colors.orange;
-  }
-
-  Color _getStatusColor() {
-    switch (transaction.status) {
-      case TransactionStatus.pendingVerification:
-        return Colors.orange;
-      case TransactionStatus.verified:
-        return Colors.blue;
-      case TransactionStatus.completed:
-        return Colors.green;
-      case TransactionStatus.rejected:
-        return Colors.red;
-    }
   }
 
   String _formatDateTime(DateTime dateTime) {

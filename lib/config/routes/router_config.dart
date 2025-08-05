@@ -78,6 +78,18 @@ class AppRouter {
                 path: Routes.home,
                 name: 'home',
                 builder: (context, state) => const HomeScreen(),
+                routes: [
+                  GoRoute(
+                    path: '/transaction-detail',
+                    name: 'homeTransactionDetail',
+                    builder: (context, state) {
+                      final transaction = state.extra as Transaction;
+                      return TransactionDetailScreen(
+                        transaction: transaction,
+                      );
+                    },
+                  ),
+                ]
               ),
               GoRoute(
                 path: Routes.signUp,
@@ -313,6 +325,17 @@ class AppRouter {
                                   BlocProvider(create: (_) => di.sl<ContactTransactionsCubit>()),
                                 ],
                                 child: ContactBorrowedTransactionsPage(contactUserId: contactUserId),
+                              );
+                            },
+                          ),
+                        
+                          GoRoute(
+                            path: '/transaction-detail',
+                            name: 'contactTransactionDetail',
+                            builder: (context, state) {
+                              final transaction = state.extra as Transaction;
+                              return TransactionDetailScreen(
+                                transaction: transaction,
                               );
                             },
                           ),

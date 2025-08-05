@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:udharoo/core/di/di.dart' as di;
+import 'package:go_router/go_router.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/contacts/domain/entities/contact.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
 import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
@@ -33,20 +33,12 @@ class _QuickTransactionDialogState extends State<QuickTransactionDialog> {
 
   _navigateToTransactionForm({Contact? contact}) {
     Navigator.of(context).pop();
-    Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute(
-        builder: (_) => MultiBlocProvider(
-          providers: [
-            BlocProvider(create: (context) => di.sl<TransactionFormCubit>()),
-            BlocProvider(create: (_) => context.read<ContactCubit>()),
-            BlocProvider(create: (_) => context.read<TransactionCubit>()),
-          ],
-          child: TransactionFormScreen(
-            initialTransactionType: widget.preSelectedType,
-            prefilledContact: contact,
-          ),
-        ),
-      ),
+    context.go(
+      Routes.transactionForm, 
+      extra: TransactionFormExtra(
+        initialTransactionType: widget.preSelectedType,
+        prefilledContact: contact,
+      )
     );
   }
 

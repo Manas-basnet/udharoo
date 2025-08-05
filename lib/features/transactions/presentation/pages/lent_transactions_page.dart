@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
-import 'package:udharoo/features/transactions/presentation/widgets/transaction_list_item.dart';
+import 'package:udharoo/shared/presentation/widgets/transaction_list_item.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_search_delegate.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 import 'package:udharoo/shared/utils/transaction_display_helper.dart';
@@ -229,6 +229,11 @@ class _LentTransactionsPageState extends State<LentTransactionsPage> {
                 amount: totalAmount,
                 color: Colors.green,
                 icon: Icons.trending_up_rounded,
+                onTap: () {
+                  setState(() {
+                    _selectedFilter = LentTransactionFilter.all;
+                  });
+                },
               ),
             ),
             const SizedBox(width: 8),
@@ -238,6 +243,11 @@ class _LentTransactionsPageState extends State<LentTransactionsPage> {
                 amount: awaitingResponseAmount,
                 color: Colors.orange,
                 icon: Icons.hourglass_empty_rounded,
+                onTap: () {
+                  setState(() {
+                    _selectedFilter = LentTransactionFilter.awaitingResponse;
+                  });
+                },
               ),
             ),
             const SizedBox(width: 8),
@@ -247,6 +257,11 @@ class _LentTransactionsPageState extends State<LentTransactionsPage> {
                 amount: completedAmount,
                 color: Colors.blue,
                 icon: Icons.check_circle_outline,
+                onTap: () {
+                  setState(() {
+                    _selectedFilter = LentTransactionFilter.completed;
+                  });
+                },
               ),
             ),
           ],
@@ -520,64 +535,69 @@ class _SummaryCard extends StatelessWidget {
   final double amount;
   final Color color;
   final IconData icon;
+  final VoidCallback? onTap;
 
   const _SummaryCard({
     required this.title,
     required this.amount,
     required this.color,
     required this.icon,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withValues(alpha: 0.2),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: color.withValues(alpha: 0.2),
+          ),
         ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: color,
-            size: 18,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              fontWeight: FontWeight.w500,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: color,
+              size: 18,
             ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: RichText(
+            const SizedBox(height: 6),
+            Text(
+              title,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                fontWeight: FontWeight.w500,
+              ),
               textAlign: TextAlign.center,
-              text: TextSpan(
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: color,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                  children: [
+                    const TextSpan(text: 'Rs. '),
+                    TextSpan(text: TransactionDisplayHelper.formatAmount(amount)),
+                  ],
                 ),
-                children: [
-                  const TextSpan(text: 'Rs. '),
-                  TextSpan(text: TransactionDisplayHelper.formatAmount(amount)),
-                ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

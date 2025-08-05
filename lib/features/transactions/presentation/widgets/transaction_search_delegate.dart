@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
-import 'package:udharoo/features/transactions/presentation/widgets/transaction_list_item.dart';
+import 'package:udharoo/shared/presentation/widgets/transaction_list_item.dart';
+import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
 class TransactionSearchDelegate extends SearchDelegate<Transaction?> {
   final List<Transaction> transactions;
@@ -18,12 +19,18 @@ class TransactionSearchDelegate extends SearchDelegate<Transaction?> {
 
   String _getSearchHint() {
     switch (searchType) {
-      case 'pending':
-        return 'Search pending transactions...';
+      case 'awaiting_response':
+        return 'Search awaiting response...';
+      case 'active':
+        return 'Search active transactions...';
       case 'completed':
         return 'Search completed transactions...';
-      case 'rejected':
-        return 'Search rejected transactions...';
+      case 'declined':
+        return 'Search declined transactions...';
+      case 'lent':
+        return 'Search lending transactions...';
+      case 'borrowed':
+        return 'Search borrowing transactions...';
       default:
         return 'Search transactions...';
     }
@@ -127,7 +134,7 @@ class TransactionSearchDelegate extends SearchDelegate<Transaction?> {
           ),
           if (searchType != 'all') ...[
             Text(
-              ' in $searchType',
+              ' in ${_getSearchTypeDisplayName()}',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.primary,
                 fontWeight: FontWeight.w600,
@@ -268,25 +275,56 @@ class TransactionSearchDelegate extends SearchDelegate<Transaction?> {
 
   String _getSearchTypeText() {
     switch (searchType) {
-      case 'pending':
-        return 'Pending Transactions';
+      case 'awaiting_response':
+        return 'Awaiting Response Transactions';
+      case 'active':
+        return 'Active Transactions';
       case 'completed':
         return 'Completed Transactions';
-      case 'rejected':
-        return 'Rejected Transactions';
+      case 'declined':
+        return 'Declined Transactions';
+      case 'lent':
+        return 'Lending Transactions';
+      case 'borrowed':
+        return 'Borrowing Transactions';
       default:
         return 'Transactions';
     }
   }
 
+  String _getSearchTypeDisplayName() {
+    switch (searchType) {
+      case 'awaiting_response':
+        return 'awaiting response';
+      case 'active':
+        return 'active';
+      case 'completed':
+        return 'completed';
+      case 'declined':
+        return 'declined';
+      case 'lent':
+        return 'lending';
+      case 'borrowed':
+        return 'borrowing';
+      default:
+        return 'all';
+    }
+  }
+
   List<String> _getSuggestions() {
     switch (searchType) {
-      case 'pending':
-        return ['verification', 'today', 'recent'];
+      case 'awaiting_response':
+        return ['awaiting response', 'today', 'recent'];
+      case 'active':
+        return ['they owe', 'you owe', 'active'];
       case 'completed':
-        return ['last month', 'large amounts', 'recent'];
-      case 'rejected':
-        return ['rejected today', 'this week'];
+        return ['last month', 'received', 'paid back'];
+      case 'declined':
+        return ['declined today', 'this week'];
+      case 'lent':
+        return ['they owe you', 'awaiting response', 'received'];
+      case 'borrowed':
+        return ['you owe them', 'paid back', 'needs response'];
       default:
         return ['contact name', 'phone number', 'amount', 'description'];
     }
@@ -298,53 +336,50 @@ class TransactionSearchDelegate extends SearchDelegate<Transaction?> {
     final lowercaseQuery = query.toLowerCase();
     
     return transactions.where((transaction) {
-      // Search by contact name
       if (transaction.otherParty.name.toLowerCase().contains(lowercaseQuery)) {
         return true;
       }
       
-      // Search by phone number
       if (transaction.otherParty.phoneNumber.toLowerCase().contains(lowercaseQuery)) {
         return true;
       }
       
-      // Search by description
       if (transaction.description.toLowerCase().contains(lowercaseQuery)) {
         return true;
       }
       
-      // Search by amount
       if (transaction.amount.toString().contains(lowercaseQuery)) {
         return true;
       }
       
-      // Search by status
-      final statusText = _getStatusText(transaction.status).toLowerCase();
-      if (statusText.contains(lowercaseQuery)) {
+      final contextualStatusText = TransactionDisplayHelper.getContextualStatusLabel(
+        transaction, 
+        transaction.isLent,
+      ).toLowerCase();
+      if (contextualStatusText.contains(lowercaseQuery)) {
         return true;
       }
       
-      // Search by type
+      final statusDescription = TransactionDisplayHelper.getStatusDescription(
+        transaction, 
+        transaction.isLent,
+      ).toLowerCase();
+      if (statusDescription.contains(lowercaseQuery)) {
+        return true;
+      }
+      
       final typeText = transaction.isLent ? 'lent' : 'borrowed';
       if (typeText.contains(lowercaseQuery)) {
+        return true;
+      }
+
+      final directionText = TransactionDisplayHelper.getTransactionDirection(transaction.type).toLowerCase();
+      if (directionText.contains(lowercaseQuery)) {
         return true;
       }
       
       return false;
     }).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-  }
-
-  String _getStatusText(TransactionStatus status) {
-    switch (status) {
-      case TransactionStatus.pendingVerification:
-        return 'pending';
-      case TransactionStatus.verified:
-        return 'verified';
-      case TransactionStatus.completed:
-        return 'completed';
-      case TransactionStatus.rejected:
-        return 'rejected';
-    }
   }
 }

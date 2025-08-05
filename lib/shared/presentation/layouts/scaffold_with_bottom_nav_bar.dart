@@ -19,7 +19,9 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
     final currentPath = GoRouterState.of(context).uri.path;
     final shouldHideBottomNav = 
       currentPath == Routes.transactionForm || 
-      currentPath == Routes.transactionDetail;
+      currentPath == Routes.transactionDetail ||
+      currentPath == Routes.contactTransactionsDetail ||
+      currentPath == Routes.homeTransactionDetail;
 
     return BlocListener<ShorebirdUpdateCubit, ShorebirdUpdateState>(
       listener: (context, state) {

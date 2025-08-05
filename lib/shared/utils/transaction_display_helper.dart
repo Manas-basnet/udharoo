@@ -3,112 +3,151 @@ import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 class TransactionDisplayHelper {
   static String formatAmount(double amount) {
     if (amount >= 10000000) {
-      return '${(amount / 10000000).toStringAsFixed(2)}Cr';
+      final crores = amount / 10000000;
+      return '${crores.toStringAsFixed(crores.truncateToDouble() == crores ? 0 : 1)}Cr';
     } else if (amount >= 100000) {
-      return '${(amount / 100000).toStringAsFixed(1)}L';
+      final lakhs = amount / 100000;
+      return '${lakhs.toStringAsFixed(lakhs.truncateToDouble() == lakhs ? 0 : 1)}L';
     } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(1)}K';
+      final thousands = amount / 1000;
+      return '${thousands.toStringAsFixed(thousands.truncateToDouble() == thousands ? 0 : 1)}K';
     } else {
-      return amount.toStringAsFixed(0);
+      return amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2);
     }
   }
 
-  static String getTransactionAction(TransactionType type) {
-    switch (type) {
-      case TransactionType.lent:
-        return 'Lent to';
-      case TransactionType.borrowed:
-        return 'Borrowed from';
+  static String getContextualStatusLabel(Transaction transaction, bool isCurrentUserCreator) {
+    switch (transaction.status) {
+      case TransactionStatus.pendingVerification:
+        if (isCurrentUserCreator) {
+          return 'Awaiting their response';
+        } else {
+          return 'Awaiting your response';
+        }
+      case TransactionStatus.verified:
+        if (transaction.isLent) {
+          return isCurrentUserCreator ? 'They owe you' : 'You owe them';
+        } else {
+          return isCurrentUserCreator ? 'You owe them' : 'They owe you';
+        }
+      case TransactionStatus.completed:
+        if (transaction.isLent) {
+          return isCurrentUserCreator ? 'Received' : 'Paid back';
+        } else {
+          return isCurrentUserCreator ? 'Paid back' : 'Received';
+        }
+      case TransactionStatus.rejected:
+        if (isCurrentUserCreator) {
+          return 'They declined';
+        } else {
+          return 'You declined';
+        }
+    }
+  }
+
+  static String getStatusDescription(Transaction transaction, bool isCurrentUserCreator) {
+    switch (transaction.status) {
+      case TransactionStatus.pendingVerification:
+        if (isCurrentUserCreator) {
+          return 'Waiting for ${transaction.otherParty.name} to confirm this transaction';
+        } else {
+          return 'Please confirm if you want to proceed with this transaction';
+        }
+      case TransactionStatus.verified:
+        if (transaction.isLent) {
+          if (isCurrentUserCreator) {
+            return '${transaction.otherParty.name} owes you Rs. ${formatAmount(transaction.amount)}';
+          } else {
+            return 'You owe ${transaction.otherParty.name} Rs. ${formatAmount(transaction.amount)}';
+          }
+        } else {
+          if (isCurrentUserCreator) {
+            return 'You owe ${transaction.otherParty.name} Rs. ${formatAmount(transaction.amount)}';
+          } else {
+            return '${transaction.otherParty.name} owes you Rs. ${formatAmount(transaction.amount)}';
+          }
+        }
+      case TransactionStatus.completed:
+        if (transaction.isLent) {
+          if (isCurrentUserCreator) {
+            return 'You received Rs. ${formatAmount(transaction.amount)} from ${transaction.otherParty.name}';
+          } else {
+            return 'You paid back Rs. ${formatAmount(transaction.amount)} to ${transaction.otherParty.name}';
+          }
+        } else {
+          if (isCurrentUserCreator) {
+            return 'You paid back Rs. ${formatAmount(transaction.amount)} to ${transaction.otherParty.name}';
+          } else {
+            return 'You received Rs. ${formatAmount(transaction.amount)} from ${transaction.otherParty.name}';
+          }
+        }
+      case TransactionStatus.rejected:
+        if (isCurrentUserCreator) {
+          return '${transaction.otherParty.name} declined this transaction';
+        } else {
+          return 'You declined this transaction';
+        }
     }
   }
 
   static String getTransactionDirection(TransactionType type) {
     switch (type) {
       case TransactionType.lent:
-        return 'Lent';
+        return 'Money Lent';
       case TransactionType.borrowed:
-        return 'Borrowed';
+        return 'Money Borrowed';
     }
   }
 
-  static String getBalanceLabel(double balance) {
-    if (balance >= 0) {
-      return 'Net Credit';
-    } else {
-      return 'Net Debit';
-    }
-  }
-
-  static String getContextualStatusLabel(Transaction transaction, bool isCurrentUserCreator) {
-    final isLender = transaction.isLent;
-    
-    switch (transaction.status) {
-      case TransactionStatus.pendingVerification:
-        return isLender ? "Awaiting their response" : "Awaiting your response";
-      case TransactionStatus.verified:
-        return isLender ? "They owe you" : "You owe them";
-      case TransactionStatus.completed:
-        return isLender ? "Received" : "Paid back";
-      case TransactionStatus.rejected:
-        return isLender ? "They declined" : "You declined";
-    }
-  }
-
-  static String getStatusDescription(Transaction transaction, bool isCurrentUserCreator) {
-    final isLender = transaction.isLent;
-    final contactName = transaction.otherParty.name;
-    
-    switch (transaction.status) {
-      case TransactionStatus.pendingVerification:
-        return isLender 
-            ? "Waiting for $contactName to confirm this transaction"
-            : "You need to confirm this transaction from $contactName";
-      case TransactionStatus.verified:
-        return isLender 
-            ? "$contactName has confirmed they owe you money"
-            : "You have confirmed you owe $contactName money";
-      case TransactionStatus.completed:
-        return isLender 
-            ? "You have received the money back from $contactName"
-            : "You have paid back the money to $contactName";
-      case TransactionStatus.rejected:
-        return isLender 
-            ? "$contactName declined this transaction"
-            : "You declined this transaction from $contactName";
+  static String getTransactionAction(TransactionType type) {
+    switch (type) {
+      case TransactionType.lent:
+        return 'Money lent to';
+      case TransactionType.borrowed:
+        return 'Money borrowed from';
     }
   }
 
   static String getWhatHappensNext(Transaction transaction, bool isCurrentUserCreator) {
-    final isLender = transaction.isLent;
-    final contactName = transaction.otherParty.name;
-    
     switch (transaction.status) {
       case TransactionStatus.pendingVerification:
-        return isLender
-            ? "$contactName will receive a notification to confirm this transaction. Once they confirm, you can mark it as paid when you receive the money back."
-            : "You need to confirm whether you received money from $contactName. If you confirm, they can mark it as paid when you return the money.";
+        if (isCurrentUserCreator) {
+          return '${transaction.otherParty.name} will receive a notification about this transaction. Once they confirm, it will become active and track the money flow between you.';
+        } else {
+          return 'Please review this transaction carefully. If you confirm it, this will track the money ${transaction.isLent ? "you received from" : "you need to pay to"} ${transaction.otherParty.name}.';
+        }
       case TransactionStatus.verified:
-        return isLender
-            ? "The transaction is confirmed. You can mark it as 'Received' when $contactName pays you back."
-            : "The transaction is confirmed. $contactName will mark it as 'Received' when you pay them back.";
+        if (transaction.isLent) {
+          if (isCurrentUserCreator) {
+            return 'This transaction is now active. When ${transaction.otherParty.name} pays you back, you can mark it as received to complete the transaction.';
+          } else {
+            return 'This transaction is confirmed. You can pay back ${transaction.otherParty.name} and they will mark it as received when the payment is complete.';
+          }
+        } else {
+          if (isCurrentUserCreator) {
+            return 'This transaction is confirmed. You can pay back ${transaction.otherParty.name} and they will mark it as received when the payment is complete.';
+          } else {
+            return 'This transaction is now active. When ${transaction.otherParty.name} pays you back, you can mark it as received to complete the transaction.';
+          }
+        }
       case TransactionStatus.completed:
-        return "This transaction is complete. The money has been returned successfully.";
+        return 'This transaction has been completed successfully. The money has been ${transaction.isLent ? (isCurrentUserCreator ? "received by you" : "paid by you") : (isCurrentUserCreator ? "paid by you" : "received by you")}.';
       case TransactionStatus.rejected:
-        return "This transaction was declined and no money exchange took place.";
+        if (isCurrentUserCreator) {
+          return '${transaction.otherParty.name} declined this transaction. No money needs to be exchanged for this transaction.';
+        } else {
+          return 'You declined this transaction. No money needs to be exchanged for this transaction.';
+        }
     }
   }
 
-  static String getActionButtonText(Transaction transaction, bool isCurrentUserCreator) {
-    final isLender = transaction.isLent;
-    
-    switch (transaction.status) {
-      case TransactionStatus.pendingVerification:
-        return isLender ? "Waiting..." : "Confirm";
-      case TransactionStatus.verified:
-        return isLender ? "Mark as Received" : "Waiting...";
-      case TransactionStatus.completed:
-      case TransactionStatus.rejected:
-        return "";
+  static String getBalanceLabel(double balance) {
+    if (balance > 0) {
+      return 'Net you receive';
+    } else if (balance < 0) {
+      return 'Net you owe';
+    } else {
+      return 'Balanced';
     }
   }
 }

@@ -6,10 +6,8 @@ import 'package:udharoo/features/contacts/domain/entities/contact.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
-import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
-import 'package:udharoo/features/transactions/presentation/pages/transaction_detail_screen.dart';
 import 'package:udharoo/features/transactions/presentation/pages/transaction_form_screen.dart';
-import 'package:udharoo/features/transactions/presentation/widgets/transaction_list_item.dart';
+import 'package:udharoo/shared/presentation/widgets/transaction_list_item.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
@@ -336,32 +334,30 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
             Row(
               children: [
                 Expanded(
-                  child: GestureDetector(
+                  child: _StatCard(
+                    title: 'They owe you',
+                    value:
+                        'Rs. ${TransactionDisplayHelper.formatAmount(totalLent)}',
+                    color: Colors.green,
+                    icon: Icons.trending_up_rounded,
                     onTap: () => context.push(
                       Routes.contactLentTransactionsF(widget.contactUserId),
-                    ),
-                    child: _StatCard(
-                      title: 'They owe you',
-                      value:
-                          'Rs. ${TransactionDisplayHelper.formatAmount(totalLent)}',
-                      color: Colors.green,
-                      icon: Icons.trending_up_rounded,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: GestureDetector(
-                    onTap: () => context.push(
-                      Routes.contactBorrowedTransactionsF(widget.contactUserId),
-                    ),
-                    child: _StatCard(
-                      title: 'You owe them',
-                      value:
-                          'Rs. ${TransactionDisplayHelper.formatAmount(totalBorrowed)}',
-                      color: Colors.orange,
-                      icon: Icons.trending_down_rounded,
-                    ),
+                  child: _StatCard(
+                    title: 'You owe them',
+                    value:
+                        'Rs. ${TransactionDisplayHelper.formatAmount(totalBorrowed)}',
+                    color: Colors.orange,
+                    icon: Icons.trending_down_rounded,
+                    onTap: () {
+                      context.push(
+                        Routes.contactBorrowedTransactionsF(widget.contactUserId),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -374,6 +370,11 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
                     icon: netBalance >= 0
                         ? Icons.add_circle_outline
                         : Icons.remove_circle_outline,
+                    onTap: () {
+                      setState(() {
+                        _selectedFilter = ContactTransactionFilter.active;
+                      });
+                    },
                   ),
                 ),
               ],
@@ -571,9 +572,9 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
         icon = Icons.receipt_long_outlined;
         break;
       case ContactTransactionFilter.needsResponse:
-        message = 'No Pending Actions';
+        message = 'No transactions need response';
         subtitle =
-            'All transactions with ${_contact!.displayName} are up to date';
+            'All transactions with ${_contact!.displayName} have been responded to';
         icon = Icons.check_circle_outline;
         break;
       case ContactTransactionFilter.active:
@@ -694,13 +695,9 @@ class _ContactTransactionsPageState extends State<ContactTransactionsPage> {
   }
 
   void _navigateToTransactionDetail(Transaction transaction) {
-    Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute(
-        builder: (_) => BlocProvider(
-          create: (_) => context.read<TransactionCubit>(),
-          child: TransactionDetailScreen(transaction: transaction),
-        ),
-      ),
+    context.push(
+      Routes.contactTransactionsDetail,
+      extra: transaction,
     );
   }
 }
@@ -710,53 +707,58 @@ class _StatCard extends StatelessWidget {
   final String value;
   final Color color;
   final IconData icon;
+  final VoidCallback? onTap;
 
   const _StatCard({
     required this.title,
     required this.value,
     required this.color,
     required this.icon,
+    this.onTap
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: color,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

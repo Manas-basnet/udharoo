@@ -6,14 +6,14 @@ import 'package:udharoo/features/contacts/domain/entities/contact.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
-import 'package:udharoo/features/transactions/presentation/widgets/transaction_list_item.dart';
+import 'package:udharoo/shared/presentation/widgets/transaction_list_item.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
 enum ContactBorrowedFilter { 
   all, 
-  pending,
-  verified, 
+  needsResponse,
+  active, 
   completed,
 }
 
@@ -247,7 +247,7 @@ class _ContactBorrowedTransactionsPageState extends State<ContactBorrowedTransac
 
   Widget _buildQuickStats(ThemeData theme, double horizontalPadding, List<Transaction> borrowedTransactions) {
     final totalBorrowed = borrowedTransactions.fold(0.0, (sum, t) => sum + t.amount);
-    final pendingAmount = borrowedTransactions.where((t) => t.isPending).fold(0.0, (sum, t) => sum + t.amount);
+    final needsResponseAmount = borrowedTransactions.where((t) => t.isPending).fold(0.0, (sum, t) => sum + t.amount);
     final completedAmount = borrowedTransactions.where((t) => t.isCompleted).fold(0.0, (sum, t) => sum + t.amount);
 
     return SliverToBoxAdapter(
@@ -261,15 +261,25 @@ class _ContactBorrowedTransactionsPageState extends State<ContactBorrowedTransac
                 value: 'Rs. ${TransactionDisplayHelper.formatAmount(totalBorrowed)}',
                 color: Colors.orange,
                 icon: Icons.trending_down_rounded,
+                onTap: () {
+                  setState(() {
+                    _selectedFilter = ContactBorrowedFilter.all;
+                  });
+                },
               ),
             ),
             const SizedBox(width: 8),
-            Expanded(
+            Flexible(
               child: _StatCard(
-                title: 'Pending',
-                value: 'Rs. ${TransactionDisplayHelper.formatAmount(pendingAmount)}',
+                title: 'Needs Response',
+                value: 'Rs. ${TransactionDisplayHelper.formatAmount(needsResponseAmount)}',
                 color: Colors.amber,
                 icon: Icons.hourglass_empty_rounded,
+                onTap: () {
+                  setState(() {
+                    _selectedFilter = ContactBorrowedFilter.needsResponse;
+                  });
+                },
               ),
             ),
             const SizedBox(width: 8),
@@ -279,6 +289,11 @@ class _ContactBorrowedTransactionsPageState extends State<ContactBorrowedTransac
                 value: 'Rs. ${TransactionDisplayHelper.formatAmount(completedAmount)}',
                 color: Colors.blue,
                 icon: Icons.check_circle_outline,
+                onTap: () {
+                  setState(() {
+                    _selectedFilter = ContactBorrowedFilter.completed;
+                  });
+                },
               ),
             ),
           ],
@@ -313,9 +328,9 @@ class _ContactBorrowedTransactionsPageState extends State<ContactBorrowedTransac
               children: [
                 _buildFilterChip('All', ContactBorrowedFilter.all, theme, state),
                 const SizedBox(width: 8),
-                _buildFilterChip('Pending', ContactBorrowedFilter.pending, theme, state),
+                _buildFilterChip('Needs Response', ContactBorrowedFilter.needsResponse, theme, state),
                 const SizedBox(width: 8),
-                _buildFilterChip('Verified', ContactBorrowedFilter.verified, theme, state),
+                _buildFilterChip('Active', ContactBorrowedFilter.active, theme, state),
                 const SizedBox(width: 8),
                 _buildFilterChip('Completed', ContactBorrowedFilter.completed, theme, state),
               ],
@@ -424,10 +439,10 @@ class _ContactBorrowedTransactionsPageState extends State<ContactBorrowedTransac
       case ContactBorrowedFilter.all:
         filtered = borrowedTransactions;
         break;
-      case ContactBorrowedFilter.pending:
+      case ContactBorrowedFilter.needsResponse:
         filtered = borrowedTransactions.where((t) => t.isPending).toList();
         break;
-      case ContactBorrowedFilter.verified:
+      case ContactBorrowedFilter.active:
         filtered = borrowedTransactions.where((t) => t.isVerified).toList();
         break;
       case ContactBorrowedFilter.completed:
@@ -447,13 +462,13 @@ class _ContactBorrowedTransactionsPageState extends State<ContactBorrowedTransac
         message = 'No borrowing records';
         subtitle = 'Money you borrow from ${_contact!.displayName} will appear here';
         break;
-      case ContactBorrowedFilter.pending:
-        message = 'No pending borrowing';
-        subtitle = 'All borrowing from ${_contact!.displayName} is confirmed';
+      case ContactBorrowedFilter.needsResponse:
+        message = 'No transactions need your response';
+        subtitle = 'All borrowing from ${_contact!.displayName} has been responded to';
         break;
-      case ContactBorrowedFilter.verified:
-        message = 'No verified borrowing';
-        subtitle = 'Verified borrowing from ${_contact!.displayName} will appear here';
+      case ContactBorrowedFilter.active:
+        message = 'No active borrowing';
+        subtitle = 'Active borrowing from ${_contact!.displayName} will appear here';
         break;
       case ContactBorrowedFilter.completed:
         message = 'No completed borrowing';
@@ -537,8 +552,8 @@ class _ContactBorrowedTransactionsPageState extends State<ContactBorrowedTransac
   }
 
   void _navigateToTransactionDetail(Transaction transaction) {
-    context.go(
-      Routes.transactionDetail,
+    context.push(
+      Routes.contactTransactionsDetail,
       extra: transaction,
     );
   }
@@ -549,54 +564,67 @@ class _StatCard extends StatelessWidget {
   final String value;
   final Color color;
   final IconData icon;
+  final VoidCallback? onTap;
 
   const _StatCard({
     required this.title,
     required this.value,
     required this.color,
     required this.icon,
+    this.onTap
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: color.withValues(alpha: 0.2),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: color.withValues(alpha: 0.2),
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            color: color,
-            size: 16,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: theme.textTheme.bodySmall?.copyWith(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
               color: color,
-              fontWeight: FontWeight.w500,
+              size: 16,
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
+            const SizedBox(height: 4),
+            Flexible(
+              child: Text(
+                title,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
             ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+            const SizedBox(height: 2),
+            Flexible(
+              child: Text(
+                value,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

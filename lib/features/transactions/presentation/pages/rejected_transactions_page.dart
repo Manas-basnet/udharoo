@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
-import 'package:udharoo/features/transactions/presentation/widgets/transaction_list_item.dart';
+import 'package:udharoo/shared/presentation/widgets/transaction_list_item.dart';
 import 'package:udharoo/features/transactions/presentation/widgets/transaction_search_delegate.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 import 'package:udharoo/shared/utils/transaction_display_helper.dart';
