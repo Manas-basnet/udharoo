@@ -27,63 +27,88 @@ class TransactionDetailScreen extends StatelessWidget {
     final verticalSpacing = screenHeight * 0.012;
     final cardSpacing = screenHeight * 0.016;
 
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: CustomScrollView(
-          slivers: [
-            _buildAppBar(theme, horizontalPadding),
-            
-            SliverPadding(
-              padding: EdgeInsets.all(horizontalPadding),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  _buildTransactionSummary(theme, screenWidth, verticalSpacing),
-                  
-                  SizedBox(height: cardSpacing),
-                  
-                  StatusIndicator(
-                    transaction: transaction,
-                    isCurrentUserCreator: _isCreatedByCurrentUser(),
-                  ),
-                  
-                  SizedBox(height: cardSpacing),
-                  
-                  _buildWhatHappensNext(theme, screenWidth, verticalSpacing),
-                  
-                  SizedBox(height: cardSpacing),
-                  
-                  _buildContactCard(context, theme, screenWidth, verticalSpacing),
-                  
-                  SizedBox(height: cardSpacing),
-                  
-                  _buildTransactionDetails(theme, screenWidth, verticalSpacing),
-                  
-                  if (_hasTimeline()) ...[
-                    SizedBox(height: cardSpacing),
-                    _buildActivityTimeline(theme, screenWidth, verticalSpacing),
-                  ],
-                  
-                  if (_hasDeviceInfo()) ...[
-                    SizedBox(height: cardSpacing),
-                    _buildDeviceInfo(theme, screenWidth, verticalSpacing),
-                  ],
-                  
-                  SizedBox(height: cardSpacing * 2),
-                ]),
-              ),
-            ),
-          ],
-        ),
+    return BlocListener<TransactionCubit, TransactionState>(
+      listener: (context, state) {
+        if (state.hasSuccess) {
+          CustomToast.show(
+            context,
+            message: state.successMessage!,
+            isSuccess: true,
+          );
+          context.read<TransactionCubit>().clearSuccess();
+          
+          if (state.successMessage!.contains('deleted')) {
+            context.pop();
+          }
+        }
         
-        bottomNavigationBar: _shouldShowActions() 
-            ? _buildActionBar(context, theme, horizontalPadding)
-            : null,
+        if (state.hasError) {
+          CustomToast.show(
+            context,
+            message: state.errorMessage!,
+            isSuccess: false,
+          );
+          context.read<TransactionCubit>().clearError();
+        }
+      },
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          body: CustomScrollView(
+            slivers: [
+              _buildAppBar(theme, horizontalPadding, context),
+              
+              SliverPadding(
+                padding: EdgeInsets.all(horizontalPadding),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    _buildTransactionSummary(theme, screenWidth, verticalSpacing),
+                    
+                    SizedBox(height: cardSpacing),
+                    
+                    StatusIndicator(
+                      transaction: transaction,
+                      isCurrentUserCreator: _isCreatedByCurrentUser(),
+                    ),
+                    
+                    SizedBox(height: cardSpacing),
+                    
+                    _buildWhatHappensNext(theme, screenWidth, verticalSpacing),
+                    
+                    SizedBox(height: cardSpacing),
+                    
+                    _buildContactCard(context, theme, screenWidth, verticalSpacing),
+                    
+                    SizedBox(height: cardSpacing),
+                    
+                    _buildTransactionDetails(theme, screenWidth, verticalSpacing),
+                    
+                    if (_hasTimeline()) ...[
+                      SizedBox(height: cardSpacing),
+                      _buildActivityTimeline(theme, screenWidth, verticalSpacing),
+                    ],
+                    
+                    if (_hasDeviceInfo()) ...[
+                      SizedBox(height: cardSpacing),
+                      _buildDeviceInfo(theme, screenWidth, verticalSpacing),
+                    ],
+                    
+                    SizedBox(height: cardSpacing * 2),
+                  ]),
+                ),
+              ),
+            ],
+          ),
+          
+          bottomNavigationBar: _shouldShowActions() 
+              ? _buildActionBar(context, theme, horizontalPadding)
+              : null,
+        ),
       ),
     );
   }
 
-  Widget _buildAppBar(ThemeData theme, double horizontalPadding) {
+  Widget _buildAppBar(ThemeData theme, double horizontalPadding, BuildContext context) {
     return SliverAppBar(
       backgroundColor: theme.scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
@@ -97,6 +122,34 @@ class TransactionDetailScreen extends StatelessWidget {
           color: theme.colorScheme.onSurface,
         ),
       ),
+      actions: [
+        if (_isTransactionDeletable())
+          BlocBuilder<TransactionCubit, TransactionState>(
+            builder: (context, state) {
+              final isDeleting = state.isTransactionProcessing(transaction.transactionId);
+              
+              return Tooltip(
+                message: 'Delete Transaction',
+                child: IconButton(
+                  onPressed: isDeleting ? null : () => _showDeleteConfirmation(context),
+                  icon: isDeleting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Icon(
+                          Icons.delete_outline,
+                          color: Colors.red.withValues(alpha: isDeleting ? 0.5 : 1.0),
+                        ),
+                ),
+              );
+            },
+          ),
+        SizedBox(width: horizontalPadding),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           padding: EdgeInsets.fromLTRB(
@@ -142,6 +195,37 @@ class TransactionDetailScreen extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  
+                  if (_isTransactionDeletable())
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.red.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.delete_outline,
+                            size: 12,
+                            color: Colors.red.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Deletable',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.red.shade600,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ],
@@ -832,6 +916,132 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _showDeleteConfirmation(BuildContext context) async {
+    final theme = Theme.of(context);
+    
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: theme.colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Delete Transaction',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete this transaction?',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.red.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.warning_outlined,
+                    size: 16,
+                    color: Colors.red.shade700,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This action cannot be undone',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.red.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      context.read<TransactionCubit>().bulkDeleteTransactions([transaction.transactionId]);
+    }
+  }
+
+  Future<void> _showRejectDialog(BuildContext context, TransactionCubit cubit) async {
+    final theme = Theme.of(context);
+    
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: theme.colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Decline Transaction',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          'Are you sure you want to decline this transaction?',
+          style: theme.textTheme.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Decline'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      cubit.rejectTransaction(transaction.transactionId);
+    }
+  }
+
+  bool _isTransactionDeletable() {
+    return !transaction.isVerified || transaction.isCompleted || transaction.isRejected;
+  }
+
   bool _hasTimeline() {
     int eventCount = 1;
     if (transaction.verifiedAt != null) eventCount++;
@@ -883,48 +1093,5 @@ class TransactionDetailScreen extends StatelessWidget {
 
   bool _canCompleteTransaction() {
     return transaction.isVerified && transaction.isLent;
-  }
-
-  Future<void> _showRejectDialog(BuildContext context, TransactionCubit cubit) async {
-    final theme = Theme.of(context);
-    
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: theme.colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Decline Transaction',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        content: Text(
-          'Are you sure you want to decline this transaction?',
-          style: theme.textTheme.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Decline'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      cubit.rejectTransaction(transaction.transactionId);
-    }
   }
 }

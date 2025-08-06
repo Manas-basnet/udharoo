@@ -20,7 +20,7 @@ mixin MultiSelectMixin<T extends StatefulWidget> on State<T> {
   void enterMultiSelectMode(String? initialTransactionId) {
     setState(() {
       _isMultiSelectMode = true;
-      if (initialTransactionId != null) {
+      if (initialTransactionId != null && _isTransactionSelectable(initialTransactionId)) {
         _selectedTransactionIds.add(initialTransactionId);
       }
     });
@@ -43,7 +43,7 @@ mixin MultiSelectMixin<T extends StatefulWidget> on State<T> {
           _isMultiSelectMode = false;
           context.read<MultiSelectModeCubit>().exitMultiSelectMode();
         }
-      } else {
+      } else if (_isTransactionSelectable(transactionId)) {
         _selectedTransactionIds.add(transactionId);
       }
     });
@@ -51,8 +51,19 @@ mixin MultiSelectMixin<T extends StatefulWidget> on State<T> {
 
   void selectAllTransactions(List<Transaction> transactions) {
     setState(() {
-      _selectedTransactionIds = transactions.map((t) => t.transactionId).toSet();
+      _selectedTransactionIds = transactions
+          .where((t) => _isTransactionDeletable(t))
+          .map((t) => t.transactionId)
+          .toSet();
     });
+  }
+
+  bool _isTransactionSelectable(String transactionId) {
+    return true;
+  }
+
+  bool _isTransactionDeletable(Transaction transaction) {
+    return !transaction.isVerified || transaction.isCompleted || transaction.isRejected;
   }
 
   MultiSelectAction? getAvailableAction(List<Transaction> allTransactions) {
@@ -64,13 +75,16 @@ mixin MultiSelectMixin<T extends StatefulWidget> on State<T> {
 
     final allPending = selectedTransactions.every((t) => t.isPending);
     final allVerifiedLent = selectedTransactions.every((t) => t.isVerified && t.isLent);
+    final allDeletable = selectedTransactions.every(_isTransactionDeletable);
 
     if (allPending) {
       return MultiSelectAction.verifyAll;
     } else if (allVerifiedLent) {
       return MultiSelectAction.completeAll;
-    } else {
+    } else if (allDeletable) {
       return MultiSelectAction.deleteAll;
+    } else {
+      return null;
     }
   }
 
@@ -119,9 +133,45 @@ mixin MultiSelectMixin<T extends StatefulWidget> on State<T> {
           'Delete Transactions',
           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
-        content: Text(
-          'Are you sure you want to delete $selectedCount transaction${selectedCount == 1 ? '' : 's'}?',
-          style: theme.textTheme.bodyMedium,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete $selectedCount transaction${selectedCount == 1 ? '' : 's'}?',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.amber.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: Colors.amber.shade700,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Active verified transactions cannot be deleted',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.amber.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(

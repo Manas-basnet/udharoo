@@ -4,11 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/shared/presentation/pages/transactions/base_contact_transaction_page.dart';
 import 'package:udharoo/shared/presentation/widgets/transactions/transaction_action_button.dart';
 import 'package:udharoo/shared/presentation/widgets/transactions/transaction_filter_chip.dart';
 import 'package:udharoo/shared/presentation/widgets/transactions/transaction_summary_card.dart';
 import 'package:udharoo/shared/presentation/widgets/transactions/transaction_state_widgets.dart';
+import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 import 'package:udharoo/shared/mixins/multi_select_mixin.dart';
 
 enum ContactLentFilter { 
@@ -59,6 +61,29 @@ class _ContactLentTransactionsPageState extends BaseContactTransactionPage<Conta
       isLoading: state is ContactTransactionsLoading,
       errorMessage: state is ContactTransactionsError ? state.message : null,
     );
+  }
+
+  @override
+  MultiSelectAction? getAvailableAction(List<Transaction> allTransactions) {
+    if (selectedTransactionIds.isEmpty) return null;
+
+    final selectedTransactions = allTransactions
+        .where((t) => selectedTransactionIds.contains(t.transactionId))
+        .toList();
+
+    final allPending = selectedTransactions.every((t) => t.isPending);
+    final allVerifiedLent = selectedTransactions.every((t) => t.isVerified && t.isLent);
+    final hasVerifiedNotCompleted = selectedTransactions.any((t) => t.isVerified && !t.isCompleted);
+
+    if (allPending) {
+      return MultiSelectAction.verifyAll;
+    } else if (allVerifiedLent) {
+      return MultiSelectAction.completeAll;
+    } else if (!hasVerifiedNotCompleted) {
+      return MultiSelectAction.deleteAll;
+    }
+    
+    return null;
   }
 
   List<Transaction> _getFilteredTransactions(List<Transaction> lentTransactions) {
@@ -239,17 +264,61 @@ class _ContactLentTransactionsPageState extends BaseContactTransactionPage<Conta
 
   @override
   void handleMultiSelectAction(MultiSelectAction action) {
+    final cubit = context.read<TransactionCubit>();
+    final transactionIds = selectedTransactionIds.toList();
+
     switch (action) {
+      case MultiSelectAction.verifyAll:
+        cubit.bulkVerifyTransactions(transactionIds);
+        break;
       case MultiSelectAction.completeAll:
-        // ignore: unused_local_variable
-        for (final transactionId in selectedTransactionIds) {
-          // TODO:Handle completing all selected transactions
-        }
+        cubit.bulkCompleteTransactions(transactionIds);
         break;
       case MultiSelectAction.deleteAll:
-        break;
-      case MultiSelectAction.verifyAll:
+        final pageData = getContactPageData(context);
+        final selectedTransactions = pageData.allContactTransactions
+            .where((t) => transactionIds.contains(t.transactionId))
+            .toList();
+        
+        final hasVerifiedNotCompleted = selectedTransactions.any((t) => t.isVerified && !t.isCompleted);
+        
+        if (hasVerifiedNotCompleted) {
+          CustomToast.show(
+            context,
+            message: 'Cannot delete active verified transactions. Complete them first.',
+            isSuccess: false,
+          );
+          return;
+        }
+        
+        cubit.bulkDeleteTransactions(transactionIds);
         break;
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<TransactionCubit, TransactionState>(
+      listener: (context, state) {
+        if (state.hasSuccess) {
+          CustomToast.show(
+            context,
+            message: state.successMessage!,
+            isSuccess: true,
+          );
+          context.read<TransactionCubit>().clearSuccess();
+        }
+        
+        if (state.hasError) {
+          CustomToast.show(
+            context,
+            message: state.errorMessage!,
+            isSuccess: false,
+          );
+          context.read<TransactionCubit>().clearError();
+        }
+      },
+      child: super.build(context),
+    );
   }
 }
