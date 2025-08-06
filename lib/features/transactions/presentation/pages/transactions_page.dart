@@ -16,6 +16,12 @@ enum TransactionFilter {
   completed,
 }
 
+enum MultiSelectAction {
+  verifyAll,
+  completeAll,
+  deleteAll,
+}
+
 class TransactionsPage extends StatefulWidget {
   const TransactionsPage({super.key});
 
@@ -26,6 +32,9 @@ class TransactionsPage extends StatefulWidget {
 class _TransactionsPageState extends State<TransactionsPage> {
   final ScrollController _scrollController = ScrollController();
   TransactionFilter _selectedFilter = TransactionFilter.all;
+  
+  bool _isMultiSelectMode = false;
+  Set<String> _selectedTransactionIds = {};
 
   @override
   void initState() {
@@ -39,6 +48,171 @@ class _TransactionsPageState extends State<TransactionsPage> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _enterMultiSelectMode(String transactionId) {
+    setState(() {
+      _isMultiSelectMode = true;
+      _selectedTransactionIds = {transactionId};
+    });
+  }
+
+  void _exitMultiSelectMode() {
+    setState(() {
+      _isMultiSelectMode = false;
+      _selectedTransactionIds.clear();
+    });
+  }
+
+  void _toggleTransactionSelection(String transactionId) {
+    setState(() {
+      if (_selectedTransactionIds.contains(transactionId)) {
+        _selectedTransactionIds.remove(transactionId);
+        if (_selectedTransactionIds.isEmpty) {
+          _isMultiSelectMode = false;
+        }
+      } else {
+        _selectedTransactionIds.add(transactionId);
+      }
+    });
+  }
+
+  void _selectAllTransactions(List<Transaction> transactions) {
+    setState(() {
+      _selectedTransactionIds = Set.from(
+        transactions.map((t) => t.transactionId)
+      );
+    });
+  }
+
+  MultiSelectAction? _getAvailableAction(List<Transaction> allTransactions) {
+    if (_selectedTransactionIds.isEmpty) return null;
+    
+    final selectedTransactions = allTransactions
+        .where((t) => _selectedTransactionIds.contains(t.transactionId))
+        .toList();
+    
+    if (selectedTransactions.isEmpty) return null;
+
+    final allNeedVerification = selectedTransactions.every((t) => 
+      t.isPending && t.isBorrowed
+    );
+    
+    final allNeedCompletion = selectedTransactions.every((t) => 
+      t.isVerified && t.isLent
+    );
+
+    if (allNeedVerification) {
+      return MultiSelectAction.verifyAll;
+    } else if (allNeedCompletion) {
+      return MultiSelectAction.completeAll;
+    } else {
+      return MultiSelectAction.deleteAll;
+    }
+  }
+
+  String _getActionText(MultiSelectAction action) {
+    switch (action) {
+      case MultiSelectAction.verifyAll:
+        return 'Verify All';
+      case MultiSelectAction.completeAll:
+        return 'Mark All Complete';
+      case MultiSelectAction.deleteAll:
+        return 'Delete All';
+    }
+  }
+
+  IconData _getActionIcon(MultiSelectAction action) {
+    switch (action) {
+      case MultiSelectAction.verifyAll:
+        return Icons.verified_rounded;
+      case MultiSelectAction.completeAll:
+        return Icons.check_circle_rounded;
+      case MultiSelectAction.deleteAll:
+        return Icons.delete_rounded;
+    }
+  }
+
+  Color _getActionColor(MultiSelectAction action) {
+    switch (action) {
+      case MultiSelectAction.verifyAll:
+        return Colors.green;
+      case MultiSelectAction.completeAll:
+        return Colors.blue;
+      case MultiSelectAction.deleteAll:
+        return Colors.red;
+    }
+  }
+
+  void _handleMultiSelectAction(MultiSelectAction action) {
+    switch (action) {
+      case MultiSelectAction.verifyAll:
+        CustomToast.show(
+          context,
+          message: 'Verifying ${_selectedTransactionIds.length} transactions...',
+          isSuccess: true,
+        );
+        _exitMultiSelectMode();
+        break;
+      case MultiSelectAction.completeAll:
+        CustomToast.show(
+          context,
+          message: 'Marking ${_selectedTransactionIds.length} transactions as complete...',
+          isSuccess: true,
+        );
+        _exitMultiSelectMode();
+        break;
+      case MultiSelectAction.deleteAll:
+        _showDeleteConfirmationDialog();
+        break;
+    }
+  }
+
+  void _showDeleteConfirmationDialog() {
+    final theme = Theme.of(context);
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: theme.colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Delete Transactions',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          'Are you sure you want to delete ${_selectedTransactionIds.length} selected transactions? This action cannot be undone.',
+          style: theme.textTheme.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              CustomToast.show(
+                context,
+                message: 'Deleting ${_selectedTransactionIds.length} transactions...',
+                isSuccess: true,
+              );
+              _exitMultiSelectMode();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -68,21 +242,104 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
-                  _buildSliverAppBar(
-                    theme, 
-                    state, 
-                    expandedHeight, 
-                    horizontalPadding,
-                  ),
-                  _buildSummaryCards(theme, state),
+                  _isMultiSelectMode
+                      ? _buildMultiSelectAppBar(theme, horizontalPadding, state)
+                      : _buildSliverAppBar(theme, state, expandedHeight, horizontalPadding),
+                  if (!_isMultiSelectMode) _buildSummaryCards(theme, state),
                   _buildFilterSection(theme, horizontalPadding, state),
                   _buildTransactionsSliver(state, theme),
                 ],
               ),
             ),
+            bottomNavigationBar: _isMultiSelectMode
+                ? _buildMultiSelectBottomBar(theme, state)
+                : null,
           ),
         );
       },
+    );
+  }
+
+  Widget _buildMultiSelectAppBar(ThemeData theme, double horizontalPadding, TransactionState state) {
+    return SliverAppBar(
+      backgroundColor: theme.colorScheme.primaryContainer,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      floating: true,
+      snap: true,
+      pinned: false,
+      automaticallyImplyLeading: false,
+      centerTitle: false,
+      titleSpacing: horizontalPadding,
+      title: Text(
+        '${_selectedTransactionIds.length} selected',
+        style: theme.textTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: theme.colorScheme.onPrimaryContainer,
+        ),
+      ),
+      actions: [
+        IconButton(
+          onPressed: () {
+            final filteredTransactions = _getFilteredTransactions(state);
+            _selectAllTransactions(filteredTransactions);
+          },
+          icon: Icon(
+            Icons.select_all_rounded,
+            color: theme.colorScheme.onPrimaryContainer,
+          ),
+          tooltip: 'Select All',
+        ),
+        IconButton(
+          onPressed: _exitMultiSelectMode,
+          icon: Icon(
+            Icons.close_rounded,
+            color: theme.colorScheme.onPrimaryContainer,
+          ),
+          tooltip: 'Cancel',
+        ),
+        SizedBox(width: horizontalPadding),
+      ],
+    );
+  }
+
+  Widget _buildMultiSelectBottomBar(ThemeData theme, TransactionState state) {
+    final availableAction = _getAvailableAction(state.transactions);
+    
+    if (availableAction == null) {
+      return const SizedBox.shrink();
+    }
+
+    final actionColor = _getActionColor(availableAction);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
+          ),
+        ),
+      ),
+      child: SafeArea(
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () => _handleMultiSelectAction(availableAction),
+            icon: Icon(_getActionIcon(availableAction), size: 18),
+            label: Text(_getActionText(availableAction)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: actionColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -335,9 +592,11 @@ class _TransactionsPageState extends State<TransactionsPage> {
     
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _selectedFilter = filter;
-        });
+        if (!_isMultiSelectMode) {
+          setState(() {
+            _selectedFilter = filter;
+          });
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -430,13 +689,70 @@ class _TransactionsPageState extends State<TransactionsPage> {
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final transaction = filteredTransactions[index];
+            final isSelected = _selectedTransactionIds.contains(transaction.transactionId);
+            
             return GestureDetector(
               onTap: () {
-                context.push(Routes.transactionDetail, extra: transaction);
+                if (_isMultiSelectMode) {
+                  _toggleTransactionSelection(transaction.transactionId);
+                } else {
+                  context.push(Routes.transactionDetail, extra: transaction);
+                }
+              },
+              onLongPress: () {
+                if (!_isMultiSelectMode) {
+                  _enterMultiSelectMode(transaction.transactionId);
+                }
               },
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 12.0),
-                child: TransactionListItem(transaction: transaction),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: _isMultiSelectMode
+                        ? Border.all(
+                            color: isSelected
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.outline.withValues(alpha: 0.2),
+                            width: isSelected ? 2 : 1,
+                          )
+                        : null,
+                  ),
+                  child: Stack(
+                    children: [
+                      TransactionListItem(transaction: transaction),
+                      if (_isMultiSelectMode)
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.surface,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.outline.withValues(alpha: 0.5),
+                                width: 2,
+                              ),
+                            ),
+                            child: isSelected
+                                ? Icon(
+                                    Icons.check,
+                                    size: 14,
+                                    color: theme.colorScheme.onPrimary,
+                                  )
+                                : null,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             );
           },
