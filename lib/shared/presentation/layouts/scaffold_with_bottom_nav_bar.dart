@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
+import 'package:udharoo/shared/presentation/bloc/multi_select_mode/multi_select_mode_cubit.dart';
 import 'package:udharoo/shared/presentation/bloc/shorebird_update/shorebird_update_cubit.dart';
 import 'package:udharoo/shared/presentation/widgets/shorebird_update_bottomsheet.dart';
 
@@ -15,9 +16,8 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     
-    // Hiding bottom nav for specific routes
     final currentPath = GoRouterState.of(context).uri.path;
-    final shouldHideBottomNav = 
+    final shouldHideBottomNavForRoute = 
       currentPath == Routes.transactionForm || 
       currentPath == Routes.transactionDetail ||
       currentPath == Routes.contactTransactionsDetail ||
@@ -29,63 +29,69 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
           showUpdateBottomSheet(context);
         }
       },
-      child: Scaffold(
-        body: navigationShell,
-        bottomNavigationBar: shouldHideBottomNav ? null : Container(
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            border: Border(
-              top: BorderSide(
-                color: colorScheme.outline.withValues(alpha: 0.2),
-                width: 1,
+      child: BlocBuilder<MultiSelectModeCubit, MultiSelectModeState>(
+        builder: (context, multiSelectState) {
+          final shouldHideBottomNav = shouldHideBottomNavForRoute || multiSelectState.isMultiSelectMode;
+          
+          return Scaffold(
+            body: navigationShell,
+            bottomNavigationBar: shouldHideBottomNav ? null : Container(
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                border: Border(
+                  top: BorderSide(
+                    color: colorScheme.outline.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: SafeArea(
+                child: Container(
+                  height: 72,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildNavItem(
+                        context,
+                        icon: Icons.home_outlined,
+                        selectedIcon: Icons.home,
+                        label: 'Home',
+                        index: 0,
+                        isSelected: navigationShell.currentIndex == 0,
+                      ),
+                      _buildNavItem(
+                        context,
+                        icon: Icons.receipt_long_outlined,
+                        selectedIcon: Icons.receipt_long,
+                        label: 'Transactions',
+                        index: 1,
+                        isSelected: navigationShell.currentIndex == 1,
+                      ),
+                      _buildAddButton(context, colorScheme),
+                      _buildNavItem(
+                        context,
+                        icon: Icons.people_outline,
+                        selectedIcon: Icons.people,
+                        label: 'Contacts',
+                        index: 2,
+                        isSelected: navigationShell.currentIndex == 2,
+                      ),
+                      _buildNavItem(
+                        context,
+                        icon: Icons.person_outline,
+                        selectedIcon: Icons.person,
+                        label: 'Profile',
+                        index: 3,
+                        isSelected: navigationShell.currentIndex == 3,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-          child: SafeArea(
-            child: Container(
-              height: 72,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(
-                    context,
-                    icon: Icons.home_outlined,
-                    selectedIcon: Icons.home,
-                    label: 'Home',
-                    index: 0,
-                    isSelected: navigationShell.currentIndex == 0,
-                  ),
-                  _buildNavItem(
-                    context,
-                    icon: Icons.receipt_long_outlined,
-                    selectedIcon: Icons.receipt_long,
-                    label: 'Transactions',
-                    index: 1,
-                    isSelected: navigationShell.currentIndex == 1,
-                  ),
-                  _buildAddButton(context, colorScheme),
-                  _buildNavItem(
-                    context,
-                    icon: Icons.people_outline,
-                    selectedIcon: Icons.people,
-                    label: 'Contacts',
-                    index: 2,
-                    isSelected: navigationShell.currentIndex == 2,
-                  ),
-                  _buildNavItem(
-                    context,
-                    icon: Icons.person_outline,
-                    selectedIcon: Icons.person,
-                    label: 'Profile',
-                    index: 3,
-                    isSelected: navigationShell.currentIndex == 3,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -175,6 +181,11 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
   }
 
   void _onItemTapped(int index, BuildContext context) {
+    final multiSelectCubit = context.read<MultiSelectModeCubit>();
+    if (multiSelectCubit.state.isMultiSelectMode) {
+      multiSelectCubit.exitMultiSelectMode();
+    }
+    
     navigationShell.goBranch(
       index,
       initialLocation: index == navigationShell.currentIndex,

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
-import 'package:udharoo/shared/presentation/widgets/transaction_list_item.dart';
+import 'package:udharoo/shared/presentation/widgets/transactions/transaction_list_item.dart';
 import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
 class TransactionSearchDelegate extends SearchDelegate<Transaction?> {

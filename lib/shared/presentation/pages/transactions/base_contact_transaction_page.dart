@@ -13,6 +13,20 @@ import 'package:udharoo/shared/presentation/widgets/transactions/filter_sliver_d
 import 'package:udharoo/shared/presentation/widgets/transactions/transaction_list_sliver.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
+class ContactTransactionPageData {
+  final List<Transaction> allContactTransactions;
+  final List<Transaction> filteredTransactions;
+  final bool isLoading;
+  final String? errorMessage;
+
+  const ContactTransactionPageData({
+    required this.allContactTransactions,
+    required this.filteredTransactions,
+    required this.isLoading,
+    this.errorMessage,
+  });
+}
+
 abstract class BaseContactTransactionPage<T extends StatefulWidget> extends State<T> 
     with MultiSelectMixin<T>, ResponsiveLayoutMixin {
 
@@ -41,13 +55,10 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
   }
 
   String get pageTitle;
-  List<Transaction> get allContactTransactions;
-  List<Transaction> get filteredTransactions;
-  bool get isLoading;
-  String? get errorMessage;
   Color get primaryColor;
   Color get multiSelectColor;
   
+  ContactTransactionPageData getContactPageData(BuildContext context, ContactTransactionsState state);
   List<Widget> buildContactAppBarActions(BuildContext context, ThemeData theme);
   List<Widget>? buildContactSummaryCards(BuildContext context, ThemeData theme, List<Transaction> transactions);
   List<Widget> buildFilterChips(BuildContext context, ThemeData theme);
@@ -88,13 +99,15 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
             }
           },
           builder: (context, transactionState) {
+            final pageData = getContactPageData(context, transactionState);
+            
             return RefreshIndicator(
               onRefresh: () async => onRefresh(),
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   if (isMultiSelectMode)
-                    buildMultiSelectAppBar(theme, horizontalPadding, transactionState)
+                    buildMultiSelectAppBar(theme, horizontalPadding, pageData)
                   else
                     buildContactSliverAppBar(theme, horizontalPadding, expandedHeight, transactionState),
                   
@@ -103,7 +116,7 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
                   
                   buildFilterSection(context, theme, horizontalPadding, transactionState),
                   
-                  buildContactTransactionsList(context, theme, horizontalPadding, transactionState),
+                  buildContactTransactionsList(context, theme, horizontalPadding, pageData),
                 ],
               ),
             );
@@ -116,15 +129,11 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
     );
   }
 
-  Widget buildMultiSelectAppBar(ThemeData theme, double horizontalPadding, ContactTransactionsState state) {
+  Widget buildMultiSelectAppBar(ThemeData theme, double horizontalPadding, ContactTransactionPageData pageData) {
     return MultiSelectAppBar(
       selectedCount: selectedCount,
       backgroundColor: multiSelectColor,
-      onSelectAll: () {
-        if (state is ContactTransactionsLoaded) {
-          selectAllTransactions(filteredTransactions);
-        }
-      },
+      onSelectAll: () => selectAllTransactions(pageData.filteredTransactions),
       onCancel: exitMultiSelectMode,
       horizontalPadding: horizontalPadding,
     );
@@ -248,11 +257,11 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
     );
   }
 
-  Widget buildContactTransactionsList(BuildContext context, ThemeData theme, double horizontalPadding, ContactTransactionsState state) {
+  Widget buildContactTransactionsList(BuildContext context, ThemeData theme, double horizontalPadding, ContactTransactionPageData pageData) {
     return TransactionListSliver(
-      transactions: filteredTransactions,
-      isLoading: state is ContactTransactionsLoading,
-      errorMessage: state is ContactTransactionsError ? state.message : null,
+      transactions: pageData.filteredTransactions,
+      isLoading: pageData.isLoading,
+      errorMessage: pageData.errorMessage,
       emptyStateWidget: buildEmptyState(context, theme),
       isMultiSelectMode: isMultiSelectMode,
       selectedTransactionIds: selectedTransactionIds,
@@ -267,7 +276,7 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
 
   Widget buildMultiSelectBottomBar(ThemeData theme) {
     return MultiSelectBottomBar(
-      availableAction: getAvailableAction(allContactTransactions),
+      availableAction: getAvailableAction([]),
       getActionText: getActionText,
       getActionIcon: getActionIcon,
       getActionColor: getActionColor,

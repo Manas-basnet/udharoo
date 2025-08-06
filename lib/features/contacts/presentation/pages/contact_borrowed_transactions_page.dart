@@ -40,17 +40,27 @@ class _ContactBorrowedTransactionsPageState extends BaseContactTransactionPage<C
   String get pageTitle => 'Money I Borrowed';
 
   @override
-  List<Transaction> get allContactTransactions {
-    final state = context.watch<ContactTransactionsCubit>().state;
-    return state is ContactTransactionsLoaded 
-        ? state.transactions.where((t) => t.isBorrowed).toList()
-        : [];
-  }
+  Color get primaryColor => Colors.orange;
 
   @override
-  List<Transaction> get filteredTransactions {
-    final borrowedTransactions = allContactTransactions;
+  Color get multiSelectColor => Colors.orange.withValues(alpha: 0.9);
 
+  @override
+  ContactTransactionPageData getContactPageData(BuildContext context, ContactTransactionsState state) {
+    final allTransactions = state is ContactTransactionsLoaded 
+        ? state.transactions.where((t) => t.isBorrowed).toList()
+        : <Transaction>[];
+    final filteredTransactions = _getFilteredTransactions(allTransactions);
+    
+    return ContactTransactionPageData(
+      allContactTransactions: allTransactions,
+      filteredTransactions: filteredTransactions,
+      isLoading: state is ContactTransactionsLoading,
+      errorMessage: state is ContactTransactionsError ? state.message : null,
+    );
+  }
+
+  List<Transaction> _getFilteredTransactions(List<Transaction> borrowedTransactions) {
     switch (_selectedFilter) {
       case ContactBorrowedFilter.all:
         return borrowedTransactions
@@ -66,24 +76,6 @@ class _ContactBorrowedTransactionsPageState extends BaseContactTransactionPage<C
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
   }
-
-  @override
-  bool get isLoading {
-    final state = context.watch<ContactTransactionsCubit>().state;
-    return state is ContactTransactionsLoading;
-  }
-
-  @override
-  String? get errorMessage {
-    final state = context.watch<ContactTransactionsCubit>().state;
-    return state is ContactTransactionsError ? state.message : null;
-  }
-
-  @override
-  Color get primaryColor => Colors.orange;
-
-  @override
-  Color get multiSelectColor => Colors.orange.withValues(alpha: 0.9);
 
   @override
   List<Widget> buildContactAppBarActions(BuildContext context, ThemeData theme) {
@@ -254,10 +246,8 @@ class _ContactBorrowedTransactionsPageState extends BaseContactTransactionPage<C
         }
         break;
       case MultiSelectAction.deleteAll:
-        // Handle delete all
         break;
       case MultiSelectAction.completeAll:
-        // Not applicable for borrowed transactions (lender marks as complete)
         break;
     }
   }

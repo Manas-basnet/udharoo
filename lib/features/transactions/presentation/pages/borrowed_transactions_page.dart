@@ -34,15 +34,28 @@ class _BorrowedTransactionsPageState extends BaseTransactionPage<BorrowedTransac
   String get pageTitle => 'Money I Borrowed';
 
   @override
-  List<Transaction> get allTransactions {
-    final state = context.watch<TransactionCubit>().state;
-    return state.transactions.where((t) => t.isBorrowed).toList();
-  }
+  Color get primaryColor => Colors.orange;
 
   @override
-  List<Transaction> get filteredTransactions {
-    final borrowedTransactions = allTransactions;
+  Color get multiSelectColor => Colors.orange.withValues(alpha: 0.9);
 
+  @override
+  TransactionPageData getPageData(BuildContext context) {
+    final state = context.watch<TransactionCubit>().state;
+    
+    final allBorrowedTransactions = state.transactions.where((t) => t.isBorrowed).toList();
+    final filteredTransactions = _getFilteredTransactions(allBorrowedTransactions);
+    
+    return TransactionPageData(
+      allTransactions: allBorrowedTransactions,
+      filteredTransactions: filteredTransactions,
+      isLoading: state.isLoading,
+      errorMessage: state.errorMessage,
+      hasTransactions: allBorrowedTransactions.isNotEmpty,
+    );
+  }
+
+  List<Transaction> _getFilteredTransactions(List<Transaction> borrowedTransactions) {
     switch (_selectedFilter) {
       case BorrowedTransactionFilter.all:
         return borrowedTransactions
@@ -60,42 +73,20 @@ class _BorrowedTransactionsPageState extends BaseTransactionPage<BorrowedTransac
   }
 
   @override
-  bool get isLoading {
-    final state = context.watch<TransactionCubit>().state;
-    return state.isLoading;
-  }
-
-  @override
-  String? get errorMessage {
-    final state = context.watch<TransactionCubit>().state;
-    return state.errorMessage;
-  }
-
-  @override
-  bool get hasTransactions {
-    // final state = context.watch<TransactionCubit>().state;
-    return allTransactions.isNotEmpty;
-  }
-
-  @override
-  Color get primaryColor => Colors.orange;
-
-  @override
-  Color get multiSelectColor => Colors.orange.withValues(alpha: 0.9);
-
-  @override
   List<Widget> buildAppBarActions(BuildContext context, ThemeData theme, double horizontalPadding) {
+    final pageData = getPageData(context);
+    
     return [
       TransactionActionButton(
         icon: Icons.search_rounded,
         tooltip: 'Search',
         type: ActionButtonType.search,
         onPressed: () {
-          if (allTransactions.isNotEmpty) {
+          if (pageData.allTransactions.isNotEmpty) {
             showSearch(
               context: context,
               delegate: TransactionSearchDelegate(
-                transactions: allTransactions,
+                transactions: pageData.allTransactions,
                 searchType: 'borrowed',
               ),
             );
@@ -114,15 +105,17 @@ class _BorrowedTransactionsPageState extends BaseTransactionPage<BorrowedTransac
 
   @override
   List<Widget>? buildSummaryCards(BuildContext context, ThemeData theme) {
-    final activeBorrowedAmount = allTransactions
+    final pageData = getPageData(context);
+    
+    final activeBorrowedAmount = pageData.allTransactions
         .where((t) => t.isVerified)
         .fold(0.0, (sum, t) => sum + t.amount);
         
-    final needsResponseAmount = allTransactions
+    final needsResponseAmount = pageData.allTransactions
         .where((t) => t.isPending)
         .fold(0.0, (sum, t) => sum + t.amount);
         
-    final completedAmount = allTransactions
+    final completedAmount = pageData.allTransactions
         .where((t) => t.isCompleted)
         .fold(0.0, (sum, t) => sum + t.amount);
 
@@ -238,16 +231,13 @@ class _BorrowedTransactionsPageState extends BaseTransactionPage<BorrowedTransac
   void handleMultiSelectAction(MultiSelectAction action) {
     switch (action) {
       case MultiSelectAction.verifyAll:
-        // Handle verifying all pending borrowed transactions
         for (final transactionId in selectedTransactionIds) {
           context.read<TransactionCubit>().verifyTransaction(transactionId);
         }
         break;
       case MultiSelectAction.deleteAll:
-        // Handle delete all
         break;
       case MultiSelectAction.completeAll:
-        // Not applicable for borrowed transactions (lender marks as complete)
         break;
     }
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/shared/mixins/multi_select_mixin.dart';
 import 'package:udharoo/shared/mixins/responsive_layout_mixin.dart';
@@ -7,18 +8,30 @@ import 'package:udharoo/shared/presentation/widgets/transactions/filter_sliver_d
 import 'package:udharoo/shared/presentation/widgets/transactions/transaction_list_sliver.dart';
 import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 
+class TransactionPageData {
+  final List<Transaction> allTransactions;
+  final List<Transaction> filteredTransactions;
+  final bool isLoading;
+  final String? errorMessage;
+  final bool hasTransactions;
+
+  const TransactionPageData({
+    required this.allTransactions,
+    required this.filteredTransactions,
+    required this.isLoading,
+    this.errorMessage,
+    required this.hasTransactions,
+  });
+}
+
 abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T> 
     with MultiSelectMixin<T>, ResponsiveLayoutMixin {
 
   String get pageTitle;
-  List<Transaction> get allTransactions;
-  List<Transaction> get filteredTransactions;
-  bool get isLoading;
-  String? get errorMessage;
-  bool get hasTransactions;
   Color get primaryColor;
   Color get multiSelectColor;
   
+  TransactionPageData getPageData(BuildContext context);
   List<Widget> buildAppBarActions(BuildContext context, ThemeData theme, double horizontalPadding);
   List<Widget>? buildSummaryCards(BuildContext context, ThemeData theme);
   List<Widget> buildFilterChips(BuildContext context, ThemeData theme);
@@ -26,18 +39,20 @@ abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T>
   
   void onRefresh();
   void handleMultiSelectAction(MultiSelectAction action);
-  String? get detailRoute => null;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final mediaQuery = MediaQuery.of(context);
-    final screenWidth = mediaQuery.size.width;
-    final screenHeight = mediaQuery.size.height;
-    final topPadding = mediaQuery.padding.top;
+    final sizeMediaQuery = MediaQuery.sizeOf(context);
+    final paddingMediaQuery = MediaQuery.paddingOf(context);
+    final screenWidth = sizeMediaQuery.width;
+    final screenHeight = sizeMediaQuery.height;
+    final topPadding = paddingMediaQuery.top;
 
     final horizontalPadding = getResponsiveHorizontalPadding(screenWidth);
     final expandedHeight = calculateExpandedHeight(screenHeight, topPadding);
+
+    final pageData = getPageData(context);
 
     return SafeArea(
       child: Scaffold(
@@ -48,7 +63,7 @@ abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T>
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               if (isMultiSelectMode)
-                buildMultiSelectAppBar(theme, horizontalPadding)
+                buildMultiSelectAppBar(theme, horizontalPadding, pageData)
               else
                 buildSliverAppBar(theme, expandedHeight, horizontalPadding),
               
@@ -57,22 +72,22 @@ abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T>
               
               buildFilterSection(context, theme, horizontalPadding),
               
-              buildTransactionsList(context, theme, horizontalPadding),
+              buildTransactionsList(context, theme, horizontalPadding, pageData),
             ],
           ),
         ),
         bottomNavigationBar: isMultiSelectMode
-            ? buildMultiSelectBottomBar(theme)
+            ? buildMultiSelectBottomBar(theme, pageData)
             : null,
       ),
     );
   }
 
-  Widget buildMultiSelectAppBar(ThemeData theme, double horizontalPadding) {
+  Widget buildMultiSelectAppBar(ThemeData theme, double horizontalPadding, TransactionPageData pageData) {
     return MultiSelectAppBar(
       selectedCount: selectedCount,
       backgroundColor: multiSelectColor,
-      onSelectAll: () => selectAllTransactions(filteredTransactions),
+      onSelectAll: () => selectAllTransactions(pageData.filteredTransactions),
       onCancel: exitMultiSelectMode,
       horizontalPadding: horizontalPadding,
     );
@@ -129,11 +144,11 @@ abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T>
     );
   }
 
-  Widget buildTransactionsList(BuildContext context, ThemeData theme, double horizontalPadding) {
+  Widget buildTransactionsList(BuildContext context, ThemeData theme, double horizontalPadding, TransactionPageData pageData) {
     return TransactionListSliver(
-      transactions: filteredTransactions,
-      isLoading: isLoading,
-      errorMessage: hasTransactions ? null : errorMessage,
+      transactions: pageData.filteredTransactions,
+      isLoading: pageData.isLoading,
+      errorMessage: pageData.hasTransactions ? null : pageData.errorMessage,
       emptyStateWidget: buildEmptyState(context, theme),
       isMultiSelectMode: isMultiSelectMode,
       selectedTransactionIds: selectedTransactionIds,
@@ -142,13 +157,13 @@ abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T>
       onTransactionLongPress: enterMultiSelectMode,
       onRetry: onRefresh,
       horizontalPadding: horizontalPadding,
-      detailRoute: detailRoute,
+      detailRoute: Routes.transactionDetail,
     );
   }
 
-  Widget buildMultiSelectBottomBar(ThemeData theme) {
+  Widget buildMultiSelectBottomBar(ThemeData theme, TransactionPageData pageData) {
     return MultiSelectBottomBar(
-      availableAction: getAvailableAction(allTransactions),
+      availableAction: getAvailableAction(pageData.allTransactions),
       getActionText: getActionText,
       getActionIcon: getActionIcon,
       getActionColor: getActionColor,

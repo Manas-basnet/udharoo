@@ -43,15 +43,27 @@ class _TransactionsPageState extends BaseTransactionPage<TransactionsPage> {
   String get pageTitle => 'My Transactions';
 
   @override
-  List<Transaction> get allTransactions {
-    final state = context.watch<TransactionCubit>().state;
-    return state.transactions;
-  }
+  Color get primaryColor => Theme.of(context).colorScheme.primary;
 
   @override
-  List<Transaction> get filteredTransactions {
+  Color get multiSelectColor => Theme.of(context).colorScheme.primary.withValues(alpha: 0.9);
+
+  @override
+  TransactionPageData getPageData(BuildContext context) {
     final state = context.watch<TransactionCubit>().state;
     
+    final filteredTransactions = _getFilteredTransactions(state);
+    
+    return TransactionPageData(
+      allTransactions: state.transactions,
+      filteredTransactions: filteredTransactions,
+      isLoading: state.isLoading,
+      errorMessage: state.errorMessage,
+      hasTransactions: state.hasTransactions,
+    );
+  }
+
+  List<Transaction> _getFilteredTransactions(TransactionState state) {
     switch (_selectedFilter) {
       case TransactionFilter.all:
         return [...state.lentTransactions, ...state.borrowedTransactions]
@@ -67,30 +79,6 @@ class _TransactionsPageState extends BaseTransactionPage<TransactionsPage> {
           ..sort((a, b) => (b.completedAt ?? b.createdAt).compareTo(a.completedAt ?? a.createdAt));
     }
   }
-
-  @override
-  bool get isLoading {
-    final state = context.watch<TransactionCubit>().state;
-    return state.isLoading;
-  }
-
-  @override
-  String? get errorMessage {
-    final state = context.watch<TransactionCubit>().state;
-    return state.errorMessage;
-  }
-
-  @override
-  bool get hasTransactions {
-    final state = context.watch<TransactionCubit>().state;
-    return state.hasTransactions;
-  }
-
-  @override
-  Color get primaryColor => Theme.of(context).colorScheme.primary;
-
-  @override
-  Color get multiSelectColor => Theme.of(context).colorScheme.primary.withValues(alpha: 0.9);
 
   @override
   List<Widget> buildAppBarActions(BuildContext context, ThemeData theme, double horizontalPadding) {
@@ -226,16 +214,12 @@ class _TransactionsPageState extends BaseTransactionPage<TransactionsPage> {
 
   @override
   void handleMultiSelectAction(MultiSelectAction action) {
-    // Implement specific action handling
     switch (action) {
       case MultiSelectAction.verifyAll:
-        // Handle verify all
         break;
       case MultiSelectAction.completeAll:
-        // Handle complete all
         break;
       case MultiSelectAction.deleteAll:
-        // Handle delete all
         break;
     }
   }

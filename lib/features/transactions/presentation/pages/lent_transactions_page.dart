@@ -34,15 +34,28 @@ class _LentTransactionsPageState extends BaseTransactionPage<LentTransactionsPag
   String get pageTitle => 'Money I Lent';
 
   @override
-  List<Transaction> get allTransactions {
-    final state = context.watch<TransactionCubit>().state;
-    return state.transactions.where((t) => t.isLent).toList();
-  }
+  Color get primaryColor => Colors.green;
 
   @override
-  List<Transaction> get filteredTransactions {
-    final lentTransactions = allTransactions;
+  Color get multiSelectColor => Colors.green.withValues(alpha: 0.9);
 
+  @override
+  TransactionPageData getPageData(BuildContext context) {
+    final state = context.watch<TransactionCubit>().state;
+    
+    final allLentTransactions = state.transactions.where((t) => t.isLent).toList();
+    final filteredTransactions = _getFilteredTransactions(allLentTransactions);
+    
+    return TransactionPageData(
+      allTransactions: allLentTransactions,
+      filteredTransactions: filteredTransactions,
+      isLoading: state.isLoading,
+      errorMessage: state.errorMessage,
+      hasTransactions: allLentTransactions.isNotEmpty,
+    );
+  }
+
+  List<Transaction> _getFilteredTransactions(List<Transaction> lentTransactions) {
     switch (_selectedFilter) {
       case LentTransactionFilter.all:
         return lentTransactions
@@ -60,42 +73,20 @@ class _LentTransactionsPageState extends BaseTransactionPage<LentTransactionsPag
   }
 
   @override
-  bool get isLoading {
-    final state = context.watch<TransactionCubit>().state;
-    return state.isLoading;
-  }
-
-  @override
-  String? get errorMessage {
-    final state = context.watch<TransactionCubit>().state;
-    return state.errorMessage;
-  }
-
-  @override
-  bool get hasTransactions {
-    // final state = context.watch<TransactionCubit>().state;
-    return allTransactions.isNotEmpty;
-  }
-
-  @override
-  Color get primaryColor => Colors.green;
-
-  @override
-  Color get multiSelectColor => Colors.green.withValues(alpha: 0.9);
-
-  @override
   List<Widget> buildAppBarActions(BuildContext context, ThemeData theme, double horizontalPadding) {
+    final pageData = getPageData(context);
+    
     return [
       TransactionActionButton(
         icon: Icons.search_rounded,
         tooltip: 'Search',
         type: ActionButtonType.search,
         onPressed: () {
-          if (allTransactions.isNotEmpty) {
+          if (pageData.allTransactions.isNotEmpty) {
             showSearch(
               context: context,
               delegate: TransactionSearchDelegate(
-                transactions: allTransactions,
+                transactions: pageData.allTransactions,
                 searchType: 'lent',
               ),
             );
@@ -114,15 +105,17 @@ class _LentTransactionsPageState extends BaseTransactionPage<LentTransactionsPag
 
   @override
   List<Widget>? buildSummaryCards(BuildContext context, ThemeData theme) {
-    final activeLentAmount = allTransactions
+    final pageData = getPageData(context);
+    
+    final activeLentAmount = pageData.allTransactions
         .where((t) => t.isVerified)
         .fold(0.0, (sum, t) => sum + t.amount);
         
-    final awaitingResponseAmount = allTransactions
+    final awaitingResponseAmount = pageData.allTransactions
         .where((t) => t.isPending)
         .fold(0.0, (sum, t) => sum + t.amount);
         
-    final completedAmount = allTransactions
+    final completedAmount = pageData.allTransactions
         .where((t) => t.isCompleted)
         .fold(0.0, (sum, t) => sum + t.amount);
 
@@ -238,16 +231,13 @@ class _LentTransactionsPageState extends BaseTransactionPage<LentTransactionsPag
   void handleMultiSelectAction(MultiSelectAction action) {
     switch (action) {
       case MultiSelectAction.completeAll:
-        // Handle marking all as complete
         for (final transactionId in selectedTransactionIds) {
           context.read<TransactionCubit>().completeTransaction(transactionId);
         }
         break;
       case MultiSelectAction.deleteAll:
-        // Handle delete all
         break;
       case MultiSelectAction.verifyAll:
-        // Not applicable for lent transactions
         break;
     }
   }

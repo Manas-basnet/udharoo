@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/shared/presentation/bloc/multi_select_mode/multi_select_mode_cubit.dart';
 
 enum MultiSelectAction {
   verifyAll,
@@ -8,18 +10,21 @@ enum MultiSelectAction {
 }
 
 mixin MultiSelectMixin<T extends StatefulWidget> on State<T> {
-  bool _isMultiSelectMode = false;
   Set<String> _selectedTransactionIds = {};
+  bool _isMultiSelectMode = false;
 
-  bool get isMultiSelectMode => _isMultiSelectMode;
   Set<String> get selectedTransactionIds => _selectedTransactionIds;
+  bool get isMultiSelectMode => _isMultiSelectMode;
   int get selectedCount => _selectedTransactionIds.length;
 
-  void enterMultiSelectMode(String transactionId) {
+  void enterMultiSelectMode(String? initialTransactionId) {
     setState(() {
       _isMultiSelectMode = true;
-      _selectedTransactionIds = {transactionId};
+      if (initialTransactionId != null) {
+        _selectedTransactionIds.add(initialTransactionId);
+      }
     });
+    context.read<MultiSelectModeCubit>().enterMultiSelectMode();
   }
 
   void exitMultiSelectMode() {
@@ -27,6 +32,7 @@ mixin MultiSelectMixin<T extends StatefulWidget> on State<T> {
       _isMultiSelectMode = false;
       _selectedTransactionIds.clear();
     });
+    context.read<MultiSelectModeCubit>().exitMultiSelectMode();
   }
 
   void toggleTransactionSelection(String transactionId) {
@@ -35,6 +41,7 @@ mixin MultiSelectMixin<T extends StatefulWidget> on State<T> {
         _selectedTransactionIds.remove(transactionId);
         if (_selectedTransactionIds.isEmpty) {
           _isMultiSelectMode = false;
+          context.read<MultiSelectModeCubit>().exitMultiSelectMode();
         }
       } else {
         _selectedTransactionIds.add(transactionId);
@@ -44,32 +51,23 @@ mixin MultiSelectMixin<T extends StatefulWidget> on State<T> {
 
   void selectAllTransactions(List<Transaction> transactions) {
     setState(() {
-      _selectedTransactionIds = Set.from(
-        transactions.map((t) => t.transactionId)
-      );
+      _selectedTransactionIds = transactions.map((t) => t.transactionId).toSet();
     });
   }
 
   MultiSelectAction? getAvailableAction(List<Transaction> allTransactions) {
     if (_selectedTransactionIds.isEmpty) return null;
-    
+
     final selectedTransactions = allTransactions
         .where((t) => _selectedTransactionIds.contains(t.transactionId))
         .toList();
-    
-    if (selectedTransactions.isEmpty) return null;
 
-    final allNeedVerification = selectedTransactions.every((t) => 
-      t.isPending && t.isBorrowed
-    );
-    
-    final allNeedCompletion = selectedTransactions.every((t) => 
-      t.isVerified && t.isLent
-    );
+    final allPending = selectedTransactions.every((t) => t.isPending);
+    final allVerifiedLent = selectedTransactions.every((t) => t.isVerified && t.isLent);
 
-    if (allNeedVerification) {
+    if (allPending) {
       return MultiSelectAction.verifyAll;
-    } else if (allNeedCompletion) {
+    } else if (allVerifiedLent) {
       return MultiSelectAction.completeAll;
     } else {
       return MultiSelectAction.deleteAll;
@@ -79,18 +77,18 @@ mixin MultiSelectMixin<T extends StatefulWidget> on State<T> {
   String getActionText(MultiSelectAction action) {
     switch (action) {
       case MultiSelectAction.verifyAll:
-        return 'Verify All';
+        return 'Confirm';
       case MultiSelectAction.completeAll:
-        return 'Mark All Complete';
+        return 'Mark as Received';
       case MultiSelectAction.deleteAll:
-        return 'Delete All';
+        return 'Delete';
     }
   }
 
   IconData getActionIcon(MultiSelectAction action) {
     switch (action) {
       case MultiSelectAction.verifyAll:
-        return Icons.verified_rounded;
+        return Icons.check_rounded;
       case MultiSelectAction.completeAll:
         return Icons.check_circle_rounded;
       case MultiSelectAction.deleteAll:
@@ -109,10 +107,10 @@ mixin MultiSelectMixin<T extends StatefulWidget> on State<T> {
     }
   }
 
-  void showDeleteConfirmationDialog(BuildContext context, VoidCallback onConfirm) {
+  Future<void> showDeleteConfirmationDialog(BuildContext context, VoidCallback onConfirm) async {
     final theme = Theme.of(context);
     
-    showDialog(
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: theme.colorScheme.surface,
@@ -122,12 +120,12 @@ mixin MultiSelectMixin<T extends StatefulWidget> on State<T> {
           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         content: Text(
-          'Are you sure you want to delete $selectedCount selected transactions? This action cannot be undone.',
+          'Are you sure you want to delete $selectedCount transaction${selectedCount == 1 ? '' : 's'}?',
           style: theme.textTheme.bodyMedium,
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: Text(
               'Cancel',
               style: TextStyle(
@@ -136,11 +134,7 @@ mixin MultiSelectMixin<T extends StatefulWidget> on State<T> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              onConfirm();
-              exitMultiSelectMode();
-            },
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
@@ -150,5 +144,18 @@ mixin MultiSelectMixin<T extends StatefulWidget> on State<T> {
         ],
       ),
     );
+
+    if (confirmed == true) {
+      onConfirm();
+      exitMultiSelectMode();
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_isMultiSelectMode) {
+      context.read<MultiSelectModeCubit>().exitMultiSelectMode();
+    }
+    super.dispose();
   }
 }

@@ -34,6 +34,7 @@ import 'package:udharoo/features/transactions/presentation/pages/transactions_pa
 import 'package:udharoo/features/transactions/presentation/pages/rejected_transactions_page.dart';
 import 'package:udharoo/features/transactions/presentation/pages/lent_transactions_page.dart';
 import 'package:udharoo/features/transactions/presentation/pages/borrowed_transactions_page.dart';
+import 'package:udharoo/shared/presentation/bloc/multi_select_mode/multi_select_mode_cubit.dart';
 import 'package:udharoo/shared/presentation/layouts/scaffold_with_bottom_nav_bar.dart';
 import 'package:udharoo/shared/presentation/widgets/auth_wrapper.dart';
 
@@ -65,6 +66,7 @@ class AppRouter {
               providers: [
                 BlocProvider(create: (_) => di.sl<ContactCubit>()),
                 BlocProvider(create: (_) => di.sl<TransactionCubit>()..loadTransactions()),
+                BlocProvider(create: (_) => MultiSelectModeCubit()),
               ],
               child: ScaffoldWithBottomNavBar(navigationShell: navigationShell),
             ),

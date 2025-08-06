@@ -40,17 +40,27 @@ class _ContactLentTransactionsPageState extends BaseContactTransactionPage<Conta
   String get pageTitle => 'Money I Lent';
 
   @override
-  List<Transaction> get allContactTransactions {
-    final state = context.watch<ContactTransactionsCubit>().state;
-    return state is ContactTransactionsLoaded 
-        ? state.transactions.where((t) => t.isLent).toList()
-        : [];
-  }
+  Color get primaryColor => Colors.green;
 
   @override
-  List<Transaction> get filteredTransactions {
-    final lentTransactions = allContactTransactions;
+  Color get multiSelectColor => Colors.green.withValues(alpha: 0.9);
 
+  @override
+  ContactTransactionPageData getContactPageData(BuildContext context, ContactTransactionsState state) {
+    final allTransactions = state is ContactTransactionsLoaded 
+        ? state.transactions.where((t) => t.isLent).toList()
+        : <Transaction>[];
+    final filteredTransactions = _getFilteredTransactions(allTransactions);
+    
+    return ContactTransactionPageData(
+      allContactTransactions: allTransactions,
+      filteredTransactions: filteredTransactions,
+      isLoading: state is ContactTransactionsLoading,
+      errorMessage: state is ContactTransactionsError ? state.message : null,
+    );
+  }
+
+  List<Transaction> _getFilteredTransactions(List<Transaction> lentTransactions) {
     switch (_selectedFilter) {
       case ContactLentFilter.all:
         return lentTransactions
@@ -66,24 +76,6 @@ class _ContactLentTransactionsPageState extends BaseContactTransactionPage<Conta
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
   }
-
-  @override
-  bool get isLoading {
-    final state = context.watch<ContactTransactionsCubit>().state;
-    return state is ContactTransactionsLoading;
-  }
-
-  @override
-  String? get errorMessage {
-    final state = context.watch<ContactTransactionsCubit>().state;
-    return state is ContactTransactionsError ? state.message : null;
-  }
-
-  @override
-  Color get primaryColor => Colors.green;
-
-  @override
-  Color get multiSelectColor => Colors.green.withValues(alpha: 0.9);
 
   @override
   List<Widget> buildContactAppBarActions(BuildContext context, ThemeData theme) {
@@ -254,10 +246,8 @@ class _ContactLentTransactionsPageState extends BaseContactTransactionPage<Conta
         }
         break;
       case MultiSelectAction.deleteAll:
-        // Handle delete all
         break;
       case MultiSelectAction.verifyAll:
-        // Not applicable for lent transactions
         break;
     }
   }

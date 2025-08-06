@@ -1,4 +1,3 @@
-// lib/features/contacts/presentation/pages/refactored_contact_transactions_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -36,15 +35,25 @@ class _ContactTransactionsPageState extends BaseContactTransactionPage<ContactTr
   String get pageTitle => contact?.displayName ?? 'Contact Transactions';
 
   @override
-  List<Transaction> get allContactTransactions {
-    final state = context.watch<ContactTransactionsCubit>().state;
-    return state is ContactTransactionsLoaded ? state.transactions : [];
-  }
+  Color get primaryColor => Theme.of(context).colorScheme.primary;
 
   @override
-  List<Transaction> get filteredTransactions {
-    final transactions = allContactTransactions;
+  Color get multiSelectColor => Theme.of(context).colorScheme.primary.withValues(alpha: 0.9);
+
+  @override
+  ContactTransactionPageData getContactPageData(BuildContext context, ContactTransactionsState state) {
+    final allTransactions = state is ContactTransactionsLoaded ? state.transactions : <Transaction>[];
+    final filteredTransactions = _getFilteredTransactions(allTransactions);
     
+    return ContactTransactionPageData(
+      allContactTransactions: allTransactions,
+      filteredTransactions: filteredTransactions,
+      isLoading: state is ContactTransactionsLoading,
+      errorMessage: state is ContactTransactionsError ? state.message : null,
+    );
+  }
+
+  List<Transaction> _getFilteredTransactions(List<Transaction> transactions) {
     switch (_selectedFilter) {
       case ContactTransactionFilter.all:
         return transactions..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -59,24 +68,6 @@ class _ContactTransactionsPageState extends BaseContactTransactionPage<ContactTr
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
   }
-
-  @override
-  bool get isLoading {
-    final state = context.watch<ContactTransactionsCubit>().state;
-    return state is ContactTransactionsLoading;
-  }
-
-  @override
-  String? get errorMessage {
-    final state = context.watch<ContactTransactionsCubit>().state;
-    return state is ContactTransactionsError ? state.message : null;
-  }
-
-  @override
-  Color get primaryColor => Theme.of(context).colorScheme.primary;
-
-  @override
-  Color get multiSelectColor => Theme.of(context).colorScheme.primary.withValues(alpha: 0.9);
 
   @override
   List<Widget> buildContactAppBarActions(BuildContext context, ThemeData theme) {
@@ -259,16 +250,12 @@ class _ContactTransactionsPageState extends BaseContactTransactionPage<ContactTr
 
   @override
   void handleMultiSelectAction(MultiSelectAction action) {
-    // Implement specific action handling for contact transactions
     switch (action) {
       case MultiSelectAction.verifyAll:
-        // Handle verify all
         break;
       case MultiSelectAction.completeAll:
-        // Handle complete all
         break;
       case MultiSelectAction.deleteAll:
-        // Handle delete all
         break;
     }
   }
