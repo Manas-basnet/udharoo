@@ -214,12 +214,18 @@ class _TransactionsPageState extends BaseTransactionPage<TransactionsPage> {
 
   @override
   void handleMultiSelectAction(MultiSelectAction action) {
+    final cubit = context.read<TransactionCubit>();
+    final transactionIds = selectedTransactionIds.toList();
+
     switch (action) {
       case MultiSelectAction.verifyAll:
+        cubit.bulkVerifyTransactions(transactionIds);
         break;
       case MultiSelectAction.completeAll:
+        cubit.bulkCompleteTransactions(transactionIds);
         break;
       case MultiSelectAction.deleteAll:
+        cubit.bulkDeleteTransactions(transactionIds);
         break;
     }
   }

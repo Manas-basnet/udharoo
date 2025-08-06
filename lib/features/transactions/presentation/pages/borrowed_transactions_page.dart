@@ -229,15 +229,18 @@ class _BorrowedTransactionsPageState extends BaseTransactionPage<BorrowedTransac
 
   @override
   void handleMultiSelectAction(MultiSelectAction action) {
+    final cubit = context.read<TransactionCubit>();
+    final transactionIds = selectedTransactionIds.toList();
+
     switch (action) {
       case MultiSelectAction.verifyAll:
-        for (final transactionId in selectedTransactionIds) {
-          context.read<TransactionCubit>().verifyTransaction(transactionId);
-        }
+        cubit.bulkVerifyTransactions(transactionIds);
         break;
       case MultiSelectAction.deleteAll:
+        cubit.bulkDeleteTransactions(transactionIds);
         break;
       case MultiSelectAction.completeAll:
+        cubit.bulkCompleteTransactions(transactionIds);
         break;
     }
   }

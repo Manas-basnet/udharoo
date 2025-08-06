@@ -3,11 +3,16 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:udharoo/core/network/api_result.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/domain/entities/bulk_operation_result.dart';
 import 'package:udharoo/features/transactions/domain/usecases/create_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/get_transactions_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/verify_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/complete_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/reject_transaction_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/bulk_verify_transactions_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/bulk_complete_transactions_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/bulk_reject_transactions_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/bulk_delete_transactions_usecase.dart';
 
 part 'transaction_state.dart';
 
@@ -17,6 +22,10 @@ class TransactionCubit extends Cubit<TransactionState> {
   final VerifyTransactionUseCase _verifyTransactionUseCase;
   final CompleteTransactionUseCase _completeTransactionUseCase;
   final RejectTransactionUseCase _rejectTransactionUseCase;
+  final BulkVerifyTransactionsUseCase _bulkVerifyTransactionsUseCase;
+  final BulkCompleteTransactionsUseCase _bulkCompleteTransactionsUseCase;
+  final BulkRejectTransactionsUseCase _bulkRejectTransactionsUseCase;
+  final BulkDeleteTransactionsUseCase _bulkDeleteTransactionsUseCase;
 
   StreamSubscription<List<Transaction>>? _transactionsSubscription;
 
@@ -26,11 +35,19 @@ class TransactionCubit extends Cubit<TransactionState> {
     required VerifyTransactionUseCase verifyTransactionUseCase,
     required CompleteTransactionUseCase completeTransactionUseCase,
     required RejectTransactionUseCase rejectTransactionUseCase,
+    required BulkVerifyTransactionsUseCase bulkVerifyTransactionsUseCase,
+    required BulkCompleteTransactionsUseCase bulkCompleteTransactionsUseCase,
+    required BulkRejectTransactionsUseCase bulkRejectTransactionsUseCase,
+    required BulkDeleteTransactionsUseCase bulkDeleteTransactionsUseCase,
   })  : _createTransactionUseCase = createTransactionUseCase,
         _getTransactionsUseCase = getTransactionsUseCase,
         _verifyTransactionUseCase = verifyTransactionUseCase,
         _completeTransactionUseCase = completeTransactionUseCase,
         _rejectTransactionUseCase = rejectTransactionUseCase,
+        _bulkVerifyTransactionsUseCase = bulkVerifyTransactionsUseCase,
+        _bulkCompleteTransactionsUseCase = bulkCompleteTransactionsUseCase,
+        _bulkRejectTransactionsUseCase = bulkRejectTransactionsUseCase,
+        _bulkDeleteTransactionsUseCase = bulkDeleteTransactionsUseCase,
         super(TransactionState.initial());
 
   void loadTransactions() {
@@ -165,6 +182,38 @@ class TransactionCubit extends Cubit<TransactionState> {
     );
   }
 
+  Future<void> bulkVerifyTransactions(List<String> transactionIds) async {
+    await _performBulkTransactionAction(
+      transactionIds: transactionIds,
+      action: () => _bulkVerifyTransactionsUseCase(transactionIds),
+      actionName: 'verify',
+    );
+  }
+
+  Future<void> bulkCompleteTransactions(List<String> transactionIds) async {
+    await _performBulkTransactionAction(
+      transactionIds: transactionIds,
+      action: () => _bulkCompleteTransactionsUseCase(transactionIds),
+      actionName: 'complete',
+    );
+  }
+
+  Future<void> bulkRejectTransactions(List<String> transactionIds) async {
+    await _performBulkTransactionAction(
+      transactionIds: transactionIds,
+      action: () => _bulkRejectTransactionsUseCase(transactionIds),
+      actionName: 'reject',
+    );
+  }
+
+  Future<void> bulkDeleteTransactions(List<String> transactionIds) async {
+    await _performBulkTransactionAction(
+      transactionIds: transactionIds,
+      action: () => _bulkDeleteTransactionsUseCase(transactionIds),
+      actionName: 'delete',
+    );
+  }
+
   Future<void> _performTransactionAction({
     required String transactionId,
     required Future<ApiResult<void>> Function() action,
@@ -203,6 +252,66 @@ class TransactionCubit extends Cubit<TransactionState> {
         processingTransactionIds: finalProcessingIds,
         errorMessage: _getErrorMessage(error),
       ));
+    }
+  }
+
+  Future<void> _performBulkTransactionAction({
+    required List<String> transactionIds,
+    required Future<ApiResult<BulkOperationResult>> Function() action,
+    required String actionName,
+  }) async {
+    if (isClosed) return;
+
+    final updatedProcessingIds = Set<String>.from(state.processingTransactionIds)
+      ..addAll(transactionIds);
+
+    emit(state.copyWith(processingTransactionIds: updatedProcessingIds).clearMessages());
+
+    try {
+      final result = await action();
+
+      if (isClosed) return;
+
+      final finalProcessingIds = Set<String>.from(state.processingTransactionIds)
+        ..removeAll(transactionIds);
+
+      emit(state.copyWith(processingTransactionIds: finalProcessingIds));
+
+      result.fold(
+        onSuccess: (bulkResult) {
+          final message = _getBulkSuccessMessage(bulkResult, actionName);
+          if (bulkResult.hasFailures) {
+            emit(state.copyWith(
+              successMessage: message,
+              errorMessage: 'Some operations failed: ${bulkResult.failedIds.length} out of ${bulkResult.totalProcessed}',
+            ));
+          } else {
+            emit(state.copyWith(successMessage: message));
+          }
+        },
+        onFailure: (message, _) => emit(state.copyWith(errorMessage: message)),
+      );
+    } catch (error) {
+      if (isClosed) return;
+
+      final finalProcessingIds = Set<String>.from(state.processingTransactionIds)
+        ..removeAll(transactionIds);
+
+      emit(state.copyWith(
+        processingTransactionIds: finalProcessingIds,
+        errorMessage: _getErrorMessage(error),
+      ));
+    }
+  }
+
+  String _getBulkSuccessMessage(BulkOperationResult result, String actionName) {
+    if (result.hasFailures && result.hasSuccesses) {
+      return '${result.successfulIds.length} transactions ${actionName}ed successfully, ${result.failedIds.length} failed';
+    } else if (result.hasSuccesses) {
+      final count = result.successfulIds.length;
+      return '$count transaction${count == 1 ? '' : 's'} ${actionName}ed successfully';
+    } else {
+      return 'All ${actionName} operations failed';
     }
   }
 

@@ -8,6 +8,7 @@ import 'package:udharoo/core/utils/exception_handler.dart';
 import 'package:udharoo/features/transactions/data/datasources/remote/transaction_remote_datasource.dart';
 import 'package:udharoo/features/transactions/data/models/transaction_model.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/domain/entities/bulk_operation_result.dart';
 import 'package:udharoo/features/transactions/domain/repositories/transaction_repository.dart';
 
 class TransactionRepositoryImpl extends BaseRepository implements TransactionRepository {
@@ -186,6 +187,81 @@ class TransactionRepositoryImpl extends BaseRepository implements TransactionRep
     return ExceptionHandler.handleExceptions(() async {
       final transactionModel = await _remoteDatasource.getTransactionById(transactionId);
       return ApiResult.success(transactionModel);
+    });
+  }
+
+  @override
+  Future<ApiResult<BulkOperationResult>> bulkVerifyTransactions(List<String> transactionIds) async {
+    return ExceptionHandler.handleExceptions(() async {
+      final result = await _remoteDatasource.bulkVerifyTransactions(transactionIds);
+      return ApiResult.success(result);
+    });
+  }
+
+  @override
+  Future<ApiResult<BulkOperationResult>> bulkCompleteTransactions(List<String> transactionIds) async {
+    return ExceptionHandler.handleExceptions(() async {
+      final failedIds = <String>[];
+      final failureReasons = <String, String>{};
+      final validTransactionIds = <String>[];
+
+      for (final transactionId in transactionIds) {
+        try {
+          final transaction = await _remoteDatasource.getTransactionById(transactionId);
+          
+          if (transaction == null) {
+            failedIds.add(transactionId);
+            failureReasons[transactionId] = 'Transaction not found';
+            continue;
+          }
+
+          final isLender = transaction.type == TransactionType.lent;
+          if (!isLender) {
+            failedIds.add(transactionId);
+            failureReasons[transactionId] = 'Only the lender can complete this transaction';
+            continue;
+          }
+
+          validTransactionIds.add(transactionId);
+        } catch (e) {
+          failedIds.add(transactionId);
+          failureReasons[transactionId] = e.toString();
+        }
+      }
+
+      if (validTransactionIds.isEmpty) {
+        return ApiResult.success(BulkOperationResult(
+          successfulIds: [],
+          failedIds: failedIds,
+          failureReasons: failureReasons,
+        ));
+      }
+
+      final bulkResult = await _remoteDatasource.bulkCompleteTransactions(validTransactionIds);
+      
+      final combinedResult = BulkOperationResult(
+        successfulIds: bulkResult.successfulIds,
+        failedIds: [...failedIds, ...bulkResult.failedIds],
+        failureReasons: {...failureReasons, ...bulkResult.failureReasons},
+      );
+
+      return ApiResult.success(combinedResult);
+    });
+  }
+
+  @override
+  Future<ApiResult<BulkOperationResult>> bulkRejectTransactions(List<String> transactionIds) async {
+    return ExceptionHandler.handleExceptions(() async {
+      final result = await _remoteDatasource.bulkRejectTransactions(transactionIds);
+      return ApiResult.success(result);
+    });
+  }
+
+  @override
+  Future<ApiResult<BulkOperationResult>> bulkDeleteTransactions(List<String> transactionIds) async {
+    return ExceptionHandler.handleExceptions(() async {
+      final result = await _remoteDatasource.bulkDeleteTransactions(transactionIds);
+      return ApiResult.success(result);
     });
   }
 

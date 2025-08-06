@@ -229,15 +229,18 @@ class _LentTransactionsPageState extends BaseTransactionPage<LentTransactionsPag
 
   @override
   void handleMultiSelectAction(MultiSelectAction action) {
+    final cubit = context.read<TransactionCubit>();
+    final transactionIds = selectedTransactionIds.toList();
+
     switch (action) {
       case MultiSelectAction.completeAll:
-        for (final transactionId in selectedTransactionIds) {
-          context.read<TransactionCubit>().completeTransaction(transactionId);
-        }
+        cubit.bulkCompleteTransactions(transactionIds);
         break;
       case MultiSelectAction.deleteAll:
+        cubit.bulkDeleteTransactions(transactionIds);
         break;
       case MultiSelectAction.verifyAll:
+        cubit.bulkVerifyTransactions(transactionIds);
         break;
     }
   }

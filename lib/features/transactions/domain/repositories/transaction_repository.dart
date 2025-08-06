@@ -1,5 +1,6 @@
 import 'package:udharoo/core/network/api_result.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/domain/entities/bulk_operation_result.dart';
 
 abstract class TransactionRepository {
   Future<ApiResult<void>> createTransaction({
@@ -29,4 +30,12 @@ abstract class TransactionRepository {
   Future<ApiResult<List<Transaction>>> getTransactionsByStatus(TransactionStatus status);
 
   Future<ApiResult<Transaction?>> getTransactionById(String transactionId);
+
+  Future<ApiResult<BulkOperationResult>> bulkVerifyTransactions(List<String> transactionIds);
+
+  Future<ApiResult<BulkOperationResult>> bulkCompleteTransactions(List<String> transactionIds);
+
+  Future<ApiResult<BulkOperationResult>> bulkRejectTransactions(List<String> transactionIds);
+
+  Future<ApiResult<BulkOperationResult>> bulkDeleteTransactions(List<String> transactionIds);
 }

@@ -5,6 +5,7 @@ import 'package:udharoo/core/utils/custom_exceptions.dart';
 import 'package:udharoo/features/transactions/data/models/transaction_model.dart';
 import 'package:udharoo/features/transactions/data/utils/transaction_extensions.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/domain/entities/bulk_operation_result.dart';
 
 abstract class TransactionRemoteDatasource {
   Future<void> createTransaction(TransactionModel transaction);
@@ -13,6 +14,10 @@ abstract class TransactionRemoteDatasource {
   Future<TransactionModel?> getTransactionById(String transactionId);
   Future<List<TransactionModel>> getTransactionsByType(TransactionType type);
   Future<List<TransactionModel>> getTransactionsByStatus(TransactionStatus status);
+  Future<BulkOperationResult> bulkVerifyTransactions(List<String> transactionIds);
+  Future<BulkOperationResult> bulkCompleteTransactions(List<String> transactionIds);
+  Future<BulkOperationResult> bulkRejectTransactions(List<String> transactionIds);
+  Future<BulkOperationResult> bulkDeleteTransactions(List<String> transactionIds);
 }
 
 class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
@@ -141,6 +146,165 @@ class TransactionRemoteDatasourceImpl implements TransactionRemoteDatasource {
     return snapshot.docs.map((doc) {
       return TransactionModel.fromJson(doc.data());
     }).toList();
+  }
+
+  @override
+  Future<BulkOperationResult> bulkVerifyTransactions(List<String> transactionIds) async {
+    return await _performBulkOperation(
+      transactionIds,
+      TransactionStatus.verified,
+      'verifiedAt',
+    );
+  }
+
+  @override
+  Future<BulkOperationResult> bulkCompleteTransactions(List<String> transactionIds) async {
+    return await _performBulkOperation(
+      transactionIds,
+      TransactionStatus.completed,
+      'completedAt',
+    );
+  }
+
+  @override
+  Future<BulkOperationResult> bulkRejectTransactions(List<String> transactionIds) async {
+    return await _performBulkOperation(
+      transactionIds,
+      TransactionStatus.rejected,
+      null,
+    );
+  }
+
+  @override
+  Future<BulkOperationResult> bulkDeleteTransactions(List<String> transactionIds) async {
+    await checkInternetAndThrow();
+    
+    final successfulIds = <String>[];
+    final failedIds = <String>[];
+    final failureReasons = <String, String>{};
+
+    final batch = _firestore.batch();
+    var operationCount = 0;
+
+    for (final transactionId in transactionIds) {
+      try {
+        final docRef = _userTransactionsCollection.doc(transactionId);
+        batch.delete(docRef);
+        operationCount++;
+        
+        if (operationCount >= 500) {
+          await batch.commit();
+          operationCount = 0;
+        }
+      } catch (e) {
+        failedIds.add(transactionId);
+        failureReasons[transactionId] = e.toString();
+      }
+    }
+
+    try {
+      if (operationCount > 0) {
+        await batch.commit();
+      }
+      
+      successfulIds.addAll(
+        transactionIds.where((id) => !failedIds.contains(id))
+      );
+    } catch (e) {
+      for (final id in transactionIds) {
+        if (!failedIds.contains(id)) {
+          failedIds.add(id);
+          failureReasons[id] = e.toString();
+        }
+      }
+    }
+
+    return BulkOperationResult(
+      successfulIds: successfulIds,
+      failedIds: failedIds,
+      failureReasons: failureReasons,
+    );
+  }
+
+  Future<BulkOperationResult> _performBulkOperation(
+    List<String> transactionIds,
+    TransactionStatus status,
+    String? timestampField,
+  ) async {
+    await checkInternetAndThrow();
+    
+    final successfulIds = <String>[];
+    final failedIds = <String>[];
+    final failureReasons = <String, String>{};
+
+    final batch = _firestore.batch();
+    var operationCount = 0;
+
+    for (final transactionId in transactionIds) {
+      try {
+        final updateData = <String, dynamic>{
+          'status': TransactionUtils.transactionStatusToString(status),
+        };
+
+        if (timestampField != null) {
+          updateData[timestampField] = DateTime.now().toIso8601String();
+        }
+
+        final transactionDoc = await _userTransactionsCollection.doc(transactionId).get();
+        if (transactionDoc.exists && transactionDoc.data() != null) {
+          final currentData = transactionDoc.data()!;
+          final activities = (currentData['activities'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? <Map<String, dynamic>>[];
+          
+          final activity = TransactionActivityModel(
+            action: status,
+            timestamp: DateTime.now(),
+            performedBy: _currentUserId,
+            deviceInfo: null,
+          );
+          
+          activities.add(activity.toJson());
+          updateData['activities'] = activities;
+
+          final docRef = _userTransactionsCollection.doc(transactionId);
+          batch.update(docRef, updateData);
+          operationCount++;
+          
+          if (operationCount >= 500) {
+            await batch.commit();
+            operationCount = 0;
+          }
+        } else {
+          failedIds.add(transactionId);
+          failureReasons[transactionId] = 'Transaction not found';
+        }
+      } catch (e) {
+        failedIds.add(transactionId);
+        failureReasons[transactionId] = e.toString();
+      }
+    }
+
+    try {
+      if (operationCount > 0) {
+        await batch.commit();
+      }
+      
+      successfulIds.addAll(
+        transactionIds.where((id) => !failedIds.contains(id))
+      );
+    } catch (e) {
+      for (final id in transactionIds) {
+        if (!failedIds.contains(id)) {
+          failedIds.add(id);
+          failureReasons[id] = e.toString();
+        }
+      }
+    }
+
+    return BulkOperationResult(
+      successfulIds: successfulIds,
+      failedIds: failedIds,
+      failureReasons: failureReasons,
+    );
   }
 
   checkInternetAndThrow() async {

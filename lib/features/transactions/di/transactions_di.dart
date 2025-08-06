@@ -7,6 +7,10 @@ import 'package:udharoo/features/transactions/domain/usecases/get_transactions_u
 import 'package:udharoo/features/transactions/domain/usecases/verify_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/complete_transaction_usecase.dart';
 import 'package:udharoo/features/transactions/domain/usecases/reject_transaction_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/bulk_verify_transactions_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/bulk_complete_transactions_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/bulk_reject_transactions_usecase.dart';
+import 'package:udharoo/features/transactions/domain/usecases/bulk_delete_transactions_usecase.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_form/transaction_form_cubit.dart';
 
@@ -16,6 +20,11 @@ Future<void> initTransactions(GetIt sl) async {
   sl.registerLazySingleton(() => VerifyTransactionUseCase(sl()));
   sl.registerLazySingleton(() => CompleteTransactionUseCase(sl()));
   sl.registerLazySingleton(() => RejectTransactionUseCase(sl()));
+  
+  sl.registerLazySingleton(() => BulkVerifyTransactionsUseCase(sl()));
+  sl.registerLazySingleton(() => BulkCompleteTransactionsUseCase(sl()));
+  sl.registerLazySingleton(() => BulkRejectTransactionsUseCase(sl()));
+  sl.registerLazySingleton(() => BulkDeleteTransactionsUseCase(sl()));
 
   sl.registerLazySingleton<TransactionRepository>(
     () => TransactionRepositoryImpl(
@@ -39,6 +48,10 @@ Future<void> initTransactions(GetIt sl) async {
       verifyTransactionUseCase: sl(),
       completeTransactionUseCase: sl(),
       rejectTransactionUseCase: sl(),
+      bulkVerifyTransactionsUseCase: sl(),
+      bulkCompleteTransactionsUseCase: sl(),
+      bulkRejectTransactionsUseCase: sl(),
+      bulkDeleteTransactionsUseCase: sl(),
     ),
   );
 
