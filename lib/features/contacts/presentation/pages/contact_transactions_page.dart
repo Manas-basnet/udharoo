@@ -41,7 +41,8 @@ class _ContactTransactionsPageState extends BaseContactTransactionPage<ContactTr
   Color get multiSelectColor => Theme.of(context).colorScheme.primary.withValues(alpha: 0.9);
 
   @override
-  ContactTransactionPageData getContactPageData(BuildContext context, ContactTransactionsState state) {
+  ContactTransactionPageData getContactPageData(BuildContext context) {
+    final state = context.watch<ContactTransactionsCubit>().state;
     final allTransactions = state is ContactTransactionsLoaded ? state.transactions : <Transaction>[];
     final filteredTransactions = _getFilteredTransactions(allTransactions);
     

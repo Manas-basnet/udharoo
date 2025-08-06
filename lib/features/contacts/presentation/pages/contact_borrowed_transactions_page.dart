@@ -46,7 +46,8 @@ class _ContactBorrowedTransactionsPageState extends BaseContactTransactionPage<C
   Color get multiSelectColor => Colors.orange.withValues(alpha: 0.9);
 
   @override
-  ContactTransactionPageData getContactPageData(BuildContext context, ContactTransactionsState state) {
+  ContactTransactionPageData getContactPageData(BuildContext context) {
+    final state = context.watch<ContactTransactionsCubit>().state;
     final allTransactions = state is ContactTransactionsLoaded 
         ? state.transactions.where((t) => t.isBorrowed).toList()
         : <Transaction>[];
@@ -242,7 +243,7 @@ class _ContactBorrowedTransactionsPageState extends BaseContactTransactionPage<C
       case MultiSelectAction.verifyAll:
         // ignore: unused_local_variable
         for (final transactionId in selectedTransactionIds) {
-          // TODO:Handle verifying all selected transactions
+          //TODO: Handle verifying
         }
         break;
       case MultiSelectAction.deleteAll:

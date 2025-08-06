@@ -46,7 +46,8 @@ class _ContactLentTransactionsPageState extends BaseContactTransactionPage<Conta
   Color get multiSelectColor => Colors.green.withValues(alpha: 0.9);
 
   @override
-  ContactTransactionPageData getContactPageData(BuildContext context, ContactTransactionsState state) {
+  ContactTransactionPageData getContactPageData(BuildContext context) {
+    final state = context.watch<ContactTransactionsCubit>().state;
     final allTransactions = state is ContactTransactionsLoaded 
         ? state.transactions.where((t) => t.isLent).toList()
         : <Transaction>[];

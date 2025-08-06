@@ -58,7 +58,7 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
   Color get primaryColor;
   Color get multiSelectColor;
   
-  ContactTransactionPageData getContactPageData(BuildContext context, ContactTransactionsState state);
+  ContactTransactionPageData getContactPageData(BuildContext context);
   List<Widget> buildContactAppBarActions(BuildContext context, ThemeData theme);
   List<Widget>? buildContactSummaryCards(BuildContext context, ThemeData theme, List<Transaction> transactions);
   List<Widget> buildFilterChips(BuildContext context, ThemeData theme);
@@ -99,7 +99,7 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
             }
           },
           builder: (context, transactionState) {
-            final pageData = getContactPageData(context, transactionState);
+            final pageData = getContactPageData(context);
             
             return RefreshIndicator(
               onRefresh: () async => onRefresh(),
@@ -123,7 +123,7 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
           },
         ),
         bottomNavigationBar: isMultiSelectMode
-            ? buildMultiSelectBottomBar(theme)
+            ? buildMultiSelectBottomBar(theme, getContactPageData(context))
             : null,
       ),
     );
@@ -274,9 +274,9 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
     );
   }
 
-  Widget buildMultiSelectBottomBar(ThemeData theme) {
+  Widget buildMultiSelectBottomBar(ThemeData theme, ContactTransactionPageData pageData) {
     return MultiSelectBottomBar(
-      availableAction: getAvailableAction([]),
+      availableAction: getAvailableAction(pageData.allContactTransactions),
       getActionText: getActionText,
       getActionIcon: getActionIcon,
       getActionColor: getActionColor,
