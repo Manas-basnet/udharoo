@@ -27,83 +27,58 @@ class TransactionDetailScreen extends StatelessWidget {
     final verticalSpacing = screenHeight * 0.012;
     final cardSpacing = screenHeight * 0.016;
 
-    return BlocListener<TransactionCubit, TransactionState>(
-      listener: (context, state) {
-        if (state.hasSuccess) {
-          CustomToast.show(
-            context,
-            message: state.successMessage!,
-            isSuccess: true,
-          );
-          context.read<TransactionCubit>().clearSuccess();
-          
-          if (state.successMessage!.contains('deleted')) {
-            context.pop();
-          }
-        }
-        
-        if (state.hasError) {
-          CustomToast.show(
-            context,
-            message: state.errorMessage!,
-            isSuccess: false,
-          );
-          context.read<TransactionCubit>().clearError();
-        }
-      },
-      child: SafeArea(
-        child: Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          body: CustomScrollView(
-            slivers: [
-              _buildAppBar(theme, horizontalPadding, context),
-              
-              SliverPadding(
-                padding: EdgeInsets.all(horizontalPadding),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    _buildTransactionSummary(theme, screenWidth, verticalSpacing),
-                    
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: CustomScrollView(
+          slivers: [
+            _buildAppBar(theme, horizontalPadding, context),
+            
+            SliverPadding(
+              padding: EdgeInsets.all(horizontalPadding),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _buildTransactionSummary(theme, screenWidth, verticalSpacing),
+                  
+                  SizedBox(height: cardSpacing),
+                  
+                  StatusIndicator(
+                    transaction: transaction,
+                    isCurrentUserCreator: _isCreatedByCurrentUser(),
+                  ),
+                  
+                  SizedBox(height: cardSpacing),
+                  
+                  _buildWhatHappensNext(theme, screenWidth, verticalSpacing),
+                  
+                  SizedBox(height: cardSpacing),
+                  
+                  _buildContactCard(context, theme, screenWidth, verticalSpacing),
+                  
+                  SizedBox(height: cardSpacing),
+                  
+                  _buildTransactionDetails(theme, screenWidth, verticalSpacing),
+                  
+                  if (_hasTimeline()) ...[
                     SizedBox(height: cardSpacing),
-                    
-                    StatusIndicator(
-                      transaction: transaction,
-                      isCurrentUserCreator: _isCreatedByCurrentUser(),
-                    ),
-                    
+                    _buildActivityTimeline(theme, screenWidth, verticalSpacing),
+                  ],
+                  
+                  if (_hasDeviceInfo()) ...[
                     SizedBox(height: cardSpacing),
-                    
-                    _buildWhatHappensNext(theme, screenWidth, verticalSpacing),
-                    
-                    SizedBox(height: cardSpacing),
-                    
-                    _buildContactCard(context, theme, screenWidth, verticalSpacing),
-                    
-                    SizedBox(height: cardSpacing),
-                    
-                    _buildTransactionDetails(theme, screenWidth, verticalSpacing),
-                    
-                    if (_hasTimeline()) ...[
-                      SizedBox(height: cardSpacing),
-                      _buildActivityTimeline(theme, screenWidth, verticalSpacing),
-                    ],
-                    
-                    if (_hasDeviceInfo()) ...[
-                      SizedBox(height: cardSpacing),
-                      _buildDeviceInfo(theme, screenWidth, verticalSpacing),
-                    ],
-                    
-                    SizedBox(height: cardSpacing * 2),
-                  ]),
-                ),
+                    _buildDeviceInfo(theme, screenWidth, verticalSpacing),
+                  ],
+                  
+                  SizedBox(height: cardSpacing * 2),
+                ]),
               ),
-            ],
-          ),
-          
-          bottomNavigationBar: _shouldShowActions() 
-              ? _buildActionBar(context, theme, horizontalPadding)
-              : null,
+            ),
+          ],
         ),
+        
+        bottomNavigationBar: _shouldShowActions() 
+            ? _buildActionBar(context, theme, horizontalPadding)
+            : null,
       ),
     );
   }
@@ -195,37 +170,6 @@ class TransactionDetailScreen extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  
-                  if (_isTransactionDeletable())
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.red.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.delete_outline,
-                            size: 12,
-                            color: Colors.red.shade600,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Deletable',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.red.shade600,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                 ],
               ),
             ],

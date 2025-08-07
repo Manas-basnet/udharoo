@@ -8,7 +8,6 @@ import 'package:udharoo/features/contacts/presentation/widgets/add_contact_dialo
 import 'package:udharoo/features/home/presentation/widgets/home_transaction_item.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
-import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 import 'package:udharoo/shared/presentation/widgets/quick_transaction_dialog.dart';
 import 'package:udharoo/shared/utils/transaction_display_helper.dart';
 
@@ -19,50 +18,29 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return BlocListener<TransactionCubit, TransactionState>(
-      listener: (context, state) {
-        if (state.hasSuccess) {
-          CustomToast.show(
-            context,
-            message: state.successMessage!,
-            isSuccess: true,
-          );
-          context.read<TransactionCubit>().clearSuccess();
-        }
-        
-        if (state.hasError) {
-          CustomToast.show(
-            context,
-            message: state.errorMessage!,
-            isSuccess: false,
-          );
-          context.read<TransactionCubit>().clearError();
-        }
-      },
-      child: SafeArea(
-        child: Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          body: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(context, theme),
-                
-                BlocBuilder<TransactionCubit, TransactionState>(
-                  builder: (context, state) {
-                    return Column(
-                      children: [
-                        _buildNetBalanceCard(state, theme),
-                        _buildQuickActions(context, theme),
-                        _buildRecentTransactions(context, state, theme),
-                      ],
-                    );
-                  },
-                ),
-                
-                const SizedBox(height: 20),
-              ],
-            ),
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context, theme),
+              
+              BlocBuilder<TransactionCubit, TransactionState>(
+                builder: (context, state) {
+                  return Column(
+                    children: [
+                      _buildNetBalanceCard(state, theme),
+                      _buildQuickActions(context, theme),
+                      _buildRecentTransactions(context, state, theme),
+                    ],
+                  );
+                },
+              ),
+              
+              const SizedBox(height: 20),
+            ],
           ),
         ),
       ),

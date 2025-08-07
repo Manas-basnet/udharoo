@@ -323,30 +323,4 @@ class _ContactTransactionsPageState extends BaseContactTransactionPage<ContactTr
   void _createNewTransaction(BuildContext context) {
     context.go(Routes.transactionForm, extra: TransactionFormExtra(prefilledContact: contact));
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocListener<TransactionCubit, TransactionState>(
-      listener: (context, state) {
-        if (state.hasSuccess) {
-          CustomToast.show(
-            context,
-            message: state.successMessage!,
-            isSuccess: true,
-          );
-          context.read<TransactionCubit>().clearSuccess();
-        }
-        
-        if (state.hasError) {
-          CustomToast.show(
-            context,
-            message: state.errorMessage!,
-            isSuccess: false,
-          );
-          context.read<TransactionCubit>().clearError();
-        }
-      },
-      child: super.build(context),
-    );
-  }
 }

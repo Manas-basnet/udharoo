@@ -10,7 +10,6 @@ import 'package:udharoo/shared/presentation/widgets/transactions/transaction_act
 import 'package:udharoo/shared/presentation/widgets/transactions/transaction_filter_chip.dart';
 import 'package:udharoo/shared/presentation/widgets/transactions/transaction_summary_card.dart';
 import 'package:udharoo/shared/presentation/widgets/transactions/transaction_state_widgets.dart';
-import 'package:udharoo/shared/presentation/widgets/custom_toast.dart';
 import 'package:udharoo/shared/mixins/multi_select_mixin.dart';
 
 enum BorrowedTransactionFilter { 
@@ -243,31 +242,5 @@ class _BorrowedTransactionsPageState extends BaseTransactionPage<BorrowedTransac
         cubit.bulkCompleteTransactions(transactionIds);
         break;
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocListener<TransactionCubit, TransactionState>(
-      listener: (context, state) {
-        if (state.hasSuccess) {
-          CustomToast.show(
-            context,
-            message: state.successMessage!,
-            isSuccess: true,
-          );
-          context.read<TransactionCubit>().clearSuccess();
-        }
-        
-        if (state.hasError) {
-          CustomToast.show(
-            context,
-            message: state.errorMessage!,
-            isSuccess: false,
-          );
-          context.read<TransactionCubit>().clearError();
-        }
-      },
-      child: super.build(context),
-    );
   }
 }

@@ -311,7 +311,7 @@ class TransactionCubit extends Cubit<TransactionState> {
       final count = result.successfulIds.length;
       return '$count transaction${count == 1 ? '' : 's'} ${actionName}ed successfully';
     } else {
-      return 'All ${actionName} operations failed';
+      return 'All $actionName operations failed';
     }
   }
 

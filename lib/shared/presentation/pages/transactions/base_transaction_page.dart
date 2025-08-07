@@ -24,19 +24,22 @@ class TransactionPageData {
   });
 }
 
-abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T> 
+abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T>
     with MultiSelectMixin<T>, ResponsiveLayoutMixin {
-
   String get pageTitle;
   Color get primaryColor;
   Color get multiSelectColor;
-  
+
   TransactionPageData getPageData(BuildContext context);
-  List<Widget> buildAppBarActions(BuildContext context, ThemeData theme, double horizontalPadding);
+  List<Widget> buildAppBarActions(
+    BuildContext context,
+    ThemeData theme,
+    double horizontalPadding,
+  );
   List<Widget>? buildSummaryCards(BuildContext context, ThemeData theme);
   List<Widget> buildFilterChips(BuildContext context, ThemeData theme);
   Widget buildEmptyState(BuildContext context, ThemeData theme);
-  
+
   void onRefresh();
   void handleMultiSelectAction(MultiSelectAction action);
 
@@ -66,13 +69,19 @@ abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T>
                 buildMultiSelectAppBar(theme, horizontalPadding, pageData)
               else
                 buildSliverAppBar(theme, expandedHeight, horizontalPadding),
-              
-              if (!isMultiSelectMode && buildSummaryCards(context, theme) != null)
+    
+              if (!isMultiSelectMode &&
+                  buildSummaryCards(context, theme) != null)
                 buildSummarySection(context, theme),
-              
+    
               buildFilterSection(context, theme, horizontalPadding),
-              
-              buildTransactionsList(context, theme, horizontalPadding, pageData),
+    
+              buildTransactionsList(
+                context,
+                theme,
+                horizontalPadding,
+                pageData,
+              ),
             ],
           ),
         ),
@@ -83,7 +92,11 @@ abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T>
     );
   }
 
-  Widget buildMultiSelectAppBar(ThemeData theme, double horizontalPadding, TransactionPageData pageData) {
+  Widget buildMultiSelectAppBar(
+    ThemeData theme,
+    double horizontalPadding,
+    TransactionPageData pageData,
+  ) {
     return MultiSelectAppBar(
       selectedCount: selectedCount,
       backgroundColor: multiSelectColor,
@@ -93,7 +106,11 @@ abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T>
     );
   }
 
-  Widget buildSliverAppBar(ThemeData theme, double expandedHeight, double horizontalPadding) {
+  Widget buildSliverAppBar(
+    ThemeData theme,
+    double expandedHeight,
+    double horizontalPadding,
+  ) {
     return SliverAppBar(
       backgroundColor: theme.scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
@@ -129,7 +146,9 @@ abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T>
         padding: const EdgeInsets.all(16),
         child: Row(
           children: summaryCards
-              .expand((card) => [Expanded(child: card), const SizedBox(width: 8)])
+              .expand(
+                (card) => [Expanded(child: card), const SizedBox(width: 8)],
+              )
               .take(summaryCards.length * 2 - 1)
               .toList(),
         ),
@@ -137,14 +156,23 @@ abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T>
     );
   }
 
-  Widget buildFilterSection(BuildContext context, ThemeData theme, double horizontalPadding) {
+  Widget buildFilterSection(
+    BuildContext context,
+    ThemeData theme,
+    double horizontalPadding,
+  ) {
     return TransactionFilterSection(
       filterChips: buildFilterChips(context, theme),
       horizontalPadding: horizontalPadding,
     );
   }
 
-  Widget buildTransactionsList(BuildContext context, ThemeData theme, double horizontalPadding, TransactionPageData pageData) {
+  Widget buildTransactionsList(
+    BuildContext context,
+    ThemeData theme,
+    double horizontalPadding,
+    TransactionPageData pageData,
+  ) {
     return TransactionListSliver(
       transactions: pageData.filteredTransactions,
       isLoading: pageData.isLoading,
@@ -161,7 +189,10 @@ abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T>
     );
   }
 
-  Widget buildMultiSelectBottomBar(ThemeData theme, TransactionPageData pageData) {
+  Widget buildMultiSelectBottomBar(
+    ThemeData theme,
+    TransactionPageData pageData,
+  ) {
     return MultiSelectBottomBar(
       availableAction: getAvailableAction(pageData.allTransactions),
       getActionText: getActionText,
@@ -182,7 +213,8 @@ abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T>
           default:
             CustomToast.show(
               context,
-              message: '${getActionText(action)}ing $selectedCount transactions...',
+              message:
+                  '${getActionText(action)}ing $selectedCount transactions...',
               isSuccess: true,
             );
             handleMultiSelectAction(action);

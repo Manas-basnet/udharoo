@@ -6,6 +6,7 @@ import 'package:udharoo/features/contacts/domain/entities/contact.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_cubit.dart';
 import 'package:udharoo/features/contacts/presentation/bloc/contact_transactions/contact_transactions_cubit.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
+import 'package:udharoo/features/transactions/presentation/bloc/transaction_cubit.dart';
 import 'package:udharoo/shared/mixins/multi_select_mixin.dart';
 import 'package:udharoo/shared/mixins/responsive_layout_mixin.dart';
 import 'package:udharoo/shared/presentation/widgets/transactions/multi_select_widgets.dart';
@@ -27,11 +28,11 @@ class ContactTransactionPageData {
   });
 }
 
-abstract class BaseContactTransactionPage<T extends StatefulWidget> extends State<T> 
+abstract class BaseContactTransactionPage<T extends StatefulWidget>
+    extends State<T>
     with MultiSelectMixin<T>, ResponsiveLayoutMixin {
-
   abstract final String contactUserId;
-  
+
   Contact? _contact;
   Contact? get contact => _contact;
 
@@ -44,12 +45,16 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
   }
 
   void _loadContactAndTransactions() {
-    context.read<ContactCubit>().getContactByUserId(contactUserId).then((contact) {
+    context.read<ContactCubit>().getContactByUserId(contactUserId).then((
+      contact,
+    ) {
       if (mounted) {
         setState(() {
           _contact = contact;
         });
-        context.read<ContactTransactionsCubit>().loadContactTransactions(contactUserId);
+        context.read<ContactTransactionsCubit>().loadContactTransactions(
+          contactUserId,
+        );
       }
     });
   }
@@ -57,14 +62,18 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
   String get pageTitle;
   Color get primaryColor;
   Color get multiSelectColor;
-  
+
   ContactTransactionPageData getContactPageData(BuildContext context);
   List<Widget> buildContactAppBarActions(BuildContext context, ThemeData theme);
-  List<Widget>? buildContactSummaryCards(BuildContext context, ThemeData theme, List<Transaction> transactions);
+  List<Widget>? buildContactSummaryCards(
+    BuildContext context,
+    ThemeData theme,
+    List<Transaction> transactions,
+  );
   List<Widget> buildFilterChips(BuildContext context, ThemeData theme);
   Widget buildEmptyState(BuildContext context, ThemeData theme);
   Widget? buildHeaderIcon(ThemeData theme);
-  
+
   void onRefresh();
   void handleMultiSelectAction(MultiSelectAction action);
 
@@ -77,59 +86,111 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
     final topPadding = mediaQuery.padding.top;
 
     final horizontalPadding = getResponsiveHorizontalPadding(screenWidth);
-    final expandedHeight = calculateExpandedHeight(screenHeight, topPadding, hasExtendedHeader: true);
+    final expandedHeight = calculateExpandedHeight(
+      screenHeight,
+      topPadding,
+      hasExtendedHeader: true,
+    );
 
     if (_contact == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: BlocConsumer<ContactTransactionsCubit, ContactTransactionsState>(
-          listener: (context, state) {
-            if (state is ContactTransactionsError) {
-              CustomToast.show(
-                context,
-                message: state.message,
-                isSuccess: false,
-              );
-            }
-          },
-          builder: (context, transactionState) {
-            final pageData = getContactPageData(context);
-            
-            return RefreshIndicator(
-              onRefresh: () async => onRefresh(),
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  if (isMultiSelectMode)
-                    buildMultiSelectAppBar(theme, horizontalPadding, pageData)
-                  else
-                    buildContactSliverAppBar(theme, horizontalPadding, expandedHeight, transactionState),
-                  
-                  if (!isMultiSelectMode && transactionState is ContactTransactionsLoaded)
-                    buildContactSummarySection(context, theme, transactionState.transactions),
-                  
-                  buildFilterSection(context, theme, horizontalPadding, transactionState),
-                  
-                  buildContactTransactionsList(context, theme, horizontalPadding, pageData),
-                ],
+    return BlocListener<TransactionCubit, TransactionState>(
+      listener: (context, state) {
+        if (state.hasSuccess) {
+          CustomToast.show(
+            context,
+            message: state.successMessage!,
+            isSuccess: true,
+          );
+          context.read<TransactionCubit>().clearSuccess();
+        }
+        
+        if (state.hasError) {
+          CustomToast.show(
+            context,
+            message: state.errorMessage!,
+            isSuccess: false,
+          );
+          context.read<TransactionCubit>().clearError();
+        }
+      },
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          body:
+              BlocConsumer<ContactTransactionsCubit, ContactTransactionsState>(
+                listener: (context, state) {
+                  if (state is ContactTransactionsError) {
+                    CustomToast.show(
+                      context,
+                      message: state.message,
+                      isSuccess: false,
+                    );
+                  }
+                },
+                builder: (context, transactionState) {
+                  final pageData = getContactPageData(context);
+
+                  return RefreshIndicator(
+                    onRefresh: () async => onRefresh(),
+                    child: CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        if (isMultiSelectMode)
+                          buildMultiSelectAppBar(
+                            theme,
+                            horizontalPadding,
+                            pageData,
+                          )
+                        else
+                          buildContactSliverAppBar(
+                            theme,
+                            horizontalPadding,
+                            expandedHeight,
+                            transactionState,
+                          ),
+
+                        if (!isMultiSelectMode &&
+                            transactionState is ContactTransactionsLoaded)
+                          buildContactSummarySection(
+                            context,
+                            theme,
+                            transactionState.transactions,
+                          ),
+
+                        buildFilterSection(
+                          context,
+                          theme,
+                          horizontalPadding,
+                          transactionState,
+                        ),
+
+                        buildContactTransactionsList(
+                          context,
+                          theme,
+                          horizontalPadding,
+                          pageData,
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
-            );
-          },
+          bottomNavigationBar: isMultiSelectMode
+              ? buildMultiSelectBottomBar(theme, getContactPageData(context))
+              : null,
         ),
-        bottomNavigationBar: isMultiSelectMode
-            ? buildMultiSelectBottomBar(theme, getContactPageData(context))
-            : null,
       ),
     );
   }
 
-  Widget buildMultiSelectAppBar(ThemeData theme, double horizontalPadding, ContactTransactionPageData pageData) {
+  Widget buildMultiSelectAppBar(
+    ThemeData theme,
+    double horizontalPadding,
+    ContactTransactionPageData pageData,
+  ) {
     return MultiSelectAppBar(
       selectedCount: selectedCount,
       backgroundColor: multiSelectColor,
@@ -139,7 +200,12 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
     );
   }
 
-  Widget buildContactSliverAppBar(ThemeData theme, double horizontalPadding, double expandedHeight, ContactTransactionsState state) {
+  Widget buildContactSliverAppBar(
+    ThemeData theme,
+    double horizontalPadding,
+    double expandedHeight,
+    ContactTransactionsState state,
+  ) {
     return SliverAppBar(
       backgroundColor: theme.scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
@@ -151,7 +217,11 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
       centerTitle: false,
       titleSpacing: 0,
       leading: IconButton(
-        onPressed: () => context.pop(),
+        onPressed: () { 
+          if(context.canPop()) {
+            context.pop();
+          } 
+        },
         icon: const Icon(Icons.arrow_back_rounded, size: 22),
       ),
       actions: [
@@ -167,29 +237,30 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
             children: [
               Row(
                 children: [
-                  buildHeaderIcon(theme) ?? Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: primaryColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: primaryColor.withValues(alpha: 0.2),
-                        width: 2,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        _contact!.displayName.isNotEmpty
-                            ? _contact!.displayName[0].toUpperCase()
-                            : '?',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: primaryColor,
-                          fontWeight: FontWeight.w600,
+                  buildHeaderIcon(theme) ??
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: primaryColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: primaryColor.withValues(alpha: 0.2),
+                            width: 2,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            _contact!.displayName.isNotEmpty
+                                ? _contact!.displayName[0].toUpperCase()
+                                : '?',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: primaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
@@ -205,7 +276,9 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
                         Text(
                           _getSubtitle(),
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.6,
+                            ),
                           ),
                         ),
                       ],
@@ -231,7 +304,11 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
     }
   }
 
-  Widget buildContactSummarySection(BuildContext context, ThemeData theme, List<Transaction> transactions) {
+  Widget buildContactSummarySection(
+    BuildContext context,
+    ThemeData theme,
+    List<Transaction> transactions,
+  ) {
     final summaryCards = buildContactSummaryCards(context, theme, transactions);
     if (summaryCards == null || summaryCards.isEmpty) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
@@ -242,7 +319,9 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
         padding: const EdgeInsets.all(16),
         child: Row(
           children: summaryCards
-              .expand((card) => [Expanded(child: card), const SizedBox(width: 8)])
+              .expand(
+                (card) => [Expanded(child: card), const SizedBox(width: 8)],
+              )
               .take(summaryCards.length * 2 - 1)
               .toList(),
         ),
@@ -250,14 +329,24 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
     );
   }
 
-  Widget buildFilterSection(BuildContext context, ThemeData theme, double horizontalPadding, ContactTransactionsState state) {
+  Widget buildFilterSection(
+    BuildContext context,
+    ThemeData theme,
+    double horizontalPadding,
+    ContactTransactionsState state,
+  ) {
     return TransactionFilterSection(
       filterChips: buildFilterChips(context, theme),
       horizontalPadding: horizontalPadding,
     );
   }
 
-  Widget buildContactTransactionsList(BuildContext context, ThemeData theme, double horizontalPadding, ContactTransactionPageData pageData) {
+  Widget buildContactTransactionsList(
+    BuildContext context,
+    ThemeData theme,
+    double horizontalPadding,
+    ContactTransactionPageData pageData,
+  ) {
     return TransactionListSliver(
       transactions: pageData.filteredTransactions,
       isLoading: pageData.isLoading,
@@ -274,7 +363,10 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
     );
   }
 
-  Widget buildMultiSelectBottomBar(ThemeData theme, ContactTransactionPageData pageData) {
+  Widget buildMultiSelectBottomBar(
+    ThemeData theme,
+    ContactTransactionPageData pageData,
+  ) {
     return MultiSelectBottomBar(
       availableAction: getAvailableAction(pageData.allContactTransactions),
       getActionText: getActionText,
@@ -295,7 +387,8 @@ abstract class BaseContactTransactionPage<T extends StatefulWidget> extends Stat
           default:
             CustomToast.show(
               context,
-              message: '${getActionText(action)}ing $selectedCount transactions...',
+              message:
+                  '${getActionText(action)}ing $selectedCount transactions...',
               isSuccess: true,
             );
             handleMultiSelectAction(action);
