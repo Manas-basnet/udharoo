@@ -30,19 +30,10 @@ class TransactionFilterChip extends StatelessWidget {
     
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+      child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          gradient: isSelected ? LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              selectedColor,
-              selectedColor.withValues(alpha: 0.8),
-            ],
-          ) : null,
-          color: isSelected ? null : theme.colorScheme.surface,
+          color: isSelected ? selectedColor : theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected 

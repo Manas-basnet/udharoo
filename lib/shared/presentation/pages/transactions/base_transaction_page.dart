@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:udharoo/config/routes/routes_constants.dart';
 import 'package:udharoo/features/transactions/domain/entities/transaction.dart';
 import 'package:udharoo/shared/mixins/multi_select_mixin.dart';
@@ -42,6 +43,8 @@ abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T>
 
   void onRefresh();
   void handleMultiSelectAction(MultiSelectAction action);
+
+  bool get isMainPage;
 
   @override
   Widget build(BuildContext context) {
@@ -121,6 +124,17 @@ abstract class BaseTransactionPage<T extends StatefulWidget> extends State<T>
       expandedHeight: expandedHeight,
       automaticallyImplyLeading: false,
       centerTitle: false,
+      leading: isMainPage ? null : IconButton(
+        onPressed: () {
+          if(context.canPop()) {
+            context.pop();
+          }
+        },
+        icon: const Icon(
+          Icons.arrow_back_rounded,
+          size: 22,
+        ),
+      ),
       titleSpacing: horizontalPadding,
       title: Text(
         pageTitle,

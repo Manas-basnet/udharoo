@@ -48,6 +48,9 @@ class _TransactionsPageState extends BaseTransactionPage<TransactionsPage> {
   Color get multiSelectColor => Theme.of(context).colorScheme.primary.withValues(alpha: 0.9);
 
   @override
+  bool get isMainPage => true;
+
+  @override
   TransactionPageData getPageData(BuildContext context) {
     final state = context.watch<TransactionCubit>().state;
     

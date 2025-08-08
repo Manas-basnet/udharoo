@@ -39,6 +39,9 @@ class _LentTransactionsPageState extends BaseTransactionPage<LentTransactionsPag
   Color get multiSelectColor => Colors.green.withValues(alpha: 0.9);
 
   @override
+  bool get isMainPage => false;
+
+  @override
   TransactionPageData getPageData(BuildContext context) {
     final state = context.watch<TransactionCubit>().state;
     

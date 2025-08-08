@@ -44,6 +44,9 @@ class _RejectedTransactionsPageState extends BaseTransactionPage<RejectedTransac
   Color get multiSelectColor => Colors.red.withValues(alpha: 0.9);
 
   @override
+  bool get isMainPage => false;
+
+  @override
   TransactionPageData getPageData(BuildContext context) {
     final state = context.watch<TransactionCubit>().state;
     

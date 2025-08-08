@@ -39,6 +39,9 @@ class _BorrowedTransactionsPageState extends BaseTransactionPage<BorrowedTransac
   Color get multiSelectColor => Colors.orange.withValues(alpha: 0.9);
 
   @override
+  bool get isMainPage => false;
+
+  @override
   TransactionPageData getPageData(BuildContext context) {
     final state = context.watch<TransactionCubit>().state;
     
